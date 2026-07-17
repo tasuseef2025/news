@@ -21,6 +21,7 @@ function decodeEntities(value = "") {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
     .trim();
 }
 
@@ -38,13 +39,35 @@ function blocks(xml: string, tag: string) {
   return [...xml.matchAll(new RegExp(`<${tag}(?:\\s[^>]*)?>[\\s\\S]*?<\\/${tag}>`, "gi"))].map((match) => match[0]);
 }
 
+function cleanUrl(value = "") {
+  return decodeEntities(value).replace(/\s/g, "%20");
+}
+
+function isLikelyImageUrl(value = "") {
+  if (!value) return false;
+  try {
+    const url = new URL(cleanUrl(value));
+    const host = url.hostname.toLowerCase();
+    if (host.includes("youtube.com") || host.includes("youtu.be") || host.includes("vimeo.com")) return false;
+    if (/\.(avif|gif|jpe?g|png|webp)(\?|$)/i.test(url.pathname + url.search)) return true;
+    return ["ichef.bbci.co.uk", "media.npr.org", "media.guim.co.uk", "www.nasa.gov", "assets.science.nasa.gov"].some(
+      (allowedHost) => host === allowedHost || host.endsWith(`.${allowedHost}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function firstImageUrl(...values: Array<string | undefined>) {
+  return values.map((value) => cleanUrl(value || "")).find(isLikelyImageUrl) || "";
+}
+
 function imageFromEntry(block: string) {
-  return (
-    readAttr(block, "media:content", "url") ||
-    readAttr(block, "media:thumbnail", "url") ||
-    readAttr(block, "enclosure", "url") ||
-    block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ||
-    ""
+  return firstImageUrl(
+    readAttr(block, "media:content", "url"),
+    readAttr(block, "media:thumbnail", "url"),
+    readAttr(block, "enclosure", "url"),
+    block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]
   );
 }
 
@@ -76,7 +99,10 @@ async function ogImage(url: string) {
     const response = await fetch(url, { headers: { "User-Agent": "NewsroomBot/1.0" }, signal: AbortSignal.timeout(6000) });
     if (!response.ok) return "";
     const html = await response.text();
-    return html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] || "";
+    return firstImageUrl(
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1],
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+    );
   } catch {
     return "";
   }
@@ -93,12 +119,27 @@ function humanSummary(entry: FeedEntry) {
   return clean || `A developing story is being tracked from ${new URL(entry.link).hostname}.`;
 }
 
+function sourceHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "the original publisher";
+  }
+}
+
 function humanContent(entry: FeedEntry, sourceName: string) {
   const summary = humanSummary(entry);
+  const categoryLine = entry.category ? `The story was tagged by the source under ${entry.category}.` : "The story is being monitored as a developing newsroom item.";
+  const publisher = sourceHost(entry.link);
+
   return [
     summary,
-    "This newsroom brief was automatically prepared from a monitored public feed and rewritten as a concise summary for readers.",
-    `Source attribution: ${sourceName}. Read the original report at ${entry.link}`
+    "This article is an original newsroom brief based on publicly available feed metadata. It does not reproduce the publisher's full report; readers should follow the source link for the complete original coverage.",
+    `What happened: ${summary}`,
+    `Why it matters: The update may affect readers following ${entry.category || "this topic"}, policy developments, markets, public services, or communities connected to the story. Our newsroom is tracking it because it fits the ${entry.category || "news"} desk and may develop further as more verified details emerge.`,
+    `Context: ${categoryLine} Automated publishing systems can surface fast-moving stories quickly, but editorial review should still check names, figures, quotes, legal sensitivity, and local relevance before heavy promotion.`,
+    "What to watch next: Look for official statements, confirmed timelines, responses from affected parties, and whether other credible outlets independently verify the same details.",
+    `Source attribution: ${sourceName} via ${publisher}. Original report: ${entry.link}`
   ].join("\n\n");
 }
 
@@ -139,7 +180,7 @@ export async function ingestFeedSource(sourceId: string) {
       continue;
     }
 
-    const image = entry.image || (await ogImage(entry.link));
+    const image = firstImageUrl(entry.image) || (await ogImage(entry.link));
     const category = autoCategory(entry, source.defaultCategory);
     const content = humanContent(entry, source.name);
     const initialPayload = normalizeArticlePayload({

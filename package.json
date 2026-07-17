@@ -11,7 +11,8 @@
                     "seed:admin":  "node node_modules/tsx/dist/cli.mjs server/seed-admin.ts",
                     "validate:env":  "node node_modules/tsx/dist/cli.mjs server/scripts/validate-env.ts",
                     "check":  "npm run typecheck \u0026\u0026 npm run build",
-                    "cron:worker":  "node server/cron-worker.mjs"
+                    "cron:worker":  "node server/cron-worker.mjs",
+                    "seed:feeds":  "node node_modules/tsx/dist/cli.mjs server/seed-feeds.ts"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",
