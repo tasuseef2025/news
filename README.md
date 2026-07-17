@@ -44,4 +44,4 @@ npm run build
 - [Deployment](docs/DEPLOYMENT.md)
 - [Feed Ingestion](docs/FEED_INGESTION.md)
 - [Automation](docs/AUTOMATION.md)
-
+- [Vercel Cron Notes](docs/VERCEL_CRON.md)
