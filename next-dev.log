@@ -1,0 +1,11 @@
+
+> news-website@0.1.0 dev
+> node node_modules/next/dist/bin/next dev
+
+   ▲ Next.js 15.5.20
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.100.11:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 4.5s

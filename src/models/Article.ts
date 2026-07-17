@@ -9,6 +9,8 @@ export type ArticleDocument = {
   category: string;
   subcategory?: string;
   author: string;
+  sourceName?: string;
+  sourceUrl?: string;
   image: string;
   gallery: string[];
   videoUrl?: string;
@@ -38,6 +40,8 @@ const articleSchema = new Schema<ArticleDocument>(
     category: { type: String, required: true, index: true },
     subcategory: { type: String, trim: true },
     author: { type: String, required: true },
+    sourceName: { type: String, trim: true },
+    sourceUrl: { type: String, trim: true, index: true },
     image: { type: String, required: true },
     gallery: [{ type: String, trim: true }],
     videoUrl: String,
@@ -61,6 +65,6 @@ const articleSchema = new Schema<ArticleDocument>(
 );
 
 articleSchema.index({ title: "text", excerpt: "text", content: "text" });
+articleSchema.index({ sourceUrl: 1 }, { unique: true, sparse: true });
 
 export const Article = models.Article || model<ArticleDocument>("Article", articleSchema);
-

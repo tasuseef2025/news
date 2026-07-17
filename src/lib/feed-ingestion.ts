@@ -1,4 +1,5 @@
-﻿import { categories, categorySlug } from "@/lib/categories";
+﻿import { createHash } from "crypto";
+import { categories, categorySlug } from "@/lib/categories";
 import { normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
 import { FeedSource } from "@/models/FeedSource";
@@ -101,6 +102,24 @@ function humanContent(entry: FeedEntry, sourceName: string) {
   ].join("\n\n");
 }
 
+function sourceHash(value: string) {
+  return createHash("sha1").update(value).digest("hex").slice(0, 8);
+}
+
+async function uniqueArticleSlug(baseSlug: string, sourceUrl: string) {
+  if (!(await Article.exists({ slug: baseSlug }))) return baseSlug;
+
+  const withSourceHash = `${baseSlug}-${sourceHash(sourceUrl)}`;
+  if (!(await Article.exists({ slug: withSourceHash }))) return withSourceHash;
+
+  for (let index = 2; index < 100; index += 1) {
+    const candidate = `${withSourceHash}-${index}`;
+    if (!(await Article.exists({ slug: candidate }))) return candidate;
+  }
+
+  return `${withSourceHash}-${Date.now()}`;
+}
+
 export async function ingestFeedSource(sourceId: string) {
   const source = await FeedSource.findById(sourceId);
   if (!source) throw new Error("Feed source not found");
@@ -123,7 +142,7 @@ export async function ingestFeedSource(sourceId: string) {
     const image = entry.image || (await ogImage(entry.link));
     const category = autoCategory(entry, source.defaultCategory);
     const content = humanContent(entry, source.name);
-    const articlePayload = normalizeArticlePayload({
+    const initialPayload = normalizeArticlePayload({
       title: entry.title,
       excerpt: humanSummary(entry),
       content,
@@ -136,6 +155,8 @@ export async function ingestFeedSource(sourceId: string) {
       tags: [category, ...(entry.category ? [entry.category] : [])].filter(Boolean),
       publishedAt: entry.publishedAt?.toISOString()
     });
+    const slug = await uniqueArticleSlug(initialPayload.slug, entry.link);
+    const articlePayload = slug === initialPayload.slug ? initialPayload : normalizeArticlePayload({ ...initialPayload, slug });
 
     const article = await Article.create({
       ...articlePayload,
