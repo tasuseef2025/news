@@ -1,4 +1,4 @@
-﻿# Vercel Cron Notes
+# Vercel Cron Notes
 
 The cron API routes are ready, but Vercel Hobby only allows cron jobs that run once per day. The original schedule required:
 
@@ -37,9 +37,9 @@ If the project is on Vercel Pro, add this back to `vercel.json`:
 Keep `vercel.json` as-is and use any external scheduler to call these URLs:
 
 ```text
-https://your-domain.com/api/cron/feeds      every 10 minutes
-https://your-domain.com/api/cron/trending   every 30 minutes
-https://your-domain.com/api/cron/refresh    every 1 hour
+https://www.novexa.news/api/cron/feeds      every 10 minutes
+https://www.novexa.news/api/cron/trending   every 30 minutes
+https://www.novexa.news/api/cron/refresh    every 1 hour
 ```
 
 Each request must include this header:

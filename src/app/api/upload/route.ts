@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+﻿import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { authOptions } from "@/lib/auth";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(arrayBuffer);
 
   const result = await new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({ folder: "news-website" }, (error, uploadResult) => {
+    const stream = cloudinary.uploader.upload_stream({ folder: "novexa-news" }, (error, uploadResult) => {
       if (error) reject(error);
       else resolve(uploadResult);
     });
@@ -36,3 +36,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ result });
 }
+

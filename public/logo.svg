@@ -1,0 +1,15 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-label="Novexa News logo">
+  <rect width="720" height="160" fill="#ffffff"/>
+  <g fill="#0f172a">
+    <path d="M58 118V42h16l38 48V42h20v76h-16L78 70v48H58Z"/>
+    <path d="M152 80c0-23 18-40 42-40s42 17 42 40-18 40-42 40-42-17-42-40Zm62 0c0-12-8-21-20-21s-20 9-20 21 8 21 20 21 20-9 20-21Z"/>
+    <path d="M258 118l-29-76h23l17 49 17-49h22l-30 76h-20Z"/>
+    <path d="M314 118V42h58v18h-36v12h32v17h-32v12h37v17h-59Z"/>
+    <path d="M387 118l27-39-25-37h25l13 20 13-20h25l-25 37 27 39h-26l-14-22-14 22h-26Z"/>
+    <path d="M473 118l32-76h21l32 76h-23l-5-13h-30l-5 13h-22Zm33-30h18l-9-24-9 24Z"/>
+  </g>
+  <rect x="579" y="43" width="92" height="74" rx="6" fill="#e11d48"/>
+  <text x="625" y="74" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="900" fill="#fff">NEWS</text>
+  <text x="625" y="99" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#fff">24/7</text>
+  <text x="360" y="145" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="900" letter-spacing="7" fill="#e11d48">DAILY DIGITAL NEWS</text>
+</svg>

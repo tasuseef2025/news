@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,6 +16,7 @@ const mainNav = [
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Media", href: "/media" },
+  { label: "Live Scores", href: "/live-scores" },
   { label: "Privacy Policy", href: "/privacy-policy" }
 ];
 
@@ -43,9 +44,9 @@ export function SiteHeader() {
           </Button>
         </div>
 
-        <Link href="/" className="mx-auto grid place-items-center text-center" aria-label="Newsroom home">
+        <Link href="/" className="mx-auto grid place-items-center text-center" aria-label="Novexa News home">
           <span className="text-[26px] font-black uppercase leading-none tracking-normal text-foreground md:text-[40px]">
-            Newsroom
+            Novexa News
           </span>
           <span className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.38em] text-primary sm:block">
             Daily Digital News
@@ -185,3 +186,4 @@ function CategoriesDropdown() {
     </motion.div>
   );
 }
+

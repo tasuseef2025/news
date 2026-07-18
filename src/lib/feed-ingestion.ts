@@ -1,4 +1,4 @@
-﻿import { createHash } from "crypto";
+import { createHash } from "crypto";
 import { categories, categorySlug } from "@/lib/categories";
 import { normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
@@ -96,7 +96,7 @@ export function parseFeed(xml: string): FeedEntry[] {
 
 async function ogImage(url: string) {
   try {
-    const response = await fetch(url, { headers: { "User-Agent": "NewsroomBot/1.0" }, signal: AbortSignal.timeout(6000) });
+    const response = await fetch(url, { headers: { "User-Agent": "NovexaNewsBot/1.0" }, signal: AbortSignal.timeout(6000) });
     if (!response.ok) return "";
     const html = await response.text();
     return firstImageUrl(
@@ -165,7 +165,7 @@ export async function ingestFeedSource(sourceId: string) {
   const source = await FeedSource.findById(sourceId);
   if (!source) throw new Error("Feed source not found");
 
-  const response = await fetch(source.url, { headers: { "User-Agent": "NewsroomBot/1.0" }, signal: AbortSignal.timeout(12000) });
+  const response = await fetch(source.url, { headers: { "User-Agent": "NovexaNewsBot/1.0" }, signal: AbortSignal.timeout(12000) });
   if (!response.ok) throw new Error(`Feed fetch failed: ${response.status}`);
 
   const xml = await response.text();

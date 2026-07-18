@@ -75,7 +75,7 @@ export async function SiteFooter() {
         <section className="grid content-start gap-5">
           <div>
             <Link href="/" className="text-3xl font-black uppercase tracking-normal">
-              Newsroom
+              Novexa News
             </Link>
             <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
               Independent, fast, and SEO-ready digital journalism across breaking news, business, technology,
@@ -171,7 +171,7 @@ export async function SiteFooter() {
           <div className="flex flex-col gap-4 lg:items-end">
             <BackToTop />
             <p className="text-sm font-semibold text-muted-foreground">
-              Copyright © {year} Newsroom. All rights reserved.
+              Copyright © {year} Novexa News. All rights reserved.
             </p>
           </div>
         </div>
@@ -179,3 +179,4 @@ export async function SiteFooter() {
     </footer>
   );
 }
+

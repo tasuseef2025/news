@@ -11,6 +11,7 @@ import {
 import { HeroBreakingSlider } from "@/features/home/hero-breaking-slider";
 import { ArticleCard } from "@/features/articles/article-card";
 import { getHomepageData } from "@/lib/homepage";
+import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
 
 export default async function HomePage() {
   const data = await getHomepageData();
@@ -53,7 +54,10 @@ export default async function HomePage() {
 
         <div className="grid gap-10 lg:grid-cols-2">
           <ArticleGrid title="Politics" articles={data.sections.Politics} category="Politics" />
-          <ArticleGrid title="Sports" articles={data.sections.Sports} category="Sports" />
+          <div className="grid gap-6">
+            <ArticleGrid title="Sports" articles={data.sections.Sports} category="Sports" />
+            <LiveScoresPanel compact />
+          </div>
         </div>
 
         <div className="grid gap-10 lg:grid-cols-2">

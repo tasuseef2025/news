@@ -1,4 +1,4 @@
-# Newsroom
+# Novexa News
 
 A production-ready news website built with Next.js 15 App Router, React 19, TypeScript, MongoDB, NextAuth, Tailwind CSS, and REST APIs.
 
@@ -45,3 +45,4 @@ npm run build
 - [Feed Ingestion](docs/FEED_INGESTION.md)
 - [Automation](docs/AUTOMATION.md)
 - [Vercel Cron Notes](docs/VERCEL_CRON.md)
+- [Live Scores](docs/LIVE_SCORES.md)

@@ -1,4 +1,4 @@
-﻿# Automation
+# Automation
 
 The project has protected cron endpoints for scheduled publishing automation.
 
@@ -32,7 +32,7 @@ The worker runs feed import and trending update immediately, then continues on t
 
 ```env
 CRON_SECRET=your-32-plus-character-secret
-NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_URL=https://www.novexa.news
 ```
 
 After deployment, Vercel calls the cron endpoints automatically.

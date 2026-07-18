@@ -1,4 +1,5 @@
-﻿import { absoluteUrl } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/utils";
+import { siteConfig } from "@/lib/site";
 
 type ArticleLike = {
   title?: string;
@@ -48,11 +49,11 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     alternativeHeadline: article.metaTitle,
     description: article.metaDescription || article.excerpt,
     image: [article.ogImage || article.image].filter(Boolean),
-    author: { "@type": "Person", name: article.author || "Newsroom" },
+    author: { "@type": "Person", name: article.author || siteConfig.name },
     publisher: {
       "@type": "Organization",
-      name: "Newsroom",
-      logo: { "@type": "ImageObject", url: absoluteUrl("/icon.png") }
+      name: siteConfig.name,
+      logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
     },
     articleSection: article.category,
     wordCount: stripHtml(article.content || "").split(/\s+/).filter(Boolean).length,

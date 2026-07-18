@@ -1,15 +1,15 @@
-﻿# Deployment
+# Deployment
 
 ## Environment
 
 Required variables:
 
 ```env
-NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_URL=https://www.novexa.news
 NEXTAUTH_SECRET=replace-with-a-32-plus-character-secret
 MONGODB_URI=mongodb+srv://...
 CRON_SECRET=replace-with-a-32-plus-character-cron-secret
-CRON_BASE_URL=http://localhost:3000
+CRON_BASE_URL=https://www.novexa.news
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=

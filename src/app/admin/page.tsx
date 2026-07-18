@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+﻿import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -69,7 +69,7 @@ export default async function AdminPage() {
           <div className="flex items-center justify-between border-b p-5">
             <div>
               <p className="text-xs font-black uppercase text-primary">Admin</p>
-              <h1 className="text-xl font-black">Newsroom CMS</h1>
+              <h1 className="text-xl font-black">Novexa CMS</h1>
             </div>
             <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
@@ -289,3 +289,4 @@ function StatPills({ items, empty }: { items: { name: string; count: number }[];
     </div>
   );
 }
+

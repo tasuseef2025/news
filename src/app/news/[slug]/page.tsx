@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { getArticleBySlug, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
+import { siteConfig } from "@/lib/site";
 import { articleBreadcrumbs } from "@/lib/content-automation";
 import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
@@ -12,15 +13,22 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+function displayImage(value: string) {
+  return value?.startsWith("/") ? absoluteUrl(value) : value;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) return {};
 
+  const canonical = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
+  const image = displayImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
+
   return {
     title: article.metaTitle || article.title,
     description: article.metaDescription || article.excerpt,
-    alternates: { canonical: article.canonicalUrl || absoluteUrl(`/news/${article.slug}`) },
+    alternates: { canonical },
     robots: {
       index: true,
       follow: true,
@@ -35,8 +43,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
-      images: [{ url: article.ogImage || article.image, width: 1200, height: 630, alt: article.title }],
+      images: [{ url: image, width: 1200, height: 630, alt: article.title }],
       type: "article",
+      siteName: siteConfig.name,
+      url: canonical,
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
       authors: [article.author],
@@ -45,12 +55,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
+      site: siteConfig.twitterHandle,
+      creator: siteConfig.twitterHandle,
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
-      images: [article.ogImage || article.image]
+      images: [image]
     },
     other: {
-      "news_keywords": article.tags?.join(", ") || article.category,
+      news_keywords: article.tags?.join(", ") || article.category,
       "article:published_time": article.publishedAt,
       "article:modified_time": article.updatedAt || article.publishedAt
     }
@@ -65,10 +77,20 @@ export default async function NewsArticlePage({ params }: Props) {
 
   await connectDB();
   const [related, recommended, latest] = await Promise.all([
-    Article.find({ status: "published", slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] }).sort({ publishedAt: -1 }).limit(3).lean(),
-    Article.find({ status: "published", slug: { $ne: article.slug } }).sort({ trending: -1, views: -1, publishedAt: -1 }).limit(3).lean(),
-    Article.find({ status: "published", slug: { $ne: article.slug } }).sort({ publishedAt: -1 }).limit(3).lean()
+    Article.find({ status: "published", slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
+      .sort({ publishedAt: -1 })
+      .limit(3)
+      .lean(),
+    Article.find({ status: "published", slug: { $ne: article.slug } })
+      .sort({ trending: -1, views: -1, publishedAt: -1 })
+      .limit(3)
+      .lean(),
+    Article.find({ status: "published", slug: { $ne: article.slug } })
+      .sort({ publishedAt: -1 })
+      .limit(3)
+      .lean()
   ]);
+
   const breadcrumbSchema = articleBreadcrumbs(article);
   const schema = article.schemaMarkup
     ? article.schemaMarkup
@@ -77,8 +99,13 @@ export default async function NewsArticlePage({ params }: Props) {
         "@type": "NewsArticle",
         headline: article.title,
         description: article.metaDescription || article.excerpt,
-        image: [article.ogImage || article.image],
+        image: [displayImage(article.ogImage || article.image)],
         author: { "@type": "Person", name: article.author },
+        publisher: {
+          "@type": "NewsMediaOrganization",
+          name: siteConfig.name,
+          logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
+        },
         datePublished: article.publishedAt,
         dateModified: article.updatedAt || article.publishedAt,
         mainEntityOfPage: article.canonicalUrl || absoluteUrl(`/news/${article.slug}`)
@@ -89,7 +116,11 @@ export default async function NewsArticlePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbSchema }} />
       <nav className="mb-6 flex flex-wrap gap-2 text-sm font-bold text-muted-foreground" aria-label="Breadcrumb">
-        <a href="/" className="hover:text-primary">Home</a><span>/</span><a href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-primary">{article.category}</a><span>/</span><span className="text-foreground">{article.title}</span>
+        <a href="/" className="hover:text-primary">Home</a>
+        <span>/</span>
+        <a href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-primary">{article.category}</a>
+        <span>/</span>
+        <span className="text-foreground">{article.title}</span>
       </nav>
       <article>
         <div className="mb-6 grid gap-4">
@@ -173,6 +204,3 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
     </section>
   );
 }
-
-
-

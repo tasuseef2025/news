@@ -9,7 +9,7 @@ export async function GET() {
     await connectDB();
     return NextResponse.json({
       ok: true,
-      service: "news-website",
+      service: "novexa-news",
       database: mongoose.connection.readyState === 1 ? "connected" : "not_connected",
       timestamp: new Date().toISOString()
     });
@@ -17,7 +17,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        service: "news-website",
+        service: "novexa-news",
         database: "error",
         message: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString()
@@ -26,3 +26,4 @@ export async function GET() {
     );
   }
 }
+

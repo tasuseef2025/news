@@ -1,23 +1,52 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { ArticleCard } from "@/features/articles/article-card";
 import { getArticles } from "@/lib/articles";
+import { categorySlug } from "@/lib/categories";
+import { siteConfig } from "@/lib/site";
+import { absoluteUrl } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
+function titleCase(value: string) {
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = slug.replaceAll("-", " ");
+  const category = titleCase(slug.replaceAll("-", " "));
+  const canonical = absoluteUrl(`/category/${categorySlug(category)}`);
+  const description = `Latest ${category} news, updates, analysis and featured stories from ${siteConfig.name}.`;
+
   return {
-    title: category,
-    description: `Latest ${category} news, features and analysis.`
+    title: `${category} News`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${category} News | ${siteConfig.name}`,
+      description,
+      url: canonical,
+      siteName: siteConfig.name,
+      type: "website",
+      images: [{ url: absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`), width: 1200, height: 630, alt: `${category} News` }]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${category} News | ${siteConfig.name}`,
+      description,
+      images: [absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`)]
+    }
   };
 }
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = slug.replaceAll("-", " ");
+  const category = titleCase(slug.replaceAll("-", " "));
   const articles = await getArticles({ category, limit: 18 });
 
   return (

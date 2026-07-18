@@ -1,9 +1,9 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { SignInForm } from "@/features/auth/sign-in-form";
 
 export const metadata = {
   title: "Sign in",
-  description: "Sign in to the Newsroom editorial dashboard."
+  description: "Sign in to the Novexa News editorial dashboard."
 };
 
 export default function SignInPage() {
@@ -21,3 +21,4 @@ export default function SignInPage() {
     </main>
   );
 }
+
