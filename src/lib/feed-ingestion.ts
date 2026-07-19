@@ -127,22 +127,60 @@ function sourceHost(url: string) {
   }
 }
 
-function humanContent(entry: FeedEntry, sourceName: string) {
-  const summary = humanSummary(entry);
-  const categoryLine = entry.category ? `The story was tagged by the source under ${entry.category}.` : "The story is being monitored as a developing newsroom item.";
-  const publisher = sourceHost(entry.link);
-
-  return [
-    summary,
-    "This article is an original newsroom brief based on publicly available feed metadata. It does not reproduce the publisher's full report; readers should follow the source link for the complete original coverage.",
-    `What happened: ${summary}`,
-    `Why it matters: The update may affect readers following ${entry.category || "this topic"}, policy developments, markets, public services, or communities connected to the story. Our newsroom is tracking it because it fits the ${entry.category || "news"} desk and may develop further as more verified details emerge.`,
-    `Context: ${categoryLine} Automated publishing systems can surface fast-moving stories quickly, but editorial review should still check names, figures, quotes, legal sensitivity, and local relevance before heavy promotion.`,
-    "What to watch next: Look for official statements, confirmed timelines, responses from affected parties, and whether other credible outlets independently verify the same details.",
-    `Source attribution: ${sourceName} via ${publisher}. Original report: ${entry.link}`
-  ].join("\n\n");
+async function humanContent(entry: FeedEntry, sourceName: string, category: string) {
+  return (await aiGeneratedContent(entry, sourceName, category)) || fallbackArticleContent(entry, sourceName, category);
 }
 
+async function aiGeneratedContent(entry: FeedEntry, sourceName: string, category: string) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return "";
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1200),
+        input: [
+          {
+            role: "system",
+            content:
+              "You are a careful news editor. Write original, copyright-safe news articles from feed metadata only. Do not copy publisher wording beyond short factual names/titles. Do not invent facts, quotes, numbers, dates, allegations, or background not present in the input. If details are limited, write a concise article and clearly attribute the source. Avoid repetitive template language."
+          },
+          {
+            role: "user",
+            content: `Write a polished news article for Novexa News.\n\nTitle: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${entry.description || entry.title}\nFeed tag: ${entry.category || "N/A"}\n\nRequirements:\n- 350 to 700 words when enough verified feed detail exists; shorter is acceptable if the feed has little detail.\n- Original wording only.\n- Mention that the report is based on a monitored public feed and include source attribution near the end.\n- Do not use headings like What happened, Why it matters, Context, or What to watch next.\n- Do not say readers must follow the source link for complete coverage in every article.\n- End with: Source: ${sourceName} - ${entry.link}`
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) return "";
+    const data = await response.json();
+    if (typeof data.output_text === "string") return data.output_text.trim();
+    const text = data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n\n");
+    return text?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+function fallbackArticleContent(entry: FeedEntry, sourceName: string, category: string) {
+  const summary = humanSummary(entry);
+  const source = sourceHost(entry.link);
+  const topic = entry.category || category || "this story";
+
+  return [
+    `${entry.title} is among the latest updates being followed by Novexa News from ${sourceName}. ${summary}`,
+    `The development sits within the ${topic} beat and may be relevant for readers tracking fast-moving updates across sport, public affairs, business, technology, health, entertainment, and international coverage. At this stage, the available feed detail is limited, so this report focuses on the confirmed information supplied by the monitored source instead of adding unverified claims.`,
+    `Novexa News will continue to treat this as a developing item. Editors should review any names, figures, quotes, legal sensitivity, and local impact before the story is promoted as a major update or expanded into a full editorial report.`,
+    `Source: ${sourceName} via ${source} - ${entry.link}`
+  ].join("\n\n");
+}
 function sourceHash(value: string) {
   return createHash("sha1").update(value).digest("hex").slice(0, 8);
 }
@@ -182,7 +220,7 @@ export async function ingestFeedSource(sourceId: string) {
 
     const image = firstImageUrl(entry.image) || (await ogImage(entry.link));
     const category = autoCategory(entry, source.defaultCategory);
-    const content = humanContent(entry, source.name);
+    const content = await humanContent(entry, source.name, category);
     const initialPayload = normalizeArticlePayload({
       title: entry.title,
       excerpt: humanSummary(entry),

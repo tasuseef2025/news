@@ -6,7 +6,7 @@ The project can import latest posts from RSS/Atom feeds and turn them into Mongo
 
 - `src/app/api/feed-sources/route.ts` manages feed sources.
 - `src/app/api/feeds/ingest/route.ts` imports latest feed entries and creates articles.
-- `src/lib/feed-ingestion.ts` contains parsing, image extraction, categorization, and summary generation.
+- `src/lib/feed-ingestion.ts` contains parsing, image extraction, categorization, AI rewriting, fallback rewriting, and summary generation.
 - Imported articles use the normal `Article` model, so they automatically appear on the homepage, latest lists, related sections, and their category page.
 
 ## Add A Feed Source
@@ -44,7 +44,6 @@ Import all active sources:
 ```http
 POST /api/feeds/ingest
 Content-Type: application/json
-
 {}
 ```
 
@@ -54,13 +53,26 @@ Requires `publish_articles` permission.
 
 - Reads RSS/Atom feed entries.
 - Extracts title, link, description, published date, category, and image.
-- Falls back to page `og:image` when the feed has no image.
-- Generates an original summary and article body with source attribution.
+- Falls back to page `og:image` / `twitter:image` when the feed has no usable image.
+- Uses OpenAI rewriting when `OPENAI_API_KEY` is configured.
+- Uses a local non-repetitive article generator when OpenAI is not configured.
 - Auto-detects the closest site category.
 - Generates slug, meta title, meta description, canonical URL, reading time, OG image, and structured data.
 - Saves the article as `published` when `autoPublish` is true, otherwise as `draft`.
 - Prevents duplicates using `sourceUrl`.
 
+## AI Rewriting
+
+Feed imports can optionally use OpenAI to produce a more natural, copyright-safe original article from feed metadata.
+
+```env
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5.4-mini
+FEED_AI_MAX_OUTPUT_TOKENS=1200
+```
+
+If `OPENAI_API_KEY` is missing, the importer uses a local non-repetitive fallback article generator.
+
 ## Copyright And Editorial Safety
 
-The importer creates brief original summaries with attribution. It does not copy full source articles. Editors should review sources and comply with each publisher's terms and robots policies.
+The importer is intentionally designed not to copy full publisher articles. It rewrites from feed metadata, avoids invented facts, includes source attribution, and links to the original source. Editors should still review important stories and comply with each publisher's terms and robots policies.
