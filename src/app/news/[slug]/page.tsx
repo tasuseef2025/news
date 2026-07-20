@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
@@ -8,6 +8,7 @@ import { siteConfig } from "@/lib/site";
 import { articleBreadcrumbs } from "@/lib/content-automation";
 import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
+import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -113,6 +114,7 @@ export default async function NewsArticlePage({ params }: Props) {
 
   return (
     <main className="container max-w-4xl py-8">
+      <GoogleSwgBasic />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbSchema }} />
       <nav className="mb-6 flex flex-wrap gap-2 text-sm font-bold text-muted-foreground" aria-label="Breadcrumb">

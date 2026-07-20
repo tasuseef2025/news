@@ -1,4 +1,4 @@
-﻿export const siteConfig = {
+export const siteConfig = {
   name: "Novexa News",
   shortName: "Novexa",
   tagline: "Daily Digital News",
@@ -7,6 +7,8 @@
   locale: "en_US",
   language: "en",
   twitterHandle: "@NovexaNews",
+  contactEmail: "newsnovexa@gmail.com",
+  founder: "Abdul Basit",
   logoPath: "/logo.svg",
   iconPath: "/icon.svg"
 } as const;

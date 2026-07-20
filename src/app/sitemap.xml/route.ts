@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { connectDB } from "@/lib/db";
@@ -22,6 +22,8 @@ type SitemapArticle = {
 function escapeXml(value = "") {
   return value.replace(/[<>&'"]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[char] || char));
 }
+
+const staticRoutes = ["/about", "/contact", "/privacy-policy", "/terms", "/editorial-policy", "/cookie-policy", "/advertise", "/careers", "/author/abdul-basit", "/live-scores"] as const;
 
 function validImageUrl(value?: string | null) {
   if (!value) return "";
@@ -47,6 +49,7 @@ export async function GET() {
 
   const urls: SitemapUrl[] = [
     { loc: absoluteUrl("/"), lastmod: new Date().toISOString() },
+    ...staticRoutes.map((route) => ({ loc: absoluteUrl(route), lastmod: new Date().toISOString() })),
     ...categories.map((category) => ({ loc: absoluteUrl(`/category/${categorySlug(category)}`), lastmod: new Date().toISOString() })),
     ...articles.map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
