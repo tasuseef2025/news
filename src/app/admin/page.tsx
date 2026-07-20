@@ -1,4 +1,4 @@
-﻿import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,7 @@ import {
   Mail,
   MessageSquare,
   Newspaper,
+  Rss,
   SearchCheck,
   Settings,
   ShieldCheck,
@@ -37,6 +38,7 @@ export const metadata = {
 const sidebarItems = [
   ["Dashboard", "/admin", Home],
   ["Articles", "/admin/articles", Newspaper],
+  ["Feed Sources", "/admin/feed-sources", Rss],
   ["Categories", "/admin/categories", FolderTree],
   ["Tags", "/admin/tags", Tags],
   ["Media", "/admin/media", Image],

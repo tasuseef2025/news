@@ -12,6 +12,7 @@ export default withAuth({
         if (req.nextUrl.pathname.startsWith("/admin/analytics")) return hasPermission(role, "view_analytics");
         if (req.nextUrl.pathname.startsWith("/admin/settings")) return hasPermission(role, "manage_settings");
         if (req.nextUrl.pathname.startsWith("/admin/articles")) return hasPermission(role, "create_articles");
+        if (req.nextUrl.pathname.startsWith("/admin/feed-sources")) return hasPermission(role, "create_articles");
         return canAccessAdmin(role);
       }
       return Boolean(token);

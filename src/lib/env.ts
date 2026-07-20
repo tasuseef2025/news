@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NEXTAUTH_URL: z.string().url(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
   NEXTAUTH_SECRET: z.string().min(32, "NEXTAUTH_SECRET must be at least 32 characters"),
   MONGODB_URI: z.string().min(1),
   CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters").optional(),

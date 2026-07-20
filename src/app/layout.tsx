@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 import { WebVitals } from "@/components/analytics/web-vitals";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -107,6 +108,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
         <AppProviders>
+          <GoogleAnalytics />
           <WebVitals />
           <SiteHeader />
           {children}
