@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import mongoose from "mongoose";
 
 const mongoUri = process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/news_website";
@@ -17,7 +17,15 @@ const feedSourceSchema = new mongoose.Schema(
 
 const FeedSource = mongoose.models.FeedSource || mongoose.model("FeedSource", feedSourceSchema);
 
-const feeds = [
+type SeedFeed = {
+  name: string;
+  url: string;
+  defaultCategory: string;
+  active?: boolean;
+  autoPublish?: boolean;
+};
+
+const feeds: SeedFeed[] = [
   { name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml", defaultCategory: "World" },
   { name: "BBC Business", url: "https://feeds.bbci.co.uk/news/business/rss.xml", defaultCategory: "Business" },
   { name: "BBC Technology", url: "https://feeds.bbci.co.uk/news/technology/rss.xml", defaultCategory: "Technology" },
@@ -35,7 +43,33 @@ const feeds = [
   { name: "The Guardian Technology", url: "https://www.theguardian.com/uk/technology/rss", defaultCategory: "Technology" },
   { name: "The Guardian Football", url: "https://www.theguardian.com/football/rss", defaultCategory: "Football" },
   { name: "TechCrunch", url: "https://techcrunch.com/feed/", defaultCategory: "Startups" },
-  { name: "NASA Breaking News", url: "https://www.nasa.gov/news-release/feed/", defaultCategory: "Space" }
+  { name: "NASA Breaking News", url: "https://www.nasa.gov/news-release/feed/", defaultCategory: "Space" },
+  { name: "Dawn Home", url: "https://www.dawn.com/feeds/home", defaultCategory: "Pakistan" },
+  { name: "Dawn Latest", url: "https://www.dawn.com/feeds/latest", defaultCategory: "Pakistan" },
+  { name: "Dawn Pakistan", url: "https://www.dawn.com/feeds/pakistan", defaultCategory: "Pakistan" },
+  { name: "Dawn World", url: "https://www.dawn.com/feeds/world", defaultCategory: "World" },
+  { name: "Dawn Business", url: "https://www.dawn.com/feeds/business", defaultCategory: "Business" },
+  { name: "Dawn Sport", url: "https://www.dawn.com/feeds/sport", defaultCategory: "Sports" },
+  { name: "Dawn Tech", url: "https://www.dawn.com/feeds/tech", defaultCategory: "Technology" },
+  { name: "Express Tribune Latest", url: "https://tribune.com.pk/feed/latest", defaultCategory: "Pakistan", autoPublish: false },
+  { name: "Express Tribune Pakistan", url: "https://tribune.com.pk/feed/pakistan", defaultCategory: "Pakistan", autoPublish: false },
+  { name: "Express Tribune Business", url: "https://tribune.com.pk/feed/business", defaultCategory: "Business", autoPublish: false },
+  { name: "Express Tribune World", url: "https://tribune.com.pk/feed/world", defaultCategory: "World", autoPublish: false },
+  { name: "Express Tribune Technology", url: "https://tribune.com.pk/feed/technology", defaultCategory: "Technology", autoPublish: false },
+  { name: "Express Tribune Sports", url: "https://tribune.com.pk/feed/sports", defaultCategory: "Sports", autoPublish: false },
+  { name: "Express Tribune Cricket", url: "https://tribune.com.pk/feed/cricket", defaultCategory: "Cricket", autoPublish: false },
+  { name: "Business Recorder Trends", url: "https://www.brecorder.com/trends/rss", defaultCategory: "Economy", active: false },
+  { name: "New York Times World", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", defaultCategory: "World" },
+  { name: "New York Times Business", url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", defaultCategory: "Business" },
+  { name: "New York Times Technology", url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", defaultCategory: "Technology" },
+  { name: "CNN Top Stories", url: "https://rss.cnn.com/rss/edition.rss", defaultCategory: "World" },
+  { name: "CNN World", url: "https://rss.cnn.com/rss/edition_world.rss", defaultCategory: "World" },
+  { name: "CNN Business", url: "https://rss.cnn.com/rss/money_news_international.rss", defaultCategory: "Business" },
+  { name: "Reddit World News Monitor", url: "https://www.reddit.com/r/worldnews/.rss", defaultCategory: "World", autoPublish: false },
+  { name: "Reddit Pakistan Monitor", url: "https://www.reddit.com/r/pakistan/.rss", defaultCategory: "Pakistan", autoPublish: false },
+  { name: "Reddit Cricket Monitor", url: "https://www.reddit.com/r/Cricket/.rss", defaultCategory: "Cricket", autoPublish: false },
+  { name: "Reddit Technology Monitor", url: "https://www.reddit.com/r/technology/.rss", defaultCategory: "Technology", autoPublish: false },
+  { name: "Reddit News Monitor", url: "https://www.reddit.com/r/news/.rss", defaultCategory: "World", autoPublish: false }
 ];
 
 async function seedFeeds() {
@@ -45,7 +79,7 @@ async function seedFeeds() {
   for (const feed of feeds) {
     await FeedSource.findOneAndUpdate(
       { url: feed.url },
-      { ...feed, active: true, autoPublish: true },
+      { ...feed, active: feed.active ?? true, autoPublish: feed.autoPublish ?? true },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     upserted += 1;
@@ -60,3 +94,7 @@ seedFeeds().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+
+
+
+

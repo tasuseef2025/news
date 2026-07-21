@@ -127,6 +127,21 @@ function sourceHost(url: string) {
   }
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function hasDuplicateArticle(entry: FeedEntry) {
+  const title = entry.title.trim();
+  const duplicateChecks: Array<Record<string, unknown>> = [{ sourceUrl: entry.link }];
+
+  if (title) {
+    duplicateChecks.push({ title: new RegExp(`^${escapeRegExp(title)}$`, "i") });
+  }
+
+  return Article.exists({ $or: duplicateChecks });
+}
+
 async function humanContent(entry: FeedEntry, sourceName: string, category: string) {
   return (await aiGeneratedContent(entry, sourceName, category)) || fallbackArticleContent(entry, sourceName, category);
 }
@@ -212,8 +227,8 @@ export async function ingestFeedSource(sourceId: string) {
   const skipped = [];
 
   for (const entry of entries) {
-    const exists = await Article.exists({ sourceUrl: entry.link });
-    if (exists) {
+    const duplicate = await hasDuplicateArticle(entry);
+    if (duplicate) {
       skipped.push(entry.link);
       continue;
     }
@@ -253,3 +268,4 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
