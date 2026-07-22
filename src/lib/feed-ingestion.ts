@@ -13,6 +13,15 @@ export type FeedEntry = {
   category?: string;
 };
 
+type EditorialPackage = {
+  title: string;
+  excerpt: string;
+  content: string;
+  metaTitle: string;
+  metaDescription: string;
+  tags: string[];
+};
+
 function decodeEntities(value = "") {
   return value
     .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
@@ -50,7 +59,20 @@ function isLikelyImageUrl(value = "") {
     const host = url.hostname.toLowerCase();
     if (host.includes("youtube.com") || host.includes("youtu.be") || host.includes("vimeo.com")) return false;
     if (/\.(avif|gif|jpe?g|png|webp)(\?|$)/i.test(url.pathname + url.search)) return true;
-    return ["ichef.bbci.co.uk", "media.npr.org", "media.guim.co.uk", "www.nasa.gov", "assets.science.nasa.gov"].some(
+    return ["res.cloudinary.com", "images.unsplash.com", "images.pexels.com", "pixabay.com", "cdn.pixabay.com", "www.nasa.gov", "assets.science.nasa.gov"].some(
+      (allowedHost) => host === allowedHost || host.endsWith(`.${allowedHost}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isLowRiskAutoImageUrl(value = "") {
+  if (!value) return false;
+  try {
+    const url = new URL(cleanUrl(value));
+    const host = url.hostname.toLowerCase();
+    return ["res.cloudinary.com", "images.unsplash.com", "images.pexels.com", "pixabay.com", "cdn.pixabay.com", "www.nasa.gov", "assets.science.nasa.gov"].some(
       (allowedHost) => host === allowedHost || host.endsWith(`.${allowedHost}`)
     );
   } catch {
@@ -127,6 +149,10 @@ function sourceHost(url: string) {
   }
 }
 
+function generatedOgPath(title: string, category: string) {
+  return `/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}`;
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -142,13 +168,60 @@ async function hasDuplicateArticle(entry: FeedEntry) {
   return Article.exists({ $or: duplicateChecks });
 }
 
-async function humanContent(entry: FeedEntry, sourceName: string, category: string) {
-  return (await aiGeneratedContent(entry, sourceName, category)) || fallbackArticleContent(entry, sourceName, category);
+function compactText(value = "", max = 1800) {
+  const text = stripHtml(value).replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}...` : text;
 }
 
-async function aiGeneratedContent(entry: FeedEntry, sourceName: string, category: string) {
+function parseEditorialJson(value: string): Partial<EditorialPackage> | null {
+  try {
+    return JSON.parse(value) as Partial<EditorialPackage>;
+  } catch {
+    const match = value.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as Partial<EditorialPackage>;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function cleanTags(tags: unknown[], category: string, feedTag?: string) {
+  return [category, feedTag, ...tags]
+    .filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim()))
+    .map((tag) => tag.trim())
+    .filter((tag, index, all) => all.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
+    .slice(0, 8);
+}
+
+function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
+  if (!input?.title || !input.content) return null;
+  const title = stripHtml(input.title).replace(/\s+/g, " ").trim().slice(0, 95);
+  const content = stripHtml(input.content).replace(/\n{3,}/g, "\n\n").trim();
+  if (!title || content.split(/\s+/).filter(Boolean).length < 180) return null;
+
+  const excerpt = stripHtml(input.excerpt || humanSummary(entry)).slice(0, 240);
+  const metaTitle = stripHtml(input.metaTitle || title).slice(0, 68);
+  const metaDescription = stripHtml(input.metaDescription || excerpt).slice(0, 158);
+
+  return {
+    title,
+    excerpt,
+    content: `${content}\n\nSource: ${sourceName} - ${entry.link}`,
+    metaTitle,
+    metaDescription,
+    tags: cleanTags(Array.isArray(input.tags) ? input.tags : [], category, entry.category)
+  };
+}
+
+async function editorialPackage(entry: FeedEntry, sourceName: string, category: string) {
+  return (await aiEditorialPackage(entry, sourceName, category)) || fallbackEditorialPackage(entry, sourceName, category);
+}
+
+async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string) {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return "";
+  if (!apiKey) return null;
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -158,43 +231,53 @@ async function aiGeneratedContent(entry: FeedEntry, sourceName: string, category
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1200),
+        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 2200),
         input: [
           {
             role: "system",
             content:
-              "You are a careful news editor. Write original, copyright-safe news articles from feed metadata only. Do not copy publisher wording beyond short factual names/titles. Do not invent facts, quotes, numbers, dates, allegations, or background not present in the input. If details are limited, write a concise article and clearly attribute the source. Avoid repetitive template language."
+              "You are a senior digital news editor for Novexa News. Create original, copyright-safe journalism from RSS/feed metadata only. You may use the source as reference, but never copy publisher sentences, structure, images, thumbnails, or distinctive phrasing. Do not invent facts, quotes, numbers, dates, allegations, causes, or outcomes. If feed details are thin, write a useful concise brief with context and attribution instead of pretending to know more. Write in a natural human newsroom voice, not a repetitive template. Return only valid JSON."
           },
           {
             role: "user",
-            content: `Write a polished news article for Novexa News.\n\nTitle: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${entry.description || entry.title}\nFeed tag: ${entry.category || "N/A"}\n\nRequirements:\n- 350 to 700 words when enough verified feed detail exists; shorter is acceptable if the feed has little detail.\n- Original wording only.\n- Mention that the report is based on a monitored public feed and include source attribution near the end.\n- Do not use headings like What happened, Why it matters, Context, or What to watch next.\n- Do not say readers must follow the source link for complete coverage in every article.\n- End with: Source: ${sourceName} - ${entry.link}`
+            content: `Create a click-worthy but accurate editorial package for Novexa News.\n\nOriginal feed title: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${compactText(entry.description || entry.title)}\nFeed tag: ${entry.category || "N/A"}\n\nReturn this JSON shape exactly:\n{\n  "title": "original SEO/news headline, 55-90 characters, no clickbait, not copied from source",\n  "excerpt": "one human summary sentence, 120-220 characters",\n  "metaTitle": "SEO title under 68 characters",\n  "metaDescription": "search description under 158 characters",\n  "tags": ["3 to 7 relevant tags"],\n  "content": "450-900 words when the feed has enough verified detail; use short paragraphs; add useful context, reader impact, and what remains unclear; include no markdown headings; do not say follow the source link; do not copy source wording"\n}\n\nQuality rules:\n- Optimize for Google Discover/Search CTR with clarity, specificity, and curiosity, not exaggeration.\n- Keep attribution inside the body naturally.\n- Make it sound written by an editor, not generated from a rigid template.\n- If the story is sensitive, legal, health, conflict, crime, politics, or death-related, use cautious language and avoid sensational phrasing.\n- Do not include any image URL.`
           }
         ]
       })
     });
 
-    if (!response.ok) return "";
+    if (!response.ok) return null;
     const data = await response.json();
-    if (typeof data.output_text === "string") return data.output_text.trim();
-    const text = data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n\n");
-    return text?.trim() || "";
+    const text = typeof data.output_text === "string"
+      ? data.output_text
+      : data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n");
+
+    return validateEditorialPackage(parseEditorialJson(text || ""), entry, sourceName, category);
   } catch {
-    return "";
+    return null;
   }
 }
 
-function fallbackArticleContent(entry: FeedEntry, sourceName: string, category: string) {
+function fallbackEditorialPackage(entry: FeedEntry, sourceName: string, category: string): EditorialPackage {
   const summary = humanSummary(entry);
   const source = sourceHost(entry.link);
-  const topic = entry.category || category || "this story";
-
-  return [
-    `${entry.title} is among the latest updates being followed by Novexa News from ${sourceName}. ${summary}`,
-    `The development sits within the ${topic} beat and may be relevant for readers tracking fast-moving updates across sport, public affairs, business, technology, health, entertainment, and international coverage. At this stage, the available feed detail is limited, so this report focuses on the confirmed information supplied by the monitored source instead of adding unverified claims.`,
-    `Novexa News will continue to treat this as a developing item. Editors should review any names, figures, quotes, legal sensitivity, and local impact before the story is promoted as a major update or expanded into a full editorial report.`,
+  const title = entry.title.length > 90 ? `${entry.title.slice(0, 90).replace(/\s+\S*$/, "")}...` : entry.title;
+  const content = [
+    `${entry.title} is one of the latest updates being tracked by Novexa News from ${sourceName}. ${summary}`,
+    `The story falls under the ${category} desk and may matter to readers following public affairs, markets, technology, communities, policy decisions, or global developments connected to the subject. The available feed detail is limited, so this report stays close to confirmed information instead of adding unverified claims.`,
+    `Novexa News will continue watching for official statements, clearer timelines, responses from affected parties, and independent confirmation from credible sources. Editorial review is recommended before heavy promotion if the story involves legal, political, health, crime, or conflict-sensitive details.`,
     `Source: ${sourceName} via ${source} - ${entry.link}`
   ].join("\n\n");
+
+  return {
+    title,
+    excerpt: summary.slice(0, 220),
+    content,
+    metaTitle: title.slice(0, 68),
+    metaDescription: summary.slice(0, 158),
+    tags: cleanTags([], category, entry.category)
+  };
 }
 function sourceHash(value: string) {
   return createHash("sha1").update(value).digest("hex").slice(0, 8);
@@ -214,6 +297,15 @@ async function uniqueArticleSlug(baseSlug: string, sourceUrl: string) {
   return `${withSourceHash}-${Date.now()}`;
 }
 
+async function feedImage(entry: FeedEntry, title: string, category: string) {
+  const generated = generatedOgPath(title, category);
+  const sourceImage = firstImageUrl(entry.image) || (await ogImage(entry.link));
+  if (!sourceImage) return generated;
+  if (isLowRiskAutoImageUrl(sourceImage)) return sourceImage;
+  if (process.env.FEED_USE_SOURCE_IMAGES === "true") return sourceImage;
+  return generated;
+}
+
 export async function ingestFeedSource(sourceId: string) {
   const source = await FeedSource.findById(sourceId);
   if (!source) throw new Error("Feed source not found");
@@ -222,7 +314,7 @@ export async function ingestFeedSource(sourceId: string) {
   if (!response.ok) throw new Error(`Feed fetch failed: ${response.status}`);
 
   const xml = await response.text();
-  const entries = parseFeed(xml).slice(0, 20);
+  const entries = parseFeed(xml).slice(0, Number(process.env.FEED_IMPORT_LIMIT || 12));
   const created = [];
   const skipped = [];
 
@@ -233,20 +325,23 @@ export async function ingestFeedSource(sourceId: string) {
       continue;
     }
 
-    const image = firstImageUrl(entry.image) || (await ogImage(entry.link));
     const category = autoCategory(entry, source.defaultCategory);
-    const content = await humanContent(entry, source.name, category);
+    const editorial = await editorialPackage(entry, source.name, category);
+    const image = await feedImage(entry, editorial.title, category);
     const initialPayload = normalizeArticlePayload({
-      title: entry.title,
-      excerpt: humanSummary(entry),
-      content,
+      title: editorial.title,
+      excerpt: editorial.excerpt,
+      content: editorial.content,
       category,
       author: source.name,
       sourceName: source.name,
       sourceUrl: entry.link,
-      image: image || `/api/og?title=${encodeURIComponent(entry.title)}&category=${encodeURIComponent(category)}`,
+      image,
+      ogImage: generatedOgPath(editorial.title, category),
+      metaTitle: editorial.metaTitle,
+      metaDescription: editorial.metaDescription,
       status: source.autoPublish ? "published" : "draft",
-      tags: [category, ...(entry.category ? [entry.category] : [])].filter(Boolean),
+      tags: editorial.tags,
       publishedAt: entry.publishedAt?.toISOString()
     });
     const slug = await uniqueArticleSlug(initialPayload.slug, entry.link);
@@ -268,4 +363,3 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
-
