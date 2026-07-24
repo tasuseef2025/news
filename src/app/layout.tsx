@@ -19,9 +19,18 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "NewsMediaOrganization",
   name: siteConfig.name,
+  alternateName: siteConfig.shortName,
   url: absoluteUrl("/"),
   logo: absoluteUrl(siteConfig.logoPath),
   description: siteConfig.description,
+  founder: { "@type": "Person", name: siteConfig.founder, url: absoluteUrl("/author/abdul-basit") },
+  contactPoint: [{ "@type": "ContactPoint", email: siteConfig.contactEmail, contactType: "editorial and advertising" }],
+  publishingPrinciples: absoluteUrl("/editorial-policy"),
+  ethicsPolicy: absoluteUrl("/editorial-policy"),
+  correctionsPolicy: absoluteUrl("/contact"),
+  ownershipFundingInfo: absoluteUrl("/about"),
+  areaServed: ["Pakistan", "Global"],
+  knowsAbout: ["Pakistan news", "world news", "business", "technology", "finance", "sports", "health", "entertainment", "lifestyle", "education"],
   sameAs: []
 };
 
@@ -118,3 +127,4 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+

@@ -1,10 +1,11 @@
-﻿import { unstable_noStore as noStore } from "next/cache";
+import { unstable_noStore as noStore } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { publishDueScheduledArticles, serializeArticle } from "@/lib/articles";
 import { Article as ArticleModel } from "@/models/Article";
 import { Advertisement as AdvertisementModel } from "@/models/Advertisement";
 import type { Advertisement, Article } from "@/types";
 import { categories, categorySlug, homepageCategories } from "@/lib/categories";
+import { safeArticleImage } from "@/lib/article-images";
 
 export type CategoryCard = {
   name: string;
@@ -110,7 +111,7 @@ export async function getHomepageData(): Promise<HomepageData> {
         name: category,
         slug: slugify(category),
         count: stat?.count ?? 0,
-        image: stat?.image
+        image: safeArticleImage({ image: stat?.image, title: `${category} News`, category })
       };
     });
 
@@ -143,6 +144,8 @@ export async function getHomepageData(): Promise<HomepageData> {
     };
   }
 }
+
+
 
 
 

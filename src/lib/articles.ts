@@ -2,6 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Article as ArticleModel } from "@/models/Article";
 import type { Article } from "@/types";
+import { safeArticleImage, safeArticleOgImage } from "@/lib/article-images";
 
 export async function publishDueScheduledArticles() {
   await ArticleModel.updateMany(
@@ -19,8 +20,13 @@ function serializeArticle(article: unknown): Article {
     updatedAt?: Date;
   };
 
+  const image = safeArticleImage({ image: doc.image, title: doc.title, category: doc.category });
+  const ogImage = safeArticleOgImage({ image: doc.ogImage || image, title: doc.title, category: doc.category });
+
   return {
     ...doc,
+    image,
+    ogImage,
     _id: doc._id?.toString(),
     publishedAt: new Date(doc.publishedAt).toISOString(),
     scheduledAt: doc.scheduledAt ? new Date(doc.scheduledAt).toISOString() : undefined,
@@ -76,3 +82,8 @@ export async function getArticleBySlug(slug: string) {
 }
 
 export { serializeArticle };
+
+
+
+
+

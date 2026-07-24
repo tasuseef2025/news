@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { getArticleBySlug, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
-import { articleBreadcrumbs } from "@/lib/content-automation";
+import { articleBreadcrumbs, generateStructuredData } from "@/lib/content-automation";
 import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
 import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
@@ -93,24 +93,12 @@ export default async function NewsArticlePage({ params }: Props) {
   ]);
 
   const breadcrumbSchema = articleBreadcrumbs(article);
-  const schema = article.schemaMarkup
-    ? article.schemaMarkup
-    : JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        headline: article.title,
-        description: article.metaDescription || article.excerpt,
-        image: [displayImage(article.ogImage || article.image)],
-        author: { "@type": "Person", name: article.author },
-        publisher: {
-          "@type": "NewsMediaOrganization",
-          name: siteConfig.name,
-          logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
-        },
-        datePublished: article.publishedAt,
-        dateModified: article.updatedAt || article.publishedAt,
-        mainEntityOfPage: article.canonicalUrl || absoluteUrl(`/news/${article.slug}`)
-      });
+  const schema = generateStructuredData({
+    ...article,
+    image: displayImage(article.image),
+    ogImage: displayImage(article.ogImage || article.image),
+    canonicalUrl: article.canonicalUrl || absoluteUrl(`/news/${article.slug}`)
+  });
 
   return (
     <main className="container max-w-4xl py-8">
@@ -206,3 +194,4 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
     </section>
   );
 }
+

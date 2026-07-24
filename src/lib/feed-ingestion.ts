@@ -3,6 +3,7 @@ import { categories, categorySlug } from "@/lib/categories";
 import { normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
 import { FeedSource } from "@/models/FeedSource";
+import { findStockImage, type StockImageResult } from "@/lib/stock-images";
 
 export type FeedEntry = {
   title: string;
@@ -297,13 +298,17 @@ async function uniqueArticleSlug(baseSlug: string, sourceUrl: string) {
   return `${withSourceHash}-${Date.now()}`;
 }
 
-async function feedImage(entry: FeedEntry, title: string, category: string) {
+async function feedImage(entry: FeedEntry, title: string, category: string): Promise<{ image: string; stockImage: StockImageResult | null }> {
   const generated = generatedOgPath(title, category);
   const sourceImage = firstImageUrl(entry.image) || (await ogImage(entry.link));
-  if (!sourceImage) return generated;
-  if (isLowRiskAutoImageUrl(sourceImage)) return sourceImage;
-  if (process.env.FEED_USE_SOURCE_IMAGES === "true") return sourceImage;
-  return generated;
+
+  if (sourceImage && isLowRiskAutoImageUrl(sourceImage)) return { image: sourceImage, stockImage: null };
+  if (sourceImage && process.env.FEED_USE_SOURCE_IMAGES === "true") return { image: sourceImage, stockImage: null };
+
+  const stockImage = await findStockImage({ title, category });
+  if (stockImage?.url) return { image: stockImage.url, stockImage };
+
+  return { image: generated, stockImage: null };
 }
 
 export async function ingestFeedSource(sourceId: string) {
@@ -327,13 +332,14 @@ export async function ingestFeedSource(sourceId: string) {
 
     const category = autoCategory(entry, source.defaultCategory);
     const editorial = await editorialPackage(entry, source.name, category);
-    const image = await feedImage(entry, editorial.title, category);
+    const { image, stockImage } = await feedImage(entry, editorial.title, category);
+    const content = stockImage ? `${editorial.content}\n\n${stockImage.credit}` : editorial.content;
     const initialPayload = normalizeArticlePayload({
       title: editorial.title,
       excerpt: editorial.excerpt,
-      content: editorial.content,
+      content,
       category,
-      author: source.name,
+      author: "Novexa News Desk",
       sourceName: source.name,
       sourceUrl: entry.link,
       image,
@@ -363,3 +369,6 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
+
+

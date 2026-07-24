@@ -15,6 +15,8 @@ type ArticleLike = {
   canonicalUrl?: string;
   schemaMarkup?: string;
   readingTime?: number;
+  sourceName?: string;
+  sourceUrl?: string;
 };
 
 export function generateSlug(value = "") {
@@ -56,6 +58,9 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
       logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
     },
     articleSection: article.category,
+    copyrightHolder: { "@type": "Organization", name: siteConfig.name },
+    isBasedOn: article.sourceUrl,
+    citation: article.sourceUrl,
     wordCount: stripHtml(article.content || "").split(/\s+/).filter(Boolean).length,
     timeRequired: `PT${article.readingTime || generateReadingTime(article.content || "")}M`,
     isAccessibleForFree: true,
@@ -142,5 +147,9 @@ export function articleBreadcrumbs(article: { title: string; slug: string; categ
     }))
   });
 }
+
+
+
+
 
 

@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
 import { categories, categorySlug } from "@/lib/categories";
+import { safeArticleOgImage } from "@/lib/article-images";
 
 type SitemapUrl = {
   loc: string;
@@ -14,6 +15,8 @@ type SitemapUrl = {
 
 type SitemapArticle = {
   slug: string;
+  title: string;
+  category: string;
   image?: string | null;
   updatedAt?: Date;
   publishedAt?: Date;
@@ -42,7 +45,7 @@ function validImageUrl(value?: string | null) {
 export async function GET() {
   await connectDB();
   const articles = await Article.find({ status: "published" })
-    .select("slug image updatedAt publishedAt")
+    .select("slug title category image updatedAt publishedAt")
     .sort({ publishedAt: -1 })
     .limit(5000)
     .lean<SitemapArticle[]>();
@@ -54,7 +57,7 @@ export async function GET() {
     ...articles.map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
       lastmod: new Date(article.updatedAt || article.publishedAt || new Date()).toISOString(),
-      image: validImageUrl(article.image)
+      image: validImageUrl(safeArticleOgImage({ image: article.image || undefined, title: article.title, category: article.category }))
     }))
   ];
 
@@ -64,3 +67,6 @@ export async function GET() {
 
   return new Response(xml, { headers: { "Content-Type": "application/xml", "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400" } });
 }
+
+
+
