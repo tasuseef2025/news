@@ -9,6 +9,7 @@ import { articleBreadcrumbs, generateStructuredData } from "@/lib/content-automa
 import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
 import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
+import { CommentsSection } from "@/features/comments/comments-section";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -167,9 +168,7 @@ export default async function NewsArticlePage({ params }: Props) {
             ))}
           </div>
         ) : null}
-        <div className="mt-8 rounded-lg border bg-card p-5 text-sm font-semibold text-muted-foreground">
-          {article.allowComments === false ? "Comments are closed for this article." : "Comments are open for this article."}
-        </div>
+        <CommentsSection articleId={article._id} allowComments={article.allowComments} />
         <ArticleRail title="Related Articles" articles={related.map(serializeArticle)} />
         <ArticleRail title="Recommended Articles" articles={recommended.map(serializeArticle)} />
         <ArticleRail title="Latest Articles" articles={latest.map(serializeArticle)} />
@@ -194,4 +193,6 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
     </section>
   );
 }
+
+
 

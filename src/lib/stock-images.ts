@@ -6,6 +6,19 @@ export type StockImageResult = {
   pageUrl?: string;
 };
 
+type PexelsPhoto = {
+  src?: { large2x?: string; large?: string; original?: string };
+  alt?: string;
+  photographer?: string;
+  url?: string;
+};
+
+type PixabayHit = {
+  largeImageURL?: string;
+  webformatURL?: string;
+  tags?: string;
+  pageURL?: string;
+};
 const sensitiveTerms = [
   "war",
   "attack",
@@ -71,6 +84,29 @@ const categoryQueries: Record<string, string> = {
   Weather: "weather clouds sky"
 };
 
+function imageHash(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function pickDeterministic<T>(items: T[], seed: string) {
+  if (!items.length) return null;
+  return items[imageHash(seed) % items.length];
+}
+
+function titleKeywords(title: string) {
+  const stopWords = new Set(["the", "a", "an", "and", "or", "but", "for", "with", "from", "after", "before", "into", "onto", "over", "under", "this", "that", "these", "those", "says", "said", "will", "their", "about", "news"]);
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !stopWords.has(word))
+    .slice(0, 4)
+    .join(" ");
+}
 function isSensitiveStory(title: string, category: string) {
   const text = `${title} ${category}`.toLowerCase();
   return sensitiveTerms.some((term) => text.includes(term));
@@ -89,7 +125,7 @@ async function pexelsImage(query: string, title: string): Promise<StockImageResu
     const url = new URL("https://api.pexels.com/v1/search");
     url.searchParams.set("query", query);
     url.searchParams.set("orientation", "landscape");
-    url.searchParams.set("per_page", "5");
+    url.searchParams.set("per_page", "20");
     url.searchParams.set("size", "large");
 
     const response = await fetch(url, {
@@ -99,7 +135,7 @@ async function pexelsImage(query: string, title: string): Promise<StockImageResu
     if (!response.ok) return null;
 
     const data = await response.json();
-    const photo = Array.isArray(data.photos) ? data.photos[0] : null;
+    const photo = Array.isArray(data.photos) ? pickDeterministic<PexelsPhoto>(data.photos, title) : null;
     const imageUrl = photo?.src?.large2x || photo?.src?.large || photo?.src?.original;
     if (!imageUrl) return null;
 
@@ -127,7 +163,7 @@ async function pixabayImage(query: string, title: string): Promise<StockImageRes
     url.searchParams.set("orientation", "horizontal");
     url.searchParams.set("safesearch", "true");
     url.searchParams.set("editors_choice", "true");
-    url.searchParams.set("per_page", "5");
+    url.searchParams.set("per_page", "20");
     url.searchParams.set("min_width", "1200");
     url.searchParams.set("min_height", "630");
 
@@ -135,7 +171,7 @@ async function pixabayImage(query: string, title: string): Promise<StockImageRes
     if (!response.ok) return null;
 
     const data = await response.json();
-    const image = Array.isArray(data.hits) ? data.hits[0] : null;
+    const image = Array.isArray(data.hits) ? pickDeterministic<PixabayHit>(data.hits, title) : null;
     const imageUrl = image?.largeImageURL || image?.webformatURL;
     if (!imageUrl) return null;
 
@@ -158,3 +194,5 @@ export async function findStockImage({ title, category }: { title: string; categ
 
   return (await pexelsImage(query, title)) || (await pixabayImage(query, title));
 }
+
+

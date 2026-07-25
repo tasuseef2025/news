@@ -28,9 +28,11 @@ export function SignInForm() {
 
   async function onSubmit(values: SignInInput) {
     setError("");
+    const callbackUrl = searchParams.get("callbackUrl") ?? "/admin";
     const result = await signIn("credentials", {
       ...values,
-      redirect: false
+      redirect: false,
+      callbackUrl
     });
 
     if (result?.error) {
@@ -38,8 +40,8 @@ export function SignInForm() {
       return;
     }
 
-    router.push(searchParams.get("callbackUrl") ?? "/admin");
     router.refresh();
+    window.location.assign(result?.url || callbackUrl);
   }
 
   return (
@@ -66,3 +68,7 @@ export function SignInForm() {
     </form>
   );
 }
+
+
+
+

@@ -1,7 +1,7 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { ArticleCard } from "@/features/articles/article-card";
 import { getArticles } from "@/lib/articles";
-import { categorySlug } from "@/lib/categories";
+import { categories, categorySlug } from "@/lib/categories";
 import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
@@ -17,9 +17,12 @@ function titleCase(value: string) {
     .join(" ");
 }
 
+function categoryFromSlug(slug: string) {
+  return categories.find((category) => categorySlug(category) === slug) || titleCase(slug.replaceAll("-", " "));
+}
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = titleCase(slug.replaceAll("-", " "));
+  const category = categoryFromSlug(slug);
   const canonical = absoluteUrl(`/category/${categorySlug(category)}`);
   const description = `Latest ${category} news, updates, analysis and featured stories from ${siteConfig.name}.`;
 
@@ -46,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = titleCase(slug.replaceAll("-", " "));
+  const category = categoryFromSlug(slug);
   const articles = await getArticles({ category, limit: 18 });
 
   return (
@@ -55,11 +58,19 @@ export default async function CategoryPage({ params }: Props) {
         <p className="text-sm font-bold uppercase text-primary">Section</p>
         <h1 className="text-4xl font-black capitalize">{category}</h1>
       </div>
-      <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-        {articles.map((article) => (
-          <ArticleCard key={article.slug} article={article} />
-        ))}
-      </div>
+      {articles.length ? (
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+          {articles.map((article) => (
+            <ArticleCard key={article.slug} article={article} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+          No published articles found in this section yet. New stories will appear here automatically after feed imports publish matching articles.
+        </div>
+      )}
     </main>
   );
 }
+
+
