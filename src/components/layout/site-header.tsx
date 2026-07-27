@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
 import { canAccessAdmin } from "@/lib/permissions";
 import { categories, categorySlug, primaryNavigationCategories } from "@/lib/categories";
@@ -31,7 +32,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container grid h-16 grid-cols-[44px_1fr_92px] items-center gap-2 md:h-20 md:grid-cols-[120px_1fr_120px]">
+      <div className="container grid h-16 grid-cols-[44px_1fr_92px] items-center gap-2 md:h-20 md:grid-cols-[120px_1fr_240px]">
         <div className="flex justify-start">
           <Button
             variant="ghost"
@@ -54,6 +55,7 @@ export function SiteHeader() {
         </Link>
 
         <div className="flex items-center justify-end gap-1">
+          <div className="hidden sm:block"><LanguageSwitcher /></div>
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -124,6 +126,7 @@ export function SiteHeader() {
                   {item.label}
                 </Link>
               ))}
+              <div className="px-3 py-2"><LanguageSwitcher /></div>
               {showAdmin ? <Link href="/admin" className="rounded-md px-3 py-3 hover:bg-muted hover:text-primary" onClick={() => setMobileOpen(false)}>Admin</Link> : null}
             </div>
           </motion.div>
@@ -186,4 +189,9 @@ function CategoriesDropdown() {
     </motion.div>
   );
 }
+
+
+
+
+
 

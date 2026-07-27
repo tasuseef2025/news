@@ -5,6 +5,7 @@ import { ArticleCard } from "@/features/articles/article-card";
 import type { Advertisement, Article } from "@/types";
 import type { CategoryCard } from "@/lib/homepage";
 import { cn } from "@/lib/utils";
+import { siteConfig } from "@/lib/site";
 
 export function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
@@ -151,13 +152,25 @@ export function AdvertisementSlot({
   const advertisement = advertisements.find((item) => item.placement === placement);
 
   if (!advertisement) {
+    const title = placement === "sidebar" ? "Advertise Here" : "Advertise with Novexa News";
+    const image = `/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent("Media Kit")}`;
+
     return (
-      <div className={cn("grid min-h-28 place-items-center rounded-lg border border-dashed bg-muted/60 p-5 text-center", className)}>
-        <div>
-          <p className="text-xs font-black uppercase text-muted-foreground">Advertisement</p>
-          <p className="mt-1 text-sm text-muted-foreground">No active {placement} ad found in MongoDB.</p>
+      <a
+        href={`mailto:${siteConfig.contactEmail}?subject=Advertising%20on%20Novexa%20News&body=Hello%20Novexa%20News%2C%0A%0AI%20am%20interested%20in%20advertising%20on%20your%20website.`}
+        className={cn("group relative block min-h-32 overflow-hidden rounded-lg border bg-card shadow-sm", className)}
+      >
+        <Image src={image} alt="Advertise with Novexa News" fill className="object-cover transition duration-500 group-hover:scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-primary/20" />
+        <div className="relative z-10 flex min-h-32 flex-col justify-center p-5 text-white">
+          <p className="text-xs font-black uppercase tracking-normal text-white/80">Advertisement</p>
+          <h3 className="mt-1 max-w-xl text-2xl font-black leading-tight md:text-3xl">Advertise with Novexa News</h3>
+          <p className="mt-2 max-w-xl text-sm font-semibold text-white/85">Reach readers across Pakistan, world news, business, technology, sports, and lifestyle.</p>
+          <span className="mt-4 inline-flex w-fit rounded-md bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition group-hover:bg-white group-hover:text-primary">
+            Contact: {siteConfig.contactEmail}
+          </span>
         </div>
-      </div>
+      </a>
     );
   }
 
@@ -206,3 +219,4 @@ export function Newsletter() {
     </section>
   );
 }
+
