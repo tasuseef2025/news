@@ -27,14 +27,36 @@ export function generateSlug(value = "") {
     .replace(/^-+|-+$/g, "") || `article-${Date.now()}`;
 }
 
+export function cleanText(value = "") {
+  return value
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/(^|\s)[*_]{1,3}(?=\s|$)/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .replace(/\.{3,}/g, ".")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function stripHtml(value = "") {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return cleanText(value);
 }
 
 export function generateExcerpt(content = "", max = 155) {
   const text = stripHtml(content);
   if (text.length <= max) return text;
-  return `${text.slice(0, max).replace(/\s+\S*$/, "")}...`;
+  return text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "");
 }
 
 export function generateReadingTime(content = "") {
@@ -147,6 +169,7 @@ export function articleBreadcrumbs(article: { title: string; slug: string; categ
     }))
   });
 }
+
 
 
 

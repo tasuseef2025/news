@@ -27,7 +27,7 @@ export default async function HomePage() {
 
         <aside className="grid content-start gap-6">
           <RankedList title="Trending News" articles={data.trending} icon="trend" />
-          <AdvertisementSlot advertisements={data.advertisements} placement="sidebar" className="min-h-72" />
+          <AdvertisementSlot advertisements={data.advertisements} placement="sidebar" className="min-h-48" />
           <CompactArticleList title="Popular Articles" articles={data.popular} />
         </aside>
       </section>
@@ -84,3 +84,4 @@ export default async function HomePage() {
     </main>
   );
 }
+

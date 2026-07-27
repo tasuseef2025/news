@@ -152,21 +152,23 @@ export function AdvertisementSlot({
   const advertisement = advertisements.find((item) => item.placement === placement);
 
   if (!advertisement) {
-    const title = placement === "sidebar" ? "Advertise Here" : "Advertise with Novexa News";
-    const image = `/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent("Media Kit")}`;
-
     return (
       <a
         href={`mailto:${siteConfig.contactEmail}?subject=Advertising%20on%20Novexa%20News&body=Hello%20Novexa%20News%2C%0A%0AI%20am%20interested%20in%20advertising%20on%20your%20website.`}
-        className={cn("group relative block min-h-32 overflow-hidden rounded-lg border bg-card shadow-sm", className)}
+        className={cn("group relative block overflow-hidden rounded-lg border bg-card shadow-sm", className)}
       >
-        <Image src={image} alt="Advertise with Novexa News" fill className="object-cover transition duration-500 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-primary/20" />
-        <div className="relative z-10 flex min-h-32 flex-col justify-center p-5 text-white">
-          <p className="text-xs font-black uppercase tracking-normal text-white/80">Advertisement</p>
-          <h3 className="mt-1 max-w-xl text-2xl font-black leading-tight md:text-3xl">Advertise with Novexa News</h3>
-          <p className="mt-2 max-w-xl text-sm font-semibold text-white/85">Reach readers across Pakistan, world news, business, technology, sports, and lifestyle.</p>
-          <span className="mt-4 inline-flex w-fit rounded-md bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition group-hover:bg-white group-hover:text-primary">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,#111827_0%,#111827_56%,#dc0000_56%,#dc0000_100%)]" />
+        <div className="absolute inset-y-0 right-0 w-2/5 bg-white/10 [clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]" />
+        <div className="relative z-10 flex min-h-24 flex-col justify-center gap-2 p-4 text-white md:min-h-28 md:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-sm bg-white px-2 py-1 text-[10px] font-black uppercase text-primary">Advertisement</span>
+            <span className="text-xs font-black uppercase text-white/75">Global audience</span>
+          </div>
+          <h3 className="max-w-xl text-xl font-black leading-tight md:text-2xl">Advertise with Novexa News</h3>
+          <p className="max-w-2xl text-sm font-semibold text-white/85">
+            Reach readers across world news, business, technology, sports, entertainment, and lifestyle.
+          </p>
+          <span className="inline-flex w-fit rounded-md bg-white px-3 py-1.5 text-xs font-black text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
             Contact: {siteConfig.contactEmail}
           </span>
         </div>
@@ -219,4 +221,5 @@ export function Newsletter() {
     </section>
   );
 }
+
 

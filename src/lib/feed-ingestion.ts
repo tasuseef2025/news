@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { categories, categorySlug } from "@/lib/categories";
-import { normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
+import { cleanText, normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
 import { FeedSource } from "@/models/FeedSource";
 import { findStockImage, type StockImageResult } from "@/lib/stock-images";
@@ -30,7 +30,9 @@ function decodeEntities(value = "") {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
     .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
     .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
     .trim();
 }
@@ -138,8 +140,9 @@ function autoCategory(entry: FeedEntry, fallback: string) {
 
 function humanSummary(entry: FeedEntry) {
   const text = entry.description || entry.title;
-  const clean = text.length > 260 ? `${text.slice(0, 260).replace(/\s+\S*$/, "")}...` : text;
-  return clean || `A developing story is being tracked from ${new URL(entry.link).hostname}.`;
+  const clean = cleanText(text);
+  const summary = clean.length > 260 ? clean.slice(0, 260).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : clean;
+  return summary || `A developing story is being tracked from ${new URL(entry.link).hostname}.`;
 }
 
 function sourceHost(url: string) {
@@ -171,7 +174,7 @@ async function hasDuplicateArticle(entry: FeedEntry) {
 
 function compactText(value = "", max = 1800) {
   const text = stripHtml(value).replace(/\s+/g, " ").trim();
-  return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}...` : text;
+  return text.length > max ? text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : text;
 }
 
 function parseEditorialJson(value: string): Partial<EditorialPackage> | null {
@@ -198,13 +201,13 @@ function cleanTags(tags: unknown[], category: string, feedTag?: string) {
 
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
   if (!input?.title || !input.content) return null;
-  const title = stripHtml(input.title).replace(/\s+/g, " ").trim().slice(0, 95);
-  const content = stripHtml(input.content).replace(/\n{3,}/g, "\n\n").trim();
+  const title = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
+  const content = cleanText(input.content).replace(/\n{3,}/g, "\n\n").trim();
   if (!title || content.split(/\s+/).filter(Boolean).length < 180) return null;
 
-  const excerpt = stripHtml(input.excerpt || humanSummary(entry)).slice(0, 240);
-  const metaTitle = stripHtml(input.metaTitle || title).slice(0, 68);
-  const metaDescription = stripHtml(input.metaDescription || excerpt).slice(0, 158);
+  const excerpt = cleanText(input.excerpt || humanSummary(entry)).slice(0, 240).replace(/[\s.,;:!?-]+$/, "");
+  const metaTitle = cleanText(input.metaTitle || title).slice(0, 68).replace(/[\s.,;:!?-]+$/, "");
+  const metaDescription = cleanText(input.metaDescription || excerpt).slice(0, 158).replace(/[\s.,;:!?-]+$/, "");
 
   return {
     title,
@@ -242,7 +245,7 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
           },
           {
             role: "user",
-            content: `Create a click-worthy but accurate editorial package for Novexa News.\n\nOriginal feed title: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${compactText(entry.description || entry.title)}\nFeed tag: ${entry.category || "N/A"}\n\nReturn this JSON shape exactly:\n{\n  "title": "original SEO/news headline, 55-90 characters, no clickbait, not copied from source",\n  "excerpt": "one human summary sentence, 120-220 characters",\n  "metaTitle": "SEO title under 68 characters",\n  "metaDescription": "search description under 158 characters",\n  "tags": ["3 to 7 relevant tags"],\n  "content": "450-900 words when the feed has enough verified detail; use short paragraphs; add useful context, reader impact, and what remains unclear; include no markdown headings; do not say follow the source link; do not copy source wording"\n}\n\nQuality rules:\n- Optimize for Google Discover/Search CTR with clarity, specificity, and curiosity, not exaggeration.\n- Keep attribution inside the body naturally.\n- Make it sound written by an editor, not generated from a rigid template.\n- If the story is sensitive, legal, health, conflict, crime, politics, or death-related, use cautious language and avoid sensational phrasing.\n- Do not include any image URL.`
+            content: `Create a click-worthy but accurate editorial package for Novexa News.\n\nOriginal feed title: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${compactText(entry.description || entry.title)}\nFeed tag: ${entry.category || "N/A"}\n\nReturn this JSON shape exactly:\n{\n  "title": "original SEO/news headline, 55-90 characters, no clickbait, not copied from source",\n  "excerpt": "one human summary sentence, 120-220 characters",\n  "metaTitle": "SEO title under 68 characters",\n  "metaDescription": "search description under 158 characters",\n  "tags": ["3 to 7 relevant tags"],\n  "content": "450-900 words when the feed has enough verified detail; use short paragraphs; add useful context, reader impact, and what remains unclear; include no markdown headings; do not say follow the source link; do not copy source wording"\n}\n\nQuality rules:\n- Optimize for Google Discover/Search CTR with clarity, specificity, and curiosity, not exaggeration.\n- Keep attribution inside the body naturally.\n- Make it sound written by an editor, not generated from a rigid template.\n- If the story is sensitive, legal, health, conflict, crime, politics, or death-related, use cautious language and avoid sensational phrasing.\n- Do not include any image URL.\n- Do not use markdown, bullets, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.`
           }
         ]
       })
@@ -263,9 +266,10 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
 function fallbackEditorialPackage(entry: FeedEntry, sourceName: string, category: string): EditorialPackage {
   const summary = humanSummary(entry);
   const source = sourceHost(entry.link);
-  const title = entry.title.length > 90 ? `${entry.title.slice(0, 90).replace(/\s+\S*$/, "")}...` : entry.title;
+  const cleanTitle = cleanText(entry.title);
+  const title = cleanTitle.length > 90 ? cleanTitle.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : cleanTitle;
   const content = [
-    `${entry.title} is one of the latest updates being tracked by Novexa News from ${sourceName}. ${summary}`,
+    `${title} is one of the latest updates being tracked by Novexa News from ${sourceName}. ${summary}`,
     `The story falls under the ${category} desk and may matter to readers following public affairs, markets, technology, communities, policy decisions, or global developments connected to the subject. The available feed detail is limited, so this report stays close to confirmed information instead of adding unverified claims.`,
     `Novexa News will continue watching for official statements, clearer timelines, responses from affected parties, and independent confirmation from credible sources. Editorial review is recommended before heavy promotion if the story involves legal, political, health, crime, or conflict-sensitive details.`,
     `Source: ${sourceName} via ${source} - ${entry.link}`
@@ -369,6 +373,10 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
+
+
+
 
 
 
