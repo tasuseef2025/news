@@ -1,4 +1,4 @@
-﻿export type Role =
+export type Role =
   | "super_admin"
   | "admin"
   | "editor"
@@ -29,6 +29,7 @@ export type Article = {
   subcategory?: string;
   author: string;
   image: string;
+  imageAlt?: string;
   gallery?: string[];
   videoUrl?: string;
   tags: string[];
@@ -62,4 +63,6 @@ export type Advertisement = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+
 

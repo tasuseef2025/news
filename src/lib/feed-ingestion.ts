@@ -16,11 +16,14 @@ export type FeedEntry = {
 
 type EditorialPackage = {
   title: string;
+  slug?: string;
   excerpt: string;
   content: string;
   metaTitle: string;
   metaDescription: string;
+  keywords?: string[];
   tags: string[];
+  imageAlt?: string;
 };
 
 function decodeEntities(value = "") {
@@ -177,6 +180,15 @@ function compactText(value = "", max = 1800) {
   return text.length > max ? text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : text;
 }
 
+function cleanArticleContent(value = "") {
+  return value
+    .replace(/\r\n/g, "\n")
+    .split(/\n+/)
+    .map((block) => cleanText(block))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function parseEditorialJson(value: string): Partial<EditorialPackage> | null {
   try {
     return JSON.parse(value) as Partial<EditorialPackage>;
@@ -202,20 +214,26 @@ function cleanTags(tags: unknown[], category: string, feedTag?: string) {
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
   if (!input?.title || !input.content) return null;
   const title = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
-  const content = cleanText(input.content).replace(/\n{3,}/g, "\n\n").trim();
+  const content = cleanArticleContent(input.content);
   if (!title || content.split(/\s+/).filter(Boolean).length < 180) return null;
 
   const excerpt = cleanText(input.excerpt || humanSummary(entry)).slice(0, 240).replace(/[\s.,;:!?-]+$/, "");
   const metaTitle = cleanText(input.metaTitle || title).slice(0, 68).replace(/[\s.,;:!?-]+$/, "");
-  const metaDescription = cleanText(input.metaDescription || excerpt).slice(0, 158).replace(/[\s.,;:!?-]+$/, "");
+  const metaDescription = cleanText(input.metaDescription || excerpt).slice(0, 160).replace(/[\s.,;:!?-]+$/, "");
+  const slug = typeof input.slug === "string" ? categorySlug(cleanText(input.slug)) : undefined;
+  const keywords = Array.isArray(input.keywords) ? input.keywords : [];
+  const imageAlt = cleanText(input.imageAlt || `${title} news image`).slice(0, 125).replace(/[\s.,;:!?-]+$/, "");
 
   return {
     title,
+    slug,
     excerpt,
     content: `${content}\n\nSource: ${sourceName} - ${entry.link}`,
     metaTitle,
     metaDescription,
-    tags: cleanTags(Array.isArray(input.tags) ? input.tags : [], category, entry.category)
+    keywords: cleanTags(keywords, category, entry.category),
+    tags: cleanTags([...(Array.isArray(input.tags) ? input.tags : []), ...keywords], category, entry.category),
+    imageAlt
   };
 }
 
@@ -236,7 +254,7 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 2200),
+        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 3200),
         input: [
           {
             role: "system",
@@ -245,7 +263,37 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
           },
           {
             role: "user",
-            content: `Create a click-worthy but accurate editorial package for Novexa News.\n\nOriginal feed title: ${entry.title}\nCategory: ${category}\nSource: ${sourceName}\nSource URL: ${entry.link}\nFeed summary: ${compactText(entry.description || entry.title)}\nFeed tag: ${entry.category || "N/A"}\n\nReturn this JSON shape exactly:\n{\n  "title": "original SEO/news headline, 55-90 characters, no clickbait, not copied from source",\n  "excerpt": "one human summary sentence, 120-220 characters",\n  "metaTitle": "SEO title under 68 characters",\n  "metaDescription": "search description under 158 characters",\n  "tags": ["3 to 7 relevant tags"],\n  "content": "450-900 words when the feed has enough verified detail; use short paragraphs; add useful context, reader impact, and what remains unclear; include no markdown headings; do not say follow the source link; do not copy source wording"\n}\n\nQuality rules:\n- Optimize for Google Discover/Search CTR with clarity, specificity, and curiosity, not exaggeration.\n- Keep attribution inside the body naturally.\n- Make it sound written by an editor, not generated from a rigid template.\n- If the story is sensitive, legal, health, conflict, crime, politics, or death-related, use cautious language and avoid sensational phrasing.\n- Do not include any image URL.\n- Do not use markdown, bullets, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.`
+            content: `Using the provided news source metadata, write a completely original, factual, SEO-optimized Novexa News article.
+
+Original feed title: ${entry.title}
+Category: ${category}
+Source: ${sourceName}
+Source URL: ${entry.link}
+Feed summary: ${compactText(entry.description || entry.title)}
+Feed tag: ${entry.category || "N/A"}
+
+Return only valid JSON with this exact shape:
+{
+  "title": "unique SEO title, 50-60 characters, accurate and not copied",
+  "slug": "seo-friendly-url-slug",
+  "metaTitle": "SEO title, 50-60 characters",
+  "metaDescription": "SEO meta description, 150-160 characters",
+  "keywords": ["primary keyword", "secondary keyword"],
+  "tags": ["5 to 8 relevant tags"],
+  "imageAlt": "descriptive image alt text suggestion",
+  "content": "1,400-1,600 words when verified feed detail supports it. Use a strong introduction, H2: heading lines, H3: heading lines where useful, short paragraphs, a conclusion, and a short FAQ section of 3-5 questions if appropriate."
+}
+
+Editorial rules:
+- Use a professional journalistic tone.
+- Preserve only verified facts from the feed/source metadata and avoid speculation.
+- Do not copy sentences, distinctive phrasing, article structure, images, or thumbnails from the source.
+- Use the primary keyword naturally throughout the article without keyword stuffing.
+- If the feed has limited verified detail, write a shorter factual brief instead of inventing details.
+- Keep attribution inside the article naturally.
+- Do not say the article was written by AI.
+- Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
+- Do not include any image URL.`
           }
         ]
       })
@@ -348,6 +396,7 @@ export async function ingestFeedSource(sourceId: string) {
       sourceUrl: entry.link,
       image,
       ogImage: generatedOgPath(editorial.title, category),
+      slug: editorial.slug,
       metaTitle: editorial.metaTitle,
       metaDescription: editorial.metaDescription,
       status: source.autoPublish ? "published" : "draft",
@@ -373,6 +422,10 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
+
+
+
 
 
 

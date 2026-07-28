@@ -1,4 +1,4 @@
-﻿import { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 import type { ArticleStatus } from "@/types";
 
 export type ArticleDocument = {
@@ -12,6 +12,7 @@ export type ArticleDocument = {
   sourceName?: string;
   sourceUrl?: string;
   image: string;
+  imageAlt?: string;
   gallery: string[];
   videoUrl?: string;
   tags: string[];
@@ -43,6 +44,7 @@ const articleSchema = new Schema<ArticleDocument>(
     sourceName: { type: String, trim: true },
     sourceUrl: { type: String, trim: true, index: true },
     image: { type: String, required: true },
+    imageAlt: { type: String, trim: true },
     gallery: [{ type: String, trim: true }],
     videoUrl: String,
     tags: [{ type: String, trim: true }],
@@ -68,3 +70,5 @@ articleSchema.index({ title: "text", excerpt: "text", content: "text" });
 articleSchema.index({ sourceUrl: 1 }, { unique: true, sparse: true });
 
 export const Article = models.Article || model<ArticleDocument>("Article", articleSchema);
+
+

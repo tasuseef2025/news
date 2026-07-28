@@ -10,7 +10,7 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
       <Link href={`/news/${article.slug}`} className="relative block overflow-hidden rounded-lg bg-muted">
         <Image
           src={article.image}
-          alt={article.title}
+          alt={article.imageAlt || article.title}
           width={900}
           height={560}
           priority={priority}
@@ -33,3 +33,4 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
     </article>
   );
 }
+

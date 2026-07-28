@@ -10,6 +10,7 @@ import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
 import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
 import { CommentsSection } from "@/features/comments/comments-section";
+import { ArticleShare } from "@/features/articles/article-share";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
-      images: [{ url: image, width: 1200, height: 630, alt: article.title }],
+      images: [{ url: image, width: 1200, height: 630, alt: article.imageAlt || article.title }],
       type: "article",
       siteName: siteConfig.name,
       url: canonical,
@@ -93,6 +94,7 @@ export default async function NewsArticlePage({ params }: Props) {
       .lean()
   ]);
 
+  const articleUrl = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
   const schema = generateStructuredData({
     ...article,
@@ -128,22 +130,17 @@ export default async function NewsArticlePage({ params }: Props) {
             <span>{article.views.toLocaleString()} views</span>
             <span>{article.readingTime ?? 1} min read</span>
           </div>
+          <ArticleShare title={article.title} url={articleUrl} />
         </div>
         <Image
           src={article.image}
-          alt={article.title}
+          alt={article.imageAlt || article.title}
           width={1400}
           height={820}
           priority
           className="mb-8 aspect-[16/9] w-full rounded-lg object-cover"
         />
-        <div className="prose prose-slate max-w-none dark:prose-invert">
-          {article.content.split("\n").map((paragraph) => (
-            <p key={paragraph} className="mb-5 text-lg leading-8">
-              {paragraph}
-            </p>
-          ))}
-        </div>
+        <ArticleContent content={article.content} />
         {article.videoUrl ? (
           <div className="mt-8 rounded-lg border bg-card p-4">
             <h2 className="mb-3 text-xl font-black">Video</h2>
@@ -155,7 +152,7 @@ export default async function NewsArticlePage({ params }: Props) {
         {article.gallery?.length ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {article.gallery.map((image) => (
-              <Image key={image} src={image} alt={article.title} width={900} height={560} className="aspect-[16/10] rounded-lg object-cover" />
+              <Image key={image} src={image} alt={article.imageAlt || article.title} width={900} height={560} className="aspect-[16/10] rounded-lg object-cover" />
             ))}
           </div>
         ) : null}
@@ -177,6 +174,25 @@ export default async function NewsArticlePage({ params }: Props) {
   );
 }
 
+function ArticleContent({ content }: { content: string }) {
+  const blocks = content.split(/\n+/).map((block) => block.trim()).filter(Boolean);
+
+  return (
+    <div className="prose prose-slate max-w-none dark:prose-invert">
+      {blocks.map((block, index) => {
+        if (/^(h2:|##\s+)/i.test(block)) {
+          return <h2 key={`${block}-${index}`} className="mb-4 mt-8 text-3xl font-black">{block.replace(/^(h2:|##\s+)/i, "").trim()}</h2>;
+        }
+
+        if (/^(h3:|###\s+)/i.test(block)) {
+          return <h3 key={`${block}-${index}`} className="mb-3 mt-6 text-2xl font-black">{block.replace(/^(h3:|###\s+)/i, "").trim()}</h3>;
+        }
+
+        return <p key={`${block}-${index}`} className="mb-5 text-lg leading-8">{block}</p>;
+      })}
+    </div>
+  );
+}
 function ArticleRail({ title, articles }: { title: string; articles: ReturnType<typeof serializeArticle>[] }) {
   if (!articles.length) return null;
   return (
@@ -185,7 +201,7 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
       <div className="grid gap-4 md:grid-cols-3">
         {articles.map((item) => (
           <a key={item.slug} href={`/news/${item.slug}`} className="group grid gap-2">
-            <Image src={item.image} alt={item.title} width={520} height={320} loading="lazy" className="aspect-[16/10] rounded-lg object-cover" />
+            <Image src={item.image} alt={item.imageAlt || item.title} width={520} height={320} loading="lazy" className="aspect-[16/10] rounded-lg object-cover" />
             <span className="font-black leading-tight group-hover:text-primary">{item.title}</span>
           </a>
         ))}
@@ -193,6 +209,12 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
     </section>
   );
 }
+
+
+
+
+
+
 
 
 
