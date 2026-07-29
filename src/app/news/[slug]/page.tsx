@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
@@ -95,6 +95,7 @@ export default async function NewsArticlePage({ params }: Props) {
   ]);
 
   const articleUrl = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
+  const shareImageUrl = absoluteUrl(`/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
   const schema = generateStructuredData({
     ...article,
@@ -130,7 +131,7 @@ export default async function NewsArticlePage({ params }: Props) {
             <span>{article.views.toLocaleString()} views</span>
             <span>{article.readingTime ?? 1} min read</span>
           </div>
-          <ArticleShare title={article.title} url={articleUrl} />
+          <ArticleShare title={article.title} url={articleUrl} shareImageUrl={shareImageUrl} />
         </div>
         <Image
           src={article.image}
@@ -209,6 +210,7 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
     </section>
   );
 }
+
 
 
 

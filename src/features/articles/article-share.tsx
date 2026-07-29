@@ -1,8 +1,14 @@
-"use client";
+﻿"use client";
 
 import { Check, Copy, Facebook, Instagram, Linkedin, MessageCircle, Share2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+
+type ShareProps = {
+  title: string;
+  url: string;
+  shareImageUrl: string;
+};
 
 const platforms = [
   {
@@ -27,7 +33,7 @@ const platforms = [
   }
 ];
 
-export function ArticleShare({ title, url }: { title: string; url: string }) {
+export function ArticleShare({ title, url, shareImageUrl }: ShareProps) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
@@ -41,9 +47,24 @@ export function ArticleShare({ title, url }: { title: string; url: string }) {
     await navigator.share({ title, url });
   }
 
-  async function shareToInstagram() {
-    await copyLink();
-    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+  async function shareCardToInstagram() {
+    await navigator.clipboard.writeText(`${title}\n${url}`);
+
+    try {
+      const response = await fetch(shareImageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "novexa-news-card.png", { type: blob.type || "image/png" });
+      const shareData = { title, text: `${title}\n${url}`, files: [file] };
+
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      // Desktop browsers usually cannot share image files directly to Instagram.
+    }
+
+    window.open(shareImageUrl, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -62,7 +83,7 @@ export function ArticleShare({ title, url }: { title: string; url: string }) {
           </Button>
         );
       })}
-      <Button type="button" size="icon" variant="outline" onClick={shareToInstagram} title="Copy link and open Instagram" aria-label="Copy link and open Instagram">
+      <Button type="button" size="icon" variant="outline" onClick={shareCardToInstagram} title="Share image card to Instagram" aria-label="Share image card to Instagram">
         <Instagram className="h-4 w-4" />
       </Button>
       <Button type="button" size="icon" variant="outline" onClick={copyLink} title="Copy article link" aria-label="Copy article link">

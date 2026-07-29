@@ -1,4 +1,4 @@
-import {
+﻿import {
   AdvertisementSlot,
   ArticleGrid,
   CategoryCards,
@@ -12,6 +12,7 @@ import { HeroBreakingSlider } from "@/features/home/hero-breaking-slider";
 import { ArticleCard } from "@/features/articles/article-card";
 import { getHomepageData } from "@/lib/homepage";
 import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
+import { InteractiveWidgetsPanel } from "@/features/widgets/interactive-widgets-panel";
 
 export default async function HomePage() {
   const data = await getHomepageData();
@@ -84,4 +85,6 @@ export default async function HomePage() {
     </main>
   );
 }
+
+
 

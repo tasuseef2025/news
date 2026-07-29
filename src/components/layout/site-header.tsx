@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -189,6 +189,8 @@ function CategoriesDropdown() {
     </motion.div>
   );
 }
+
+
 
 
 
