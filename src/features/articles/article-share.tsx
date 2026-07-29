@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Facebook, Linkedin, Share2 } from "lucide-react";
+import { Check, Copy, Facebook, Instagram, Linkedin, MessageCircle, Share2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +22,7 @@ const platforms = [
   },
   {
     name: "WhatsApp",
-    icon: Share2,
+    icon: MessageCircle,
     href: (url: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`
   }
 ];
@@ -41,6 +41,11 @@ export function ArticleShare({ title, url }: { title: string; url: string }) {
     await navigator.share({ title, url });
   }
 
+  async function shareToInstagram() {
+    await copyLink();
+    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Share this article">
       <Button type="button" size="sm" onClick={nativeShare} className="gap-2">
@@ -57,6 +62,9 @@ export function ArticleShare({ title, url }: { title: string; url: string }) {
           </Button>
         );
       })}
+      <Button type="button" size="icon" variant="outline" onClick={shareToInstagram} title="Copy link and open Instagram" aria-label="Copy link and open Instagram">
+        <Instagram className="h-4 w-4" />
+      </Button>
       <Button type="button" size="icon" variant="outline" onClick={copyLink} title="Copy article link" aria-label="Copy article link">
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </Button>
