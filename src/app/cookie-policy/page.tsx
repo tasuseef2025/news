@@ -22,6 +22,9 @@ export default function CookiePolicyPage() {
       <p>You can block or delete cookies through your browser settings. Some features may not work correctly if essential cookies are disabled.</p>
       <h2>Contact</h2>
       <p>Cookie questions can be sent to <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>.</p>
+          <h2>Advertising Cookies</h2>
+      <p>Google and other advertising partners may use cookies, web beacons or similar technologies to serve and measure ads. You can learn more at <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noreferrer">How Google uses data when you use partners sites or apps</a>.</p>
     </StaticPage>
   );
 }
+

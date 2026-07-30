@@ -1,0 +1,6 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Novexa News icon">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <path d="M112 344V168h42l102 117V168h50v176h-42L162 228v116h-50Z" fill="#fff"/>
+  <rect x="326" y="168" width="74" height="176" rx="14" fill="#e11d48"/>
+  <path d="M346 218h34v24h-34v-24Zm0 52h34v24h-34v-24Z" fill="#fff"/>
+</svg>
