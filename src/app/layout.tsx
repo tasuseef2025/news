@@ -8,6 +8,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 import { WebVitals } from "@/components/analytics/web-vitals";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { GoogleAdsense } from "@/components/ads/google-adsense";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -116,6 +117,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={inter.variable}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+        <GoogleAdsense />
         <AppProviders>
           <GoogleAnalytics />
           <WebVitals />
@@ -127,5 +129,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+
 
 
