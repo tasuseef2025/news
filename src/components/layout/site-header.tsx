@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
-import { canAccessAdmin } from "@/lib/permissions";
+import { canAccessAdmin, hasPermission } from "@/lib/permissions";
 import { categories, categorySlug, primaryNavigationCategories } from "@/lib/categories";
 
 const mainNav = [
@@ -29,6 +29,7 @@ export function SiteHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const showAdmin = canAccessAdmin(session?.user.role);
+  const canWriteArticles = hasPermission(session?.user.role, "create_articles");
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -89,7 +90,7 @@ export function SiteHeader() {
           {mainNav.slice(3).map((item) => (
             <NavLink key={item.href} href={item.href}>{item.label}</NavLink>
           ))}
-          {showAdmin ? <NavLink href="/admin">Admin</NavLink> : null}
+          {canWriteArticles ? <NavLink href="/admin/articles">Write Article</NavLink> : showAdmin ? <NavLink href="/admin">Admin</NavLink> : null}
         </div>
       </nav>
 
@@ -127,7 +128,7 @@ export function SiteHeader() {
                 </Link>
               ))}
               <div className="px-3 py-2"><LanguageSwitcher /></div>
-              {showAdmin ? <Link href="/admin" className="rounded-md px-3 py-3 hover:bg-muted hover:text-primary" onClick={() => setMobileOpen(false)}>Admin</Link> : null}
+              {canWriteArticles ? <Link href="/admin/articles" className="rounded-md px-3 py-3 hover:bg-muted hover:text-primary" onClick={() => setMobileOpen(false)}>Write Article</Link> : showAdmin ? <Link href="/admin" className="rounded-md px-3 py-3 hover:bg-muted hover:text-primary" onClick={() => setMobileOpen(false)}>Admin</Link> : null}
             </div>
           </motion.div>
         ) : null}
@@ -189,6 +190,7 @@ function CategoriesDropdown() {
     </motion.div>
   );
 }
+
 
 
 

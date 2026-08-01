@@ -13,6 +13,7 @@ export const metadata = {
 export default async function SignInPage() {
   const session = await getServerSession(authOptions);
 
+  if (session?.user.permissions.includes("create_articles")) redirect("/admin/articles");
   if (canAccessAdmin(session?.user.role)) redirect("/admin");
 
   return (
@@ -29,3 +30,4 @@ export default async function SignInPage() {
     </main>
   );
 }
+
