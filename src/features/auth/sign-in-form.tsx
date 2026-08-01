@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -41,7 +41,7 @@ export function SignInForm() {
     }
 
     router.refresh();
-    window.location.assign(result?.url || callbackUrl);
+    window.location.replace(callbackUrl);
   }
 
   return (
@@ -68,6 +68,7 @@ export function SignInForm() {
     </form>
   );
 }
+
 
 
 

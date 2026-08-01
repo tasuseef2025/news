@@ -1,4 +1,4 @@
-import type { Permission, Role } from "@/types";
+﻿import type { Permission, Role } from "@/types";
 
 export function normalizeRole(role?: string | null): Role {
   if (role === "reader") return "subscriber";
@@ -81,3 +81,4 @@ export function canAccessAdmin(role: string | null | undefined) {
     "manage_settings"
   ]);
 }
+
