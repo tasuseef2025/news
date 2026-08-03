@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -26,10 +26,21 @@ export function SignInForm() {
     defaultValues: { email: "", password: "" }
   });
 
+  function safeAdminCallbackUrl() {
+    const requested = searchParams.get("callbackUrl") || "/admin/articles";
+    if (requested.startsWith("/admin")) return requested;
+
+    try {
+      const parsed = new URL(requested);
+      return parsed.pathname.startsWith("/admin") ? `${parsed.pathname}${parsed.search}` : "/admin/articles";
+    } catch {
+      return "/admin/articles";
+    }
+  }
+
   async function onSubmit(values: SignInInput) {
     setError("");
-    const requestedCallbackUrl = searchParams.get("callbackUrl") || "/admin/articles";
-    const callbackUrl = requestedCallbackUrl.startsWith("/admin") ? requestedCallbackUrl : "/admin/articles";
+    const callbackUrl = safeAdminCallbackUrl();
     const result = await signIn("credentials", {
       ...values,
       redirect: false,
@@ -42,7 +53,7 @@ export function SignInForm() {
     }
 
     router.refresh();
-    window.location.replace(callbackUrl || "/admin/articles");
+    window.location.assign(callbackUrl);
   }
 
   return (

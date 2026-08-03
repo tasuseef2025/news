@@ -12,7 +12,8 @@
                     "validate:env":  "node node_modules/tsx/dist/cli.mjs server/scripts/validate-env.ts",
                     "check":  "npm run typecheck \u0026\u0026 npm run build",
                     "cron:worker":  "node server/cron-worker.mjs",
-                    "seed:feeds":  "node node_modules/tsx/dist/cli.mjs server/seed-feeds.ts"
+                    "seed:feeds":  "node node_modules/tsx/dist/cli.mjs server/seed-feeds.ts",
+                    "refresh:article-image":  "node node_modules/tsx/dist/cli.mjs server/scripts/refresh-article-image.ts"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",

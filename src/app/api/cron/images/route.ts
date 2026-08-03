@@ -19,6 +19,8 @@ export async function GET(request: Request) {
 
   await connectDB();
   const articles = await Article.find({ status: "published" }).sort({ publishedAt: -1 }).limit(limit).select("_id title slug category image content").lean();
+  const usedArticles = await Article.find({ image: { $type: "string" } }).select({ image: 1 }).sort({ publishedAt: -1 }).limit(1000).lean();
+  const usedImages = usedArticles.map((article) => article.image).filter((image): image is string => Boolean(image));
   let updated = 0;
   const results: Array<{ slug: string; image: string; provider?: string }> = [];
 
@@ -26,9 +28,10 @@ export async function GET(request: Request) {
     const currentImage = String(article.image || "");
     if (!force && currentImage && !currentImage.includes("/api/og")) continue;
 
-    const stockImage = await findStockImage({ title: article.title, category: article.category });
+    const stockImage = await findStockImage({ title: article.title, category: article.category, excludeUrls: usedImages });
     const image = stockImage?.url || generatedOgImagePath(article.title, article.category);
     const credit = stockImage?.credit;
+    if (stockImage?.url) usedImages.push(stockImage.url);
     const content = credit && !String(article.content || "").includes(credit) ? `${article.content}\n\n${credit}` : article.content;
 
     await Article.findByIdAndUpdate(article._id, {

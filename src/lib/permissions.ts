@@ -1,8 +1,9 @@
-﻿import type { Permission, Role } from "@/types";
+import type { Permission, Role } from "@/types";
 
 export function normalizeRole(role?: string | null): Role {
-  if (role === "reader") return "subscriber";
-  if (role && role in rolePermissions) return role as Role;
+  const normalized = role?.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (normalized === "reader") return "subscriber";
+  if (normalized && normalized in rolePermissions) return normalized as Role;
   return "subscriber";
 }
 

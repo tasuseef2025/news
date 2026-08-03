@@ -1,4 +1,4 @@
-﻿import { createHash } from "crypto";
+import { createHash } from "crypto";
 import { categories, categorySlug } from "@/lib/categories";
 import { cleanText, normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
@@ -404,7 +404,9 @@ async function feedImage(entry: FeedEntry, title: string, category: string): Pro
   if (sourceImage && isLowRiskAutoImageUrl(sourceImage)) return { image: sourceImage, stockImage: null };
   if (sourceImage && process.env.FEED_USE_SOURCE_IMAGES === "true") return { image: sourceImage, stockImage: null };
 
-  const stockImage = await findStockImage({ title, category });
+  const recentArticles = await Article.find({ image: { $type: "string" } }).select({ image: 1 }).sort({ createdAt: -1 }).limit(300).lean();
+  const recentImages = recentArticles.map((article) => article.image).filter((image): image is string => Boolean(image));
+  const stockImage = await findStockImage({ title, category, excludeUrls: recentImages });
   if (stockImage?.url) return { image: stockImage.url, stockImage };
 
   return { image: generated, stockImage: null };
@@ -457,6 +459,7 @@ export async function ingestFeedSource(sourceId: string) {
       sourceName: source.name,
       sourceUrl: entry.link,
       image,
+      imageAlt: editorial.imageAlt || stockImage?.alt || editorial.title,
       ogImage: generatedOgPath(editorial.title, category),
       slug: editorial.slug,
       metaTitle: editorial.metaTitle,
