@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
@@ -11,6 +11,7 @@ import { Article } from "@/models/Article";
 import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
 import { CommentsSection } from "@/features/comments/comments-section";
 import { ArticleShare } from "@/features/articles/article-share";
+import { ArticleViewCounter } from "@/features/articles/article-view-counter";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -128,7 +129,7 @@ export default async function NewsArticlePage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{article.author}</span>
             <span>{format(new Date(article.publishedAt), "PPP p")}</span>
-            <span>{article.views.toLocaleString()} views</span>
+            <ArticleViewCounter articleId={article._id} initialViews={article.views} />
             <span>{article.readingTime ?? 1} min read</span>
           </div>
           <ArticleShare title={article.title} url={articleUrl} shareImageUrl={shareImageUrl} />

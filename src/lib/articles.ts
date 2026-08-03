@@ -69,11 +69,7 @@ export async function getArticleBySlug(slug: string) {
   try {
     await connectDB();
     await publishDueScheduledArticles();
-    const doc = await ArticleModel.findOneAndUpdate(
-      { slug, status: "published" },
-      { $inc: { views: 1 } },
-      { new: true }
-    ).lean();
+    const doc = await ArticleModel.findOne({ slug, status: "published" }).lean();
 
     return doc ? serializeArticle(doc) : null;
   } catch {
