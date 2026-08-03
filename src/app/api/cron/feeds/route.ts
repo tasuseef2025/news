@@ -24,7 +24,8 @@ export async function GET(request: Request) {
         sourceName: source.name,
         total: result.total,
         created: result.created.length,
-        skipped: result.skipped.length
+        skipped: result.skipped.length,
+        aiSkipped: result.aiSkipped.length
       });
     } catch (error) {
       results.push({
@@ -44,3 +45,4 @@ export async function GET(request: Request) {
     ranAt: new Date().toISOString()
   });
 }
+

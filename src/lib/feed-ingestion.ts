@@ -262,8 +262,27 @@ function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry
   };
 }
 
-async function editorialPackage(entry: FeedEntry, sourceName: string, category: string) {
-  return (await aiEditorialPackage(entry, sourceName, category)) || fallbackEditorialPackage(entry, sourceName, category);
+function feedSummaryLength(entry: FeedEntry) {
+  return cleanText(entry.description || "").length;
+}
+
+function aiCategories() {
+  return (process.env.FEED_AI_CATEGORIES || "Pakistan,World,Politics,Business,Economy,Technology,Artificial Intelligence,Sports,Health")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function shouldUseAiForEntry(entry: FeedEntry, category: string) {
+  if (process.env.FEED_AI_ENABLED === "false") return false;
+  const minSummaryChars = Number(process.env.FEED_AI_MIN_SUMMARY_CHARS || 120);
+  if (feedSummaryLength(entry) < minSummaryChars) return false;
+  const allowedCategories = aiCategories();
+  return !allowedCategories.length || allowedCategories.includes(category.toLowerCase());
+}
+
+async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean) {
+  return (useAi ? await aiEditorialPackage(entry, sourceName, category) : null) || fallbackEditorialPackage(entry, sourceName, category);
 }
 
 async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string) {
@@ -279,7 +298,8 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 3200),
+        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1100),
+        reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
         input: [
           {
             role: "system",
@@ -306,7 +326,7 @@ Return only valid JSON with this exact shape:
   "keywords": ["primary keyword", "secondary keyword"],
   "tags": ["5 to 8 relevant tags"],
   "imageAlt": "descriptive image alt text suggestion",
-  "content": "1,400-1,600 words when verified feed detail supports it. Use a strong introduction, H2: heading lines, H3: heading lines where useful, short paragraphs, a conclusion, and a short FAQ section of 3-5 questions if appropriate."
+  "content": "650-900 words when verified feed detail supports it; 300-500 words if the feed metadata is thin. Use a strong introduction, H2: heading lines, short paragraphs, a conclusion, and a short FAQ only when appropriate."
 }
 
 Editorial rules:
@@ -398,9 +418,16 @@ export async function ingestFeedSource(sourceId: string) {
   if (!response.ok) throw new Error(`Feed fetch failed: ${response.status}`);
 
   const xml = await response.text();
-  const entries = parseFeed(xml).slice(0, Number(process.env.FEED_IMPORT_LIMIT || 12));
+  const entries = parseFeed(xml).slice(0, Number(process.env.FEED_IMPORT_LIMIT || 3));
   const created = [];
   const skipped = [];
+  const aiSkipped = [];
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
+  const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
+  let aiUsedToday = await Article.countDocuments({ author: "Novexa News Desk", createdAt: { $gte: startOfDay } });
+  let aiUsedThisRun = 0;
 
   for (const entry of entries) {
     const duplicate = await hasDuplicateArticle(entry);
@@ -410,7 +437,15 @@ export async function ingestFeedSource(sourceId: string) {
     }
 
     const category = autoCategory(entry, source.defaultCategory);
-    const editorial = await editorialPackage(entry, source.name, category);
+    const useAi = shouldUseAiForEntry(entry, category) && aiUsedThisRun < runAiLimit && aiUsedToday < dailyAiLimit;
+    if (!useAi) aiSkipped.push(entry.link);
+
+    const editorial = await editorialPackage(entry, source.name, category, useAi);
+    if (useAi) {
+      aiUsedThisRun += 1;
+      aiUsedToday += 1;
+    }
+
     const { image, stockImage } = await feedImage(entry, editorial.title, category);
     const content = stockImage ? `${editorial.content}\n\n${stockImage.credit}` : editorial.content;
     const initialPayload = normalizeArticlePayload({
@@ -443,12 +478,15 @@ export async function ingestFeedSource(sourceId: string) {
   source.lastFetchedAt = new Date();
   await source.save();
 
-  return { created, skipped, total: entries.length };
+  return { created, skipped, aiSkipped, total: entries.length };
 }
 
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
+
+
 
 
 
