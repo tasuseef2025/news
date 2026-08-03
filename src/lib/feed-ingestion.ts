@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+﻿import { createHash } from "crypto";
 import { categories, categorySlug } from "@/lib/categories";
 import { cleanText, normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
@@ -175,6 +175,30 @@ async function hasDuplicateArticle(entry: FeedEntry) {
   return Article.exists({ $or: duplicateChecks });
 }
 
+function normalizedForCompare(value = "") {
+  return cleanText(value).toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function titleSimilarity(left: string, right: string) {
+  const leftWords = new Set(normalizedForCompare(left).split(" ").filter((word) => word.length > 3));
+  const rightWords = new Set(normalizedForCompare(right).split(" ").filter((word) => word.length > 3));
+  if (!leftWords.size || !rightWords.size) return 0;
+  const overlap = [...leftWords].filter((word) => rightWords.has(word)).length;
+  return overlap / Math.min(leftWords.size, rightWords.size);
+}
+
+function isCopiedSourceTitle(title: string, sourceTitle: string) {
+  const titleText = normalizedForCompare(title);
+  const sourceText = normalizedForCompare(sourceTitle);
+  return titleText === sourceText || titleText.includes(sourceText) || sourceText.includes(titleText) || titleSimilarity(title, sourceTitle) >= 0.72;
+}
+
+function alternativeHeadline(entry: FeedEntry, category: string) {
+  const summary = cleanText(entry.description || entry.title);
+  const words = summary.split(/\s+/).filter((word) => word.length > 3).slice(0, 8).join(" ");
+  return cleanText(`${category} update: ${words || "latest verified details"}`).slice(0, 90).replace(/[\s.,;:!?-]+$/, "");
+}
+
 function compactText(value = "", max = 1800) {
   const text = stripHtml(value).replace(/\s+/g, " ").trim();
   return text.length > max ? text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : text;
@@ -213,7 +237,8 @@ function cleanTags(tags: unknown[], category: string, feedTag?: string) {
 
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
   if (!input?.title || !input.content) return null;
-  const title = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
+  const proposedTitle = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
+  const title = isCopiedSourceTitle(proposedTitle, entry.title) ? alternativeHeadline(entry, category) : proposedTitle;
   const content = cleanArticleContent(input.content);
   if (!title || content.split(/\s+/).filter(Boolean).length < 180) return null;
 
@@ -228,7 +253,7 @@ function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry
     title,
     slug,
     excerpt,
-    content: `${content}\n\nSource: ${sourceName} - ${entry.link}`,
+    content: `${content}\n\nSource attribution: ${sourceName} via ${sourceHost(entry.link)}.`,
     metaTitle,
     metaDescription,
     keywords: cleanTags(keywords, category, entry.category),
@@ -287,10 +312,11 @@ Return only valid JSON with this exact shape:
 Editorial rules:
 - Use a professional journalistic tone.
 - Preserve only verified facts from the feed/source metadata and avoid speculation.
-- Do not copy sentences, distinctive phrasing, article structure, images, or thumbnails from the source.
+- Do not copy sentences, distinctive phrasing, article structure, images, thumbnails, or the source headline.
+- Rewrite the headline with a clearly different angle and wording while keeping verified facts accurate.
 - Use the primary keyword naturally throughout the article without keyword stuffing.
 - If the feed has limited verified detail, write a shorter factual brief instead of inventing details.
-- Keep attribution inside the article naturally.
+- Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
 - Do not say the article was written by AI.
 - Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
 - Do not include any image URL.`
@@ -315,12 +341,13 @@ function fallbackEditorialPackage(entry: FeedEntry, sourceName: string, category
   const summary = humanSummary(entry);
   const source = sourceHost(entry.link);
   const cleanTitle = cleanText(entry.title);
-  const title = cleanTitle.length > 90 ? cleanTitle.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : cleanTitle;
+  const baseTitle = cleanTitle.length > 90 ? cleanTitle.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : cleanTitle;
+  const title = isCopiedSourceTitle(baseTitle, entry.title) ? alternativeHeadline(entry, category) : baseTitle;
   const content = [
     `${title} is one of the latest updates being tracked by Novexa News from ${sourceName}. ${summary}`,
     `The story falls under the ${category} desk and may matter to readers following public affairs, markets, technology, communities, policy decisions, or global developments connected to the subject. The available feed detail is limited, so this report stays close to confirmed information instead of adding unverified claims.`,
     `Novexa News will continue watching for official statements, clearer timelines, responses from affected parties, and independent confirmation from credible sources. Editorial review is recommended before heavy promotion if the story involves legal, political, health, crime, or conflict-sensitive details.`,
-    `Source: ${sourceName} via ${source} - ${entry.link}`
+    `Source attribution: ${sourceName} via ${source}.`
   ].join("\n\n");
 
   return {
@@ -422,6 +449,7 @@ export async function ingestFeedSource(sourceId: string) {
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }
+
 
 
 

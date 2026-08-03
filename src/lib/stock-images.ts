@@ -1,4 +1,4 @@
-export type StockImageResult = {
+﻿export type StockImageResult = {
   url: string;
   alt: string;
   credit: string;
@@ -114,7 +114,9 @@ function isSensitiveStory(title: string, category: string) {
 
 function stockQuery(title: string, category: string) {
   if (isSensitiveStory(title, category)) return "";
-  return categoryQueries[category] || `${category} news`;
+  const keywords = titleKeywords(title);
+  const categoryQuery = categoryQueries[category] || `${category} news`;
+  return keywords ? `${keywords} ${categoryQuery}` : categoryQuery;
 }
 
 async function pexelsImage(query: string, title: string): Promise<StockImageResult | null> {
@@ -194,5 +196,7 @@ export async function findStockImage({ title, category }: { title: string; categ
 
   return (await pexelsImage(query, title)) || (await pixabayImage(query, title));
 }
+
+
 
 
