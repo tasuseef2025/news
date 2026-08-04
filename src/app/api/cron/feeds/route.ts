@@ -1,4 +1,4 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { revalidatePath } from "next/cache";
@@ -24,6 +24,8 @@ export async function GET(request: Request) {
         sourceName: source.name,
         total: result.total,
         created: result.created.length,
+        published: result.created.filter((article) => article.status === "published").length,
+        drafts: result.created.filter((article) => article.status === "draft").length,
         skipped: result.skipped.length,
         aiSkipped: result.aiSkipped.length
       });

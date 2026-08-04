@@ -200,7 +200,7 @@ async function pexelsImage(query: string, title: string, excluded: Set<string>):
     return {
       url: imageUrl,
       alt: photo.alt || title,
-      credit: `Image credit: Photo by ${photo.photographer || "Pexels contributor"} on Pexels${photo.url ? ` - ${photo.url}` : ""}`,
+      credit: "Photo by " + (photo.photographer || "Pexels contributor") + " on Pexels",
       provider: "Pexels",
       pageUrl: photo.url
     };
@@ -242,7 +242,7 @@ async function pixabayImage(query: string, title: string, excluded: Set<string>)
     return {
       url: imageUrl,
       alt: selected.tags || title,
-      credit: `Image credit: Pixabay${selected.pageURL ? ` - ${selected.pageURL}` : ""}`,
+      credit: "Image from Pixabay",
       provider: "Pixabay",
       pageUrl: selected.pageURL
     };

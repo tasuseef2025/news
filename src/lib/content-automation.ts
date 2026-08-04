@@ -17,6 +17,9 @@ type ArticleLike = {
   readingTime?: number;
   sourceName?: string;
   sourceUrl?: string;
+  generationMode?: "manual" | "ai" | "feed";
+  imageCredit?: string;
+  imageCreditUrl?: string;
 };
 
 export function generateSlug(value = "") {

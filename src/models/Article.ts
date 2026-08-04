@@ -11,8 +11,11 @@ export type ArticleDocument = {
   author: string;
   sourceName?: string;
   sourceUrl?: string;
+  generationMode?: "manual" | "ai" | "feed";
   image: string;
   imageAlt?: string;
+  imageCredit?: string;
+  imageCreditUrl?: string;
   gallery: string[];
   videoUrl?: string;
   tags: string[];
@@ -43,8 +46,11 @@ const articleSchema = new Schema<ArticleDocument>(
     author: { type: String, required: true },
     sourceName: { type: String, trim: true },
     sourceUrl: { type: String, trim: true, index: true },
+    generationMode: { type: String, enum: ["manual", "ai", "feed"], default: "manual", index: true },
     image: { type: String, required: true },
     imageAlt: { type: String, trim: true },
+    imageCredit: { type: String, trim: true },
+    imageCreditUrl: { type: String, trim: true },
     gallery: [{ type: String, trim: true }],
     videoUrl: String,
     tags: [{ type: String, trim: true }],

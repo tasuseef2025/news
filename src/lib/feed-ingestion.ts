@@ -14,6 +14,8 @@ export type FeedEntry = {
   category?: string;
 };
 
+type GenerationMode = "ai" | "feed";
+
 type EditorialPackage = {
   title: string;
   slug?: string;
@@ -25,6 +27,8 @@ type EditorialPackage = {
   tags: string[];
   imageAlt?: string;
 };
+
+type EditorialResult = EditorialPackage & { generationMode: GenerationMode };
 
 function decodeEntities(value = "") {
   return value
@@ -240,7 +244,7 @@ function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry
   const proposedTitle = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
   const title = isCopiedSourceTitle(proposedTitle, entry.title) ? alternativeHeadline(entry, category) : proposedTitle;
   const content = cleanArticleContent(input.content);
-  if (!title || content.split(/\s+/).filter(Boolean).length < 180) return null;
+  if (!title || content.split(/\s+/).filter(Boolean).length < 300) return null;
 
   const excerpt = cleanText(input.excerpt || humanSummary(entry)).slice(0, 240).replace(/[\s.,;:!?-]+$/, "");
   const metaTitle = cleanText(input.metaTitle || title).slice(0, 68).replace(/[\s.,;:!?-]+$/, "");
@@ -253,7 +257,7 @@ function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry
     title,
     slug,
     excerpt,
-    content: `${content}\n\nSource attribution: ${sourceName} via ${sourceHost(entry.link)}.`,
+    content,
     metaTitle,
     metaDescription,
     keywords: cleanTags(keywords, category, entry.category),
@@ -281,8 +285,13 @@ function shouldUseAiForEntry(entry: FeedEntry, category: string) {
   return !allowedCategories.length || allowedCategories.includes(category.toLowerCase());
 }
 
-async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean) {
-  return (useAi ? await aiEditorialPackage(entry, sourceName, category) : null) || fallbackEditorialPackage(entry, sourceName, category);
+async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean): Promise<EditorialResult> {
+  if (useAi) {
+    const generated = await aiEditorialPackage(entry, sourceName, category);
+    if (generated) return { ...generated, generationMode: "ai" };
+  }
+
+  return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed" };
 }
 
 async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string) {
@@ -298,7 +307,7 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-        max_output_tokens: Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1100),
+        max_output_tokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
         reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
         input: [
           {
@@ -345,38 +354,40 @@ Editorial rules:
       })
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const failure = await response.json().catch(() => null);
+      console.error("OpenAI editorial request failed", {
+        status: response.status,
+        code: failure?.error?.code || "unknown"
+      });
+      return null;
+    }
     const data = await response.json();
     const text = typeof data.output_text === "string"
       ? data.output_text
       : data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n");
 
     return validateEditorialPackage(parseEditorialJson(text || ""), entry, sourceName, category);
-  } catch {
+  } catch (error) {
+    console.error("OpenAI editorial generation failed", error instanceof Error ? error.message : "Unknown error");
     return null;
   }
 }
 
 function fallbackEditorialPackage(entry: FeedEntry, sourceName: string, category: string): EditorialPackage {
   const summary = humanSummary(entry);
-  const source = sourceHost(entry.link);
   const cleanTitle = cleanText(entry.title);
   const baseTitle = cleanTitle.length > 90 ? cleanTitle.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : cleanTitle;
   const title = isCopiedSourceTitle(baseTitle, entry.title) ? alternativeHeadline(entry, category) : baseTitle;
-  const content = [
-    `${title} is one of the latest updates being tracked by Novexa News from ${sourceName}. ${summary}`,
-    `The story falls under the ${category} desk and may matter to readers following public affairs, markets, technology, communities, policy decisions, or global developments connected to the subject. The available feed detail is limited, so this report stays close to confirmed information instead of adding unverified claims.`,
-    `Novexa News will continue watching for official statements, clearer timelines, responses from affected parties, and independent confirmation from credible sources. Editorial review is recommended before heavy promotion if the story involves legal, political, health, crime, or conflict-sensitive details.`,
-    `Source attribution: ${sourceName} via ${source}.`
-  ].join("\n\n");
 
   return {
     title,
     excerpt: summary.slice(0, 220),
-    content,
+    content: summary,
     metaTitle: title.slice(0, 68),
     metaDescription: summary.slice(0, 158),
-    tags: cleanTags([], category, entry.category)
+    tags: cleanTags([], category, entry.category),
+    imageAlt: title + " news image"
   };
 }
 function sourceHash(value: string) {
@@ -428,7 +439,7 @@ export async function ingestFeedSource(sourceId: string) {
   startOfDay.setHours(0, 0, 0, 0);
   const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
   const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
-  let aiUsedToday = await Article.countDocuments({ author: "Novexa News Desk", createdAt: { $gte: startOfDay } });
+  let aiUsedToday = await Article.countDocuments({ generationMode: "ai", createdAt: { $gte: startOfDay } });
   let aiUsedThisRun = 0;
 
   for (const entry of entries) {
@@ -443,13 +454,12 @@ export async function ingestFeedSource(sourceId: string) {
     if (!useAi) aiSkipped.push(entry.link);
 
     const editorial = await editorialPackage(entry, source.name, category, useAi);
-    if (useAi) {
-      aiUsedThisRun += 1;
-      aiUsedToday += 1;
-    }
+    if (useAi) aiUsedThisRun += 1;
+    if (editorial.generationMode === "ai") aiUsedToday += 1;
 
+    const shouldPublish = source.autoPublish && editorial.generationMode === "ai";
     const { image, stockImage } = await feedImage(entry, editorial.title, category);
-    const content = stockImage ? `${editorial.content}\n\n${stockImage.credit}` : editorial.content;
+    const content = editorial.content;
     const initialPayload = normalizeArticlePayload({
       title: editorial.title,
       excerpt: editorial.excerpt,
@@ -460,11 +470,13 @@ export async function ingestFeedSource(sourceId: string) {
       sourceUrl: entry.link,
       image,
       imageAlt: editorial.imageAlt || stockImage?.alt || editorial.title,
+      imageCredit: stockImage?.credit,
+      imageCreditUrl: stockImage?.pageUrl,
       ogImage: generatedOgPath(editorial.title, category),
       slug: editorial.slug,
       metaTitle: editorial.metaTitle,
       metaDescription: editorial.metaDescription,
-      status: source.autoPublish ? "published" : "draft",
+      status: shouldPublish ? "published" : "draft",
       tags: editorial.tags,
       publishedAt: entry.publishedAt?.toISOString()
     });
@@ -473,7 +485,7 @@ export async function ingestFeedSource(sourceId: string) {
 
     const article = await Article.create({
       ...articlePayload,
-      publishedAt: source.autoPublish ? entry.publishedAt || new Date() : undefined
+      publishedAt: shouldPublish ? entry.publishedAt || new Date() : undefined
     });
     created.push(article);
   }

@@ -28,8 +28,11 @@ export type Article = {
   category: string;
   subcategory?: string;
   author: string;
+  generationMode?: "manual" | "ai" | "feed";
   image: string;
   imageAlt?: string;
+  imageCredit?: string;
+  imageCreditUrl?: string;
   gallery?: string[];
   videoUrl?: string;
   tags: string[];

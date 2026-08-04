@@ -27,3 +27,6 @@ Thumbs.db
 
 # mistaken local ignore filename
 gitignore.git
+
+# database recovery exports
+backups/
