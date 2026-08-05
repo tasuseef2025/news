@@ -72,6 +72,7 @@ const genericHeadlineWords = new Set([
 ]);
 
 const topicQueries: Array<{ terms: RegExp; query: string }> = [
+  { terms: /\b(journalism|journalist|news website|press freedom|media censorship|website access)\b/i, query: "journalism newsroom press freedom" },
   { terms: /\b(petrol|diesel|fuel|petroleum|gasoline|oil price)\b/i, query: "petrol diesel fuel station" },
   { terms: /\b(cricket|test match|t20|odi|wicket|batsman|bowler)\b/i, query: "cricket match stadium" },
   { terms: /\b(football|soccer|premier league|champions league|fifa)\b/i, query: "football match stadium" },

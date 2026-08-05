@@ -1,18 +1,29 @@
-﻿# Live Scores
+# Live Scores
 
-Novexa News supports real football and cricket live scores through provider-backed APIs. No dummy scores are shown.
+Novexa News uses SportScore for real football and cricket live scores, upcoming fixtures, and recent results. No dummy scores are shown.
 
-## Environment Variables
+## SportScore
+
+- No API key is required.
+- The free tier allows about 10,000 requests per 24 hours per server IP.
+- Responses are cached for 60 seconds.
+- A visible dofollow `Powered by SportScore` link is required wherever the data is displayed.
+- `SPORTSCORE_MATCH_LIMIT` controls results per sport and is clamped between 10 and 50.
+
+```env
+SPORTSCORE_MATCH_LIMIT=30
+```
+
+The application sends `src=novexa.news` to identify Novexa in SportScore's provider analytics.
+
+## Optional Fallback Providers
 
 ```env
 API_FOOTBALL_KEY=
 API_CRICKET_KEY=
 ```
 
-- `API_FOOTBALL_KEY` is used with API-SPORTS API-Football.
-- `API_CRICKET_KEY` is used with API Cricket's live score endpoint.
-
-Keep these keys server-side only. Do not expose them in client components.
+The existing API-FOOTBALL and API Cricket integrations remain server-side fallbacks if SportScore is unavailable.
 
 ## API Route
 
@@ -22,19 +33,4 @@ GET /api/live-scores?sport=football
 GET /api/live-scores?sport=cricket
 ```
 
-The response contains normalized match objects for the frontend live score panel.
-
-## Frontend
-
-- Homepage sports section includes a compact live score widget.
-- Full page: `/live-scores`.
-- The widget auto-refreshes every 30 seconds.
-
-## Provider Setup
-
-1. Create a football key from API-SPORTS API-Football.
-2. Create a cricket key from API Cricket.
-3. Add both keys in Vercel Environment Variables.
-4. Redeploy.
-
-If a key is missing, the UI shows a configuration message instead of fake scores.
+Normalized matches include a `phase` of `live`, `upcoming`, `finished`, or `other`. The frontend provides All, Live, Upcoming, and Results tabs and refreshes once per minute.

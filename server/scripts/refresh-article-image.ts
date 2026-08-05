@@ -25,6 +25,8 @@ async function refreshArticleImage() {
   article.image = stockImage.url;
   article.ogImage = stockImage.url;
   article.imageAlt = stockImage.alt || article.title;
+  article.imageCredit = stockImage.credit;
+  article.imageCreditUrl = stockImage.pageUrl;
   await article.save();
 
   console.log(`Updated image for: ${article.slug}`);

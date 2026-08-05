@@ -140,9 +140,27 @@ export default async function NewsArticlePage({ params }: Props) {
           width={1400}
           height={820}
           priority
-          className="mb-8 aspect-[16/9] w-full rounded-lg object-cover"
+          className="aspect-[16/9] w-full rounded-lg object-cover"
         />
+        {article.imageCredit ? (
+          <p className="mb-8 mt-2 text-sm text-muted-foreground">
+            Image credit: {article.imageCreditUrl ? (
+              <a href={article.imageCreditUrl} target="_blank" rel="nofollow noopener noreferrer" className="underline hover:text-foreground">
+                {article.imageCredit}
+              </a>
+            ) : article.imageCredit}
+          </p>
+        ) : <div className="mb-8" />}
         <ArticleContent content={article.content} />
+        {article.sourceName ? (
+          <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Reporting basis: {article.sourceUrl ? (
+              <a href={article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
+                {article.sourceName}
+              </a>
+            ) : article.sourceName}. Novexa News independently writes and edits its coverage.
+          </aside>
+        ) : null}
         {article.videoUrl ? (
           <div className="mt-8 rounded-lg border bg-card p-4">
             <h2 className="mb-3 text-xl font-black">Video</h2>

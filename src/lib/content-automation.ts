@@ -20,6 +20,8 @@ type ArticleLike = {
   generationMode?: "manual" | "ai" | "feed";
   imageCredit?: string;
   imageCreditUrl?: string;
+  publishedAt?: string | Date;
+  updatedAt?: string | Date;
 };
 
 export function generateSlug(value = "") {
@@ -83,6 +85,9 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
       logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
     },
     articleSection: article.category,
+    inLanguage: "en",
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt || article.publishedAt,
     copyrightHolder: { "@type": "Organization", name: siteConfig.name },
     isBasedOn: article.sourceUrl,
     citation: article.sourceUrl,
