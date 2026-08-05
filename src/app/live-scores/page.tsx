@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
+import { getLiveScores } from "@/lib/live-scores";
 
 export const metadata: Metadata = {
   title: "Live Football and Cricket Scores",
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
   }
 };
 
-export default function LiveScoresPage() {
+export const dynamic = "force-dynamic";
+
+export default async function LiveScoresPage() {
+  const initialData = await getLiveScores();
   return (
     <main className="container py-8">
       <div className="mb-8 border-b pb-5">
@@ -33,7 +37,7 @@ export default function LiveScoresPage() {
           Live scores, upcoming fixtures, and recent football and cricket results, updated every minute.
         </p>
       </div>
-      <LiveScoresPanel />
+      <LiveScoresPanel initialData={initialData} />
     </main>
   );
 }

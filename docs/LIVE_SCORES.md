@@ -34,3 +34,14 @@ GET /api/live-scores?sport=cricket
 ```
 
 Normalized matches include a `phase` of `live`, `upcoming`, `finished`, or `other`. The frontend provides All, Live, Upcoming, and Results tabs and refreshes once per minute.
+
+## Match Details
+
+Score cards open an internal SEO-friendly match page:
+
+```http
+GET /live-scores/{sport}/{match-slug}
+GET /api/live-scores/{sport}/{match-slug}
+```
+
+Football pages can include the event timeline, cards, goals, substitutions, formations, starting elevens, substitutes, and statistics when SportScore supplies them. Cricket and less-covered matches gracefully show the available scoreboard and fixture information.

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Activity, CalendarClock, Clock, ExternalLink, RefreshCw, Trophy } from "lucide-react";
+import Link from "next/link";
+import { Activity, CalendarClock, Clock, ChevronRight, RefreshCw, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,20 +57,21 @@ function MatchCard({ match }: { match: LiveScoreMatch }) {
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{match.note || match.venue || matchTime(match.startsAt) || match.provider}</span>
-        {match.matchUrl ? <ExternalLink className="h-3.5 w-3.5 shrink-0" /> : null}
+        {match.slug ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
       </div>
     </article>
   );
 
-  return match.matchUrl ? <a href={match.matchUrl} target="_blank" rel="noopener noreferrer" className="block h-full">{content}</a> : content;
+  return match.slug ? <Link href={`/live-scores/${match.sport}/${match.slug}`} className="block h-full">{content}</Link> : content;
 }
 
-export function LiveScoresPanel({ compact = false }: { compact?: boolean }) {
+export function LiveScoresPanel({ compact = false, initialData }: { compact?: boolean; initialData?: LiveScoresResponse }) {
   const [sport, setSport] = useState<LiveScoreSport>("football");
   const [view, setView] = useState<ScoreView>("all");
   const { data, error, isFetching, refetch } = useQuery({
     queryKey: ["live-scores"],
     queryFn: fetchScores,
+    initialData,
     refetchInterval: 60000,
     staleTime: 45000
   });

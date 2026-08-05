@@ -31,3 +31,4 @@ gitignore.git
 # database recovery exports
 backups/
 .dev-*.log
+.prod-*.log

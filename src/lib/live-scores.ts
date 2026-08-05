@@ -20,6 +20,7 @@ export type LiveScoreMatch = {
   venue?: string;
   note?: string;
   matchUrl?: string;
+  slug?: string;
   provider: string;
 };
 
@@ -29,6 +30,58 @@ export type LiveScoresResponse = {
   configured: { football: boolean; cricket: boolean };
   provider: { name: string; url: string };
   errors: string[];
+  updatedAt: string;
+};
+
+export type MatchIncident = {
+  time?: number | string;
+  type: string;
+  side?: "home" | "away";
+  player?: string;
+  playerIn?: string;
+  playerOut?: string;
+  homeScore?: number | string;
+  awayScore?: number | string;
+};
+
+export type MatchPlayer = {
+  name: string;
+  number?: number | string;
+  position?: string;
+  captain?: boolean;
+  rating?: string;
+};
+
+export type MatchLineups = {
+  homeFormation?: string;
+  awayFormation?: string;
+  homeCoach?: string;
+  awayCoach?: string;
+  confirmed: boolean;
+  homeXi: MatchPlayer[];
+  awayXi: MatchPlayer[];
+  homeSubs: MatchPlayer[];
+  awaySubs: MatchPlayer[];
+};
+
+export type MatchStat = {
+  label: string;
+  home?: number | string;
+  away?: number | string;
+};
+
+export type MatchDetail = LiveScoreMatch & {
+  competitionLogo?: string;
+  incidents: MatchIncident[];
+  stats: MatchStat[];
+  lineups?: MatchLineups;
+  homeHalfTimeScore?: number | string;
+  awayHalfTimeScore?: number | string;
+  trackerId?: string;
+};
+
+export type MatchDetailResponse = {
+  match: MatchDetail;
   updatedAt: string;
 };
 
@@ -92,6 +145,7 @@ function normalizeSportScore(data: unknown, sport: LiveScoreSport): LiveScoreMat
       homeScore: item.home_score === null ? undefined : asText(item.home_score) || undefined,
       awayScore: item.away_score === null ? undefined : asText(item.away_score) || undefined,
       matchUrl: path ? new URL(path, "https://sportscore.com").toString() : undefined,
+      slug: sportScoreSlug(path),
       provider: "SportScore"
     };
   });
@@ -162,6 +216,102 @@ async function sportScoreMatches(sport: LiveScoreSport) {
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("src", "novexa.news");
   return fetchJson(url.toString()).then((data) => normalizeSportScore(data, sport));
+}
+
+
+function sportScoreSlug(path: string) {
+  const parts = path.split("/").filter(Boolean);
+  return parts.at(-1) || "";
+}
+
+function normalizePlayers(value: unknown): MatchPlayer[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((player) => {
+    const item = player as Record<string, unknown>;
+    return {
+      name: asText(item.name, "Unknown player"),
+      number: item.number === null || item.number === undefined ? undefined : asText(item.number),
+      position: asText(item.position) || undefined,
+      captain: Boolean(item.captain),
+      rating: asText(item.rating) || undefined
+    };
+  });
+}
+
+function normalizeLineups(value: unknown): MatchLineups | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const item = value as Record<string, unknown>;
+  const lineups = {
+    homeFormation: asText(item.home_formation) || undefined,
+    awayFormation: asText(item.away_formation) || undefined,
+    homeCoach: asText(item.home_coach) || undefined,
+    awayCoach: asText(item.away_coach) || undefined,
+    confirmed: Boolean(item.confirmed),
+    homeXi: normalizePlayers(item.home_xi),
+    awayXi: normalizePlayers(item.away_xi),
+    homeSubs: normalizePlayers(item.home_subs),
+    awaySubs: normalizePlayers(item.away_subs)
+  };
+  return lineups.homeXi.length || lineups.awayXi.length || lineups.homeSubs.length || lineups.awaySubs.length ? lineups : undefined;
+}
+
+function normalizeIncidents(value: unknown): MatchIncident[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((incident) => {
+    const item = incident as Record<string, unknown>;
+    return {
+      time: item.time === null || item.time === undefined ? undefined : asText(item.time),
+      type: asText(item.type, "Match event"),
+      side: item.side === "home" || item.side === "away" ? item.side : undefined,
+      player: asText(item.player) || undefined,
+      playerIn: asText(item.player_in) || undefined,
+      playerOut: asText(item.player_out) || undefined,
+      homeScore: item.home_score === null || item.home_score === undefined ? undefined : asText(item.home_score),
+      awayScore: item.away_score === null || item.away_score === undefined ? undefined : asText(item.away_score)
+    };
+  });
+}
+
+function normalizeStats(value: unknown): MatchStat[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((stat) => {
+    const item = stat as Record<string, unknown>;
+    return {
+      label: asText(item.type || item.name || item.label || item.key, "Statistic"),
+      home: item.home === null || item.home === undefined ? asText(item.home_value || item.home_score) || undefined : asText(item.home),
+      away: item.away === null || item.away === undefined ? asText(item.away_value || item.away_score) || undefined : asText(item.away)
+    };
+  });
+}
+
+export async function getMatchDetail(sport: LiveScoreSport, slug: string): Promise<MatchDetailResponse> {
+  if (!["football", "cricket"].includes(sport) || !/^[a-z0-9-]+$/.test(slug)) throw new Error("Invalid match");
+  const url = new URL("https://sportscore.com/api/widget/match/");
+  url.searchParams.set("sport", sport);
+  url.searchParams.set("slug", slug);
+  url.searchParams.set("src", "novexa.news");
+
+  const payload = await fetchJson(url.toString()) as { match?: Record<string, unknown>; updated?: string };
+  if (!payload.match) throw new Error("Match not found");
+  const item = payload.match;
+  const summary = normalizeSportScore({ matches: [item] }, sport)[0];
+  const tracker = (item.tracker || {}) as Record<string, unknown>;
+
+  return {
+    match: {
+      ...summary,
+      slug,
+      minute: asNumber(item.live_minute),
+      competitionLogo: asText(item.competition_logo) || undefined,
+      incidents: normalizeIncidents(item.incidents),
+      stats: normalizeStats(item.stats),
+      lineups: normalizeLineups(item.lineups),
+      homeHalfTimeScore: item.home_ht_score === null || item.home_ht_score === undefined ? undefined : asText(item.home_ht_score),
+      awayHalfTimeScore: item.away_ht_score === null || item.away_ht_score === undefined ? undefined : asText(item.away_ht_score),
+      trackerId: asText(tracker.id) || undefined
+    },
+    updatedAt: asText(payload.updated, new Date().toISOString())
+  };
 }
 
 export async function getLiveScores(): Promise<LiveScoresResponse> {
