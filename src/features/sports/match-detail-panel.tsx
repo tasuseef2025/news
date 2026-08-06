@@ -26,7 +26,21 @@ function displayDate(value?: string) {
   if (!value) return "Time to be confirmed";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "UTC"
+  }).format(date) + " UTC";
+}
+
+function updatedTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unavailable";
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC"
+  }).format(date) + " UTC";
 }
 
 function IncidentIcon({ incident }: { incident: MatchIncident }) {
@@ -158,7 +172,7 @@ export function MatchDetailPanel({ sport, slug, initialData }: { sport: LiveScor
       ) : null}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Updated {new Date(data.updatedAt).toLocaleTimeString()}</span>
+        <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Updated {updatedTime(data.updatedAt)}</span>
         <span>Data from <a href="https://sportscore.com/" target="_blank" rel="dofollow noopener" className="font-black text-foreground underline">SportScore</a></span>
       </div>
     </div>

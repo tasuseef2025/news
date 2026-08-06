@@ -1,4 +1,4 @@
-﻿import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
@@ -6,6 +6,7 @@ import { articleSchema } from "@/lib/validators";
 import { Article } from "@/models/Article";
 import { hasPermission } from "@/lib/permissions";
 import { normalizeArticleUpdate } from "@/lib/content-automation";
+import { publishArticleToX } from "@/lib/x-publishing";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -63,7 +64,8 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ message: "Article not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ article });
+  const social = await publishArticleToX(article);
+  return NextResponse.json({ article, social });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

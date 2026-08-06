@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { categories, categorySlug } from "@/lib/categories";
 import { cleanText, normalizeArticlePayload, stripHtml } from "@/lib/content-automation";
 import { Article } from "@/models/Article";
+import { publishArticleToX } from "@/lib/x-publishing";
 import { FeedSource } from "@/models/FeedSource";
 import { findStockImage, type StockImageResult } from "@/lib/stock-images";
 
@@ -487,6 +488,7 @@ export async function ingestFeedSource(sourceId: string) {
       ...articlePayload,
       publishedAt: shouldPublish ? entry.publishedAt || new Date() : undefined
     });
+    await publishArticleToX(article);
     created.push(article);
   }
 

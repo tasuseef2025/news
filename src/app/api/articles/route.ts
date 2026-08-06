@@ -1,4 +1,4 @@
-﻿import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getArticles } from "@/lib/articles";
@@ -7,6 +7,7 @@ import { articleSchema } from "@/lib/validators";
 import { Article } from "@/models/Article";
 import { hasPermission } from "@/lib/permissions";
 import { normalizeArticlePayload } from "@/lib/content-automation";
+import { publishArticleToX } from "@/lib/x-publishing";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -59,7 +60,8 @@ export async function POST(request: Request) {
 
   await connectDB();
   const article = await Article.create(data);
+  const social = await publishArticleToX(article);
 
-  return NextResponse.json({ article }, { status: 201 });
+  return NextResponse.json({ article, social }, { status: 201 });
 }
 
