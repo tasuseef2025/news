@@ -5,6 +5,7 @@ import { Article } from "@/models/Article";
 import { publishArticleToX } from "@/lib/x-publishing";
 import { FeedSource } from "@/models/FeedSource";
 import { findStockImage, type StockImageResult } from "@/lib/stock-images";
+import { researchKeywords, type KeywordResearch } from "@/lib/trending-keywords";
 
 export type FeedEntry = {
   title: string;
@@ -286,16 +287,16 @@ function shouldUseAiForEntry(entry: FeedEntry, category: string) {
   return !allowedCategories.length || allowedCategories.includes(category.toLowerCase());
 }
 
-async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean): Promise<EditorialResult> {
+async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean, keywordResearch: KeywordResearch): Promise<EditorialResult> {
   if (useAi) {
-    const generated = await aiEditorialPackage(entry, sourceName, category);
+    const generated = await aiEditorialPackage(entry, sourceName, category, keywordResearch);
     if (generated) return { ...generated, generationMode: "ai" };
   }
 
   return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed" };
 }
 
-async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string) {
+async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -327,6 +328,11 @@ Source URL: ${entry.link}
 Feed summary: ${compactText(entry.description || entry.title)}
 Feed tag: ${entry.category || "N/A"}
 
+Keyword research:
+Primary keyword: ${keywordResearch.primaryKeyword}
+Related keywords: ${keywordResearch.relatedKeywords.join(", ")}
+Research source: ${keywordResearch.source === "google-trends" ? `Google Trends ${keywordResearch.geo || ""}, approximate traffic ${keywordResearch.approximateTraffic || 0}+` : "editorial fallback; no relevant live trend matched"}
+
 Return only valid JSON with this exact shape:
 {
   "title": "unique SEO title, 50-60 characters, accurate and not copied",
@@ -344,7 +350,9 @@ Editorial rules:
 - Preserve only verified facts from the feed/source metadata and avoid speculation.
 - Do not copy sentences, distinctive phrasing, article structure, images, thumbnails, or the source headline.
 - Rewrite the headline with a clearly different angle and wording while keeping verified facts accurate.
-- Use the primary keyword naturally throughout the article without keyword stuffing.
+- Use the researched primary keyword naturally in the title, introduction, one heading, metadata, and body only when grammar and facts support it.
+- Do not claim a query is trending or mention search volume inside the article.
+- Never change the story angle or introduce unrelated facts merely to fit a high-volume keyword.
 - If the feed has limited verified detail, write a shorter factual brief instead of inventing details.
 - Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
 - Do not say the article was written by AI.
@@ -368,7 +376,13 @@ Editorial rules:
       ? data.output_text
       : data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n");
 
-    return validateEditorialPackage(parseEditorialJson(text || ""), entry, sourceName, category);
+    const validated = validateEditorialPackage(parseEditorialJson(text || ""), entry, sourceName, category);
+    if (!validated) return null;
+    return {
+      ...validated,
+      keywords: cleanTags([keywordResearch.primaryKeyword, ...keywordResearch.relatedKeywords, ...(validated.keywords || [])], category, entry.category),
+      tags: cleanTags([keywordResearch.primaryKeyword, ...validated.tags], category, entry.category)
+    };
   } catch (error) {
     console.error("OpenAI editorial generation failed", error instanceof Error ? error.message : "Unknown error");
     return null;
@@ -461,7 +475,8 @@ export async function ingestFeedSource(sourceId: string) {
     const useAi = shouldUseAiForEntry(entry, category) && aiUsedThisRun < runAiLimit && aiUsedToday < dailyAiLimit;
     if (!useAi) aiSkipped.push(entry.link);
 
-    const editorial = await editorialPackage(entry, source.name, category, useAi);
+    const keywordResearch = await researchKeywords(entry);
+    const editorial = await editorialPackage(entry, source.name, category, useAi, keywordResearch);
     if (useAi) aiUsedThisRun += 1;
     if (editorial.generationMode === "ai") aiUsedToday += 1;
 
@@ -481,6 +496,14 @@ export async function ingestFeedSource(sourceId: string) {
       sourceName: source.name,
       sourceUrl: entry.link,
       generationMode: editorial.generationMode,
+      primaryKeyword: keywordResearch.primaryKeyword,
+      keywordResearch: {
+        source: keywordResearch.source,
+        relatedKeywords: keywordResearch.relatedKeywords,
+        geo: keywordResearch.geo,
+        approximateTraffic: keywordResearch.approximateTraffic,
+        researchedAt: keywordResearch.researchedAt
+      },
       image,
       imageAlt: editorial.imageAlt || stockImage?.alt || editorial.title,
       imageCredit: stockImage?.credit,

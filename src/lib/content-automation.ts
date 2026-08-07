@@ -18,6 +18,14 @@ type ArticleLike = {
   sourceName?: string;
   sourceUrl?: string;
   generationMode?: "manual" | "ai" | "feed";
+  primaryKeyword?: string;
+  keywordResearch?: {
+    source: "google-trends" | "editorial";
+    relatedKeywords: string[];
+    geo?: string;
+    approximateTraffic?: number;
+    researchedAt: Date;
+  };
   imageCredit?: string;
   imageCreditUrl?: string;
   publishedAt?: string | Date;
