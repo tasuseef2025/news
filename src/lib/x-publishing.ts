@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { absoluteUrl } from "@/lib/utils";
 import { SocialPublication } from "@/models/SocialPublication";
 
-type PublishableArticle = {
+export type PublishableArticle = {
   _id: unknown;
   title: string;
   slug: string;
@@ -29,12 +29,28 @@ function credentials() {
   return Object.values(values).every(Boolean) ? values as Record<keyof typeof values, string> : null;
 }
 
-function isEligible(article: PublishableArticle) {
+export function isArticleEligibleForX(article: PublishableArticle) {
   if (process.env.X_AUTO_PUBLISH !== "true" || article.status !== "published") return false;
   const mode = process.env.X_AUTO_PUBLISH_MODE || "selected";
   if (mode === "all") return true;
   if (mode === "manual") return article.generationMode === "manual";
   return Boolean(article.featured || article.breakingNews);
+}
+
+export function getXPublishingConfiguration() {
+  const required = {
+    X_API_KEY: process.env.X_API_KEY,
+    X_API_KEY_SECRET: process.env.X_API_KEY_SECRET,
+    X_ACCESS_TOKEN: process.env.X_ACCESS_TOKEN,
+    X_ACCESS_TOKEN_SECRET: process.env.X_ACCESS_TOKEN_SECRET
+  };
+
+  return {
+    enabled: process.env.X_AUTO_PUBLISH === "true",
+    mode: process.env.X_AUTO_PUBLISH_MODE || "selected",
+    configured: Object.values(required).every(Boolean),
+    missing: Object.entries(required).filter(([, value]) => !value).map(([name]) => name)
+  };
 }
 
 function authorizationHeader(config: NonNullable<ReturnType<typeof credentials>>) {
@@ -60,7 +76,7 @@ function authorizationHeader(config: NonNullable<ReturnType<typeof credentials>>
 }
 
 export async function publishArticleToX(article: PublishableArticle) {
-  if (!isEligible(article)) return { status: "skipped" as const };
+  if (!isArticleEligibleForX(article)) return { status: "skipped" as const };
   const config = credentials();
   if (!config) return { status: "not_configured" as const };
 

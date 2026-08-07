@@ -1,4 +1,4 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { revalidatePath } from "next/cache";
@@ -20,6 +20,10 @@ export async function GET(request: Request) {
   if (authError) return authError;
 
   revalidatePath("/", "layout");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
+  revalidatePath("/rss.xml");
+  revalidatePath("/robots.txt");
   const warmed = await Promise.all([warm("/sitemap.xml"), warm("/news-sitemap.xml"), warm("/rss.xml"), warm("/robots.txt")]);
 
   return NextResponse.json({

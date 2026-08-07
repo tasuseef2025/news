@@ -39,6 +39,9 @@ export async function GET(request: Request) {
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
+  revalidatePath("/rss.xml");
 
   return NextResponse.json({
     message: "Feed ingestion cron completed",

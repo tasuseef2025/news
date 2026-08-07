@@ -440,8 +440,15 @@ export async function ingestFeedSource(sourceId: string) {
   startOfDay.setHours(0, 0, 0, 0);
   const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
   const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
+  const dailyPublishLimit = Number(process.env.FEED_DAILY_PUBLISH_LIMIT || 12);
+  const minimumPublishWords = Number(process.env.FEED_MIN_PUBLISH_WORDS || 600);
   let aiUsedToday = await Article.countDocuments({ generationMode: "ai", createdAt: { $gte: startOfDay } });
   let aiUsedThisRun = 0;
+  let publishedToday = await Article.countDocuments({
+    status: "published",
+    sourceUrl: { $exists: true, $ne: "" },
+    createdAt: { $gte: startOfDay }
+  });
 
   for (const entry of entries) {
     const duplicate = await hasDuplicateArticle(entry);
@@ -458,7 +465,11 @@ export async function ingestFeedSource(sourceId: string) {
     if (useAi) aiUsedThisRun += 1;
     if (editorial.generationMode === "ai") aiUsedToday += 1;
 
-    const shouldPublish = source.autoPublish && editorial.generationMode === "ai";
+    const contentWordCount = cleanText(editorial.content).split(/\s+/).filter(Boolean).length;
+    const shouldPublish = source.autoPublish
+      && editorial.generationMode === "ai"
+      && contentWordCount >= minimumPublishWords
+      && publishedToday < dailyPublishLimit;
     const { image, stockImage } = await feedImage(entry, editorial.title, category);
     const content = editorial.content;
     const initialPayload = normalizeArticlePayload({
@@ -469,6 +480,7 @@ export async function ingestFeedSource(sourceId: string) {
       author: "Novexa News Desk",
       sourceName: source.name,
       sourceUrl: entry.link,
+      generationMode: editorial.generationMode,
       image,
       imageAlt: editorial.imageAlt || stockImage?.alt || editorial.title,
       imageCredit: stockImage?.credit,
@@ -489,6 +501,7 @@ export async function ingestFeedSource(sourceId: string) {
       publishedAt: shouldPublish ? entry.publishedAt || new Date() : undefined
     });
     await publishArticleToX(article);
+    if (shouldPublish) publishedToday += 1;
     created.push(article);
   }
 
