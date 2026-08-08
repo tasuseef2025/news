@@ -8,10 +8,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug");
   const limit = Math.min(12, Math.max(1, Number(searchParams.get("limit") ?? 6)));
-  const article = slug ? await Article.findOne({ slug, status: "published" }).lean<{ category: string; tags?: string[] }>() : null;
+  const article = slug ? await Article.findOne({ slug, status: "published", reviewStatus: { $ne: "rejected" } }).lean<{ category: string; tags?: string[] }>() : null;
   if (!article) return NextResponse.json({ articles: [] });
   const query = {
     status: "published",
+    reviewStatus: { $ne: "rejected" },
     slug: { $ne: slug },
     $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }]
   };

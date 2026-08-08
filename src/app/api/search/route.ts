@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const { limit, skip, searchParams } = pagination(request);
   const q = searchParams.get("q")?.trim();
   const category = searchParams.get("category");
-  const query: Record<string, unknown> = { status: "published" };
+  const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
   if (q) query.$text = { $search: q };
   if (category) query.category = new RegExp(`^${category}$`, "i");
   const [articles, total] = await Promise.all([

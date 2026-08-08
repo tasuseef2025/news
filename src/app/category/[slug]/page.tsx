@@ -1,76 +1,142 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArticleCard } from "@/features/articles/article-card";
-import { getArticles } from "@/lib/articles";
+import { connectDB } from "@/lib/db";
+import { serializeArticle } from "@/lib/articles";
 import { categories, categorySlug } from "@/lib/categories";
 import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
+import { Article } from "@/models/Article";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
-function titleCase(value: string) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ");
+const PAGE_SIZE = 18;
+const MIN_INDEXABLE_ARTICLES = 2;
+
+function resolveCategory(slug: string) {
+  return categories.find((category) => categorySlug(category) === slug);
 }
 
-function categoryFromSlug(slug: string) {
-  return categories.find((category) => categorySlug(category) === slug) || titleCase(slug.replaceAll("-", " "));
+function pageNumber(value?: string) {
+  const page = Number.parseInt(value || "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
 }
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const category = categoryFromSlug(slug);
-  const canonical = absoluteUrl(`/category/${categorySlug(category)}`);
-  const description = `Latest ${category} news, updates, analysis and featured stories from ${siteConfig.name}.`;
+
+function categoryDescription(category: string) {
+  return `Latest ${category} reporting, verified updates and analysis from ${siteConfig.name}.`;
+}
+
+async function categoryCount(category: string) {
+  try {
+    await connectDB();
+    return await Article.countDocuments({
+      status: "published",
+      reviewStatus: { $ne: "rejected" },
+      category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+    });
+  } catch {
+    return 0;
+  }
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const category = resolveCategory(slug);
+  if (!category) return { title: "Section not found", robots: { index: false, follow: false } };
+
+  const page = pageNumber(query.page);
+  const count = await categoryCount(category);
+  const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
+  const description = categoryDescription(category);
+  const indexable = count >= MIN_INDEXABLE_ARTICLES && (page - 1) * PAGE_SIZE < count;
 
   return {
-    title: `${category} News`,
+    title: page > 1 ? `${category} News - Page ${page}` : `${category} News`,
     description,
     alternates: { canonical },
+    robots: { index: indexable, follow: true },
     openGraph: {
       title: `${category} News | ${siteConfig.name}`,
       description,
       url: canonical,
       siteName: siteConfig.name,
-      type: "website",
-      images: [{ url: absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`), width: 1200, height: 630, alt: `${category} News` }]
+      type: "website"
     },
-    twitter: {
-      card: "summary_large_image",
-      title: `${category} News | ${siteConfig.name}`,
-      description,
-      images: [absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`)]
-    }
+    twitter: { card: "summary_large_image", title: `${category} News | ${siteConfig.name}`, description }
   };
 }
 
-export default async function CategoryPage({ params }: Props) {
-  const { slug } = await params;
-  const category = categoryFromSlug(slug);
-  const articles = await getArticles({ category, limit: 18 });
+export default async function CategoryPage({ params, searchParams }: Props) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const category = resolveCategory(slug);
+  if (!category) notFound();
+
+  const page = pageNumber(query.page);
+  await connectDB();
+  const filter = {
+    status: "published",
+    reviewStatus: { $ne: "rejected" },
+    category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+  };
+  const [docs, total] = await Promise.all([
+    Article.find(filter).sort({ publishedAt: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Article.countDocuments(filter)
+  ]);
+  if (page > 1 && !docs.length) notFound();
+
+  const articles = docs.map(serializeArticle);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${category} News`,
+    description: categoryDescription(category),
+    url: canonical,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: articles.map((article, index) => ({
+        "@type": "ListItem",
+        position: (page - 1) * PAGE_SIZE + index + 1,
+        url: absoluteUrl(`/news/${article.slug}`),
+        name: article.title
+      }))
+    }
+  };
 
   return (
     <main className="container py-8">
-      <div className="mb-8 border-b pb-5">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
+      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
+        <Link href="/" className="hover:text-primary">Home</Link> / <span>{category}</span>
+      </nav>
+      <header className="mb-8 border-b pb-5">
         <p className="text-sm font-bold uppercase text-primary">Section</p>
-        <h1 className="text-4xl font-black capitalize">{category}</h1>
-      </div>
+        <h1 className="text-4xl font-black">{category}</h1>
+        <p className="mt-2 max-w-3xl text-muted-foreground">{categoryDescription(category)}</p>
+      </header>
       {articles.length ? (
         <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article) => (
-            <ArticleCard key={article.slug} article={article} />
-          ))}
+          {articles.map((article) => <ArticleCard key={article.slug} article={article} />)}
         </div>
       ) : (
-        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-          No published articles found in this section yet. New stories will appear here automatically after feed imports publish matching articles.
-        </div>
+        <section className="border-y py-10">
+          <h2 className="text-xl font-bold">Coverage is being prepared</h2>
+          <p className="mt-2 text-muted-foreground">No reviewed stories are published in this section yet.</p>
+          <Link href="/" className="mt-4 inline-block font-semibold text-primary">Return to the latest news</Link>
+        </section>
+      )}
+      {totalPages > 1 && (
+        <nav aria-label="Category pagination" className="mt-10 flex items-center justify-between border-t pt-5">
+          {page > 1 ? <Link rel="prev" href={`/category/${slug}${page > 2 ? `?page=${page - 1}` : ""}`}>Previous</Link> : <span />}
+          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          {page < totalPages ? <Link rel="next" href={`/category/${slug}?page=${page + 1}`}>Next</Link> : <span />}
+        </nav>
       )}
     </main>
   );
 }
-
-

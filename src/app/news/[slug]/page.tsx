@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { getArticleBySlug, serializeArticle } from "@/lib/articles";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticleBySlug(slug);
   if (!article) return {};
 
-  const canonical = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
+  const canonical = absoluteUrl(`/news/${article.slug}`);
   const image = displayImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
 
   return {
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: canonical,
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
-      authors: [article.author],
+      authors: [article.author || "Novexa News Desk"],
       section: article.category,
       tags: article.tags
     },
@@ -81,28 +82,28 @@ export default async function NewsArticlePage({ params }: Props) {
 
   await connectDB();
   const [related, recommended, latest] = await Promise.all([
-    Article.find({ status: "published", slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
+    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean(),
-    Article.find({ status: "published", slug: { $ne: article.slug } })
+    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug } })
       .sort({ trending: -1, views: -1, publishedAt: -1 })
       .limit(3)
       .lean(),
-    Article.find({ status: "published", slug: { $ne: article.slug } })
+    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug } })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean()
   ]);
 
-  const articleUrl = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
+  const articleUrl = absoluteUrl(`/news/${article.slug}`);
   const shareImageUrl = absoluteUrl(`/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
   const schema = generateStructuredData({
     ...article,
     image: displayImage(article.image),
     ogImage: displayImage(article.ogImage || article.image),
-    canonicalUrl: article.canonicalUrl || absoluteUrl(`/news/${article.slug}`)
+    canonicalUrl: articleUrl
   });
 
   return (
@@ -127,8 +128,16 @@ export default async function NewsArticlePage({ params }: Props) {
           <h1 className="text-4xl font-black leading-tight md:text-6xl">{article.title}</h1>
           <p className="text-lg leading-8 text-muted-foreground">{article.excerpt}</p>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{article.author}</span>
-            <span>{format(new Date(article.publishedAt), "PPP p")}</span>
+            <Link
+              href={article.author?.toLowerCase().includes("abdul basit") ? "/author/abdul-basit" : "/about"}
+              className="font-semibold text-foreground hover:text-primary"
+            >
+              {article.author || "Novexa News Desk"}
+            </Link>
+            <span>Published {format(new Date(article.publishedAt), "PPP p")}</span>
+            {article.updatedAt && new Date(article.updatedAt).getTime() > new Date(article.publishedAt).getTime() + 60_000 ? (
+              <span>Updated {format(new Date(article.updatedAt), "PPP p")}</span>
+            ) : null}
             <ArticleViewCounter articleId={article._id} initialViews={article.views} />
             <span>{article.readingTime ?? 1} min read</span>
           </div>
@@ -152,13 +161,14 @@ export default async function NewsArticlePage({ params }: Props) {
           </p>
         ) : <div className="mb-8" />}
         <ArticleContent content={article.content} />
-        {article.sourceName ? (
+        {article.originalSourceName || article.sourceName ? (
           <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Reporting basis: {article.sourceUrl ? (
-              <a href={article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
-                {article.sourceName}
+            Reporting basis: {article.originalSourceUrl || article.sourceUrl ? (
+              <a href={article.originalSourceUrl || article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
+                {article.originalSourceName || article.sourceName}
               </a>
-            ) : article.sourceName}. Novexa News independently writes and edits its coverage.
+            ) : article.originalSourceName || article.sourceName}. Prepared from attributed source material and edited under the {" "}
+            <Link href="/editorial-policy" className="font-semibold underline hover:text-foreground">Novexa News editorial policy</Link>.
           </aside>
         ) : null}
         {article.videoUrl ? (

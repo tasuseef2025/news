@@ -49,7 +49,7 @@ async function findArticles(
   query: Record<string, unknown>,
   options?: { limit?: number; sort?: Record<string, 1 | -1> }
 ) {
-  const docs = await ArticleModel.find({ status: "published", ...query })
+  const docs = await ArticleModel.find({ status: "published", reviewStatus: { $ne: "rejected" }, ...query })
     .sort(options?.sort ?? { publishedAt: -1 })
     .limit(options?.limit ?? 6)
     .lean();
@@ -90,7 +90,7 @@ export async function getHomepageData(): Promise<HomepageData> {
         ])
       ),
       ArticleModel.aggregate([
-        { $match: { status: "published", category: { $in: [...categories] } } },
+        { $match: { status: "published", reviewStatus: { $ne: "rejected" }, category: { $in: [...categories] } } },
         { $sort: { publishedAt: -1 } },
         {
           $group: {

@@ -6,6 +6,9 @@ export function GET() {
   const body = `User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
+Disallow: /search
 Sitemap: ${absoluteUrl("/sitemap.xml")}
 Sitemap: ${absoluteUrl("/news-sitemap.xml")}
 Host: ${absoluteUrl("/")}

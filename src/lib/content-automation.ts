@@ -17,6 +17,9 @@ type ArticleLike = {
   readingTime?: number;
   sourceName?: string;
   sourceUrl?: string;
+  originalSourceName?: string;
+  originalSourceUrl?: string;
+  references?: Array<{ name: string; url: string; publishedAt?: string | Date }>;
   generationMode?: "manual" | "ai" | "feed";
   primaryKeyword?: string;
   keywordResearch?: {
@@ -78,7 +81,21 @@ export function generateReadingTime(content = "") {
 }
 
 export function generateStructuredData(article: Required<Pick<ArticleLike, "title" | "slug">> & ArticleLike) {
-  const canonicalUrl = article.canonicalUrl || absoluteUrl(`/news/${article.slug}`);
+  const canonicalUrl = absoluteUrl(`/news/${article.slug}`);
+  const authorName = article.author || `${siteConfig.name} Desk`;
+  const author = authorName === `${siteConfig.name} Desk` || authorName === "Novexa News Desk"
+    ? { "@type": "Organization", name: authorName, url: absoluteUrl("/about") }
+    : {
+        "@type": "Person",
+        name: authorName,
+        ...(authorName.toLowerCase().includes("abdul basit") ? { url: absoluteUrl("/author/abdul-basit") } : {})
+      };
+  const citations = [
+    ...(article.references || []).map((reference) => reference.url),
+    article.originalSourceUrl,
+    article.sourceUrl
+  ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -86,7 +103,7 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     alternativeHeadline: article.metaTitle,
     description: article.metaDescription || article.excerpt,
     image: [article.ogImage || article.image].filter(Boolean),
-    author: { "@type": "Person", name: article.author || siteConfig.name },
+    author,
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
@@ -97,12 +114,12 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
     copyrightHolder: { "@type": "Organization", name: siteConfig.name },
-    isBasedOn: article.sourceUrl,
-    citation: article.sourceUrl,
+    isBasedOn: article.originalSourceUrl || article.sourceUrl,
+    citation: citations.length ? citations : undefined,
     wordCount: stripHtml(article.content || "").split(/\s+/).filter(Boolean).length,
     timeRequired: `PT${article.readingTime || generateReadingTime(article.content || "")}M`,
     isAccessibleForFree: true,
-    mainEntityOfPage: canonicalUrl
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl }
   });
 }
 
@@ -112,7 +129,7 @@ export function normalizeArticlePayload<T extends ArticleLike>(payload: T) {
   const excerpt = payload.excerpt?.trim() || generateExcerpt(payload.content || title, 220);
   const metaTitle = payload.metaTitle?.trim() || title.slice(0, 70);
   const metaDescription = payload.metaDescription?.trim() || generateExcerpt(excerpt || payload.content || title, 160);
-  const canonicalUrl = payload.canonicalUrl?.trim() || absoluteUrl(`/news/${slug}`);
+  const canonicalUrl = absoluteUrl(`/news/${slug}`);
   const ogImage = payload.ogImage?.trim() || absoluteUrl(`/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent(payload.category || "News")}`);
   const readingTime = payload.readingTime || generateReadingTime(payload.content || "");
   const schemaMarkup = payload.schemaMarkup?.trim() || generateStructuredData({

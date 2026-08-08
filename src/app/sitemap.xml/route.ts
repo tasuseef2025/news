@@ -44,16 +44,28 @@ function validImageUrl(value?: string | null) {
 
 export async function GET() {
   await connectDB();
-  const articles = await Article.find({ status: "published" })
+  const publishedFilter = { status: "published", reviewStatus: { $ne: "rejected" } };
+  const [articles, categoryCounts] = await Promise.all([
+    Article.find(publishedFilter)
     .select("slug title category image updatedAt publishedAt")
     .sort({ publishedAt: -1 })
     .limit(5000)
-    .lean<SitemapArticle[]>();
+    .lean<SitemapArticle[]>(),
+    Article.aggregate<{ _id: string; count: number }>([
+      { $match: publishedFilter },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $match: { count: { $gte: 2 } } }
+    ])
+  ]);
+  const knownCategories = new Set(categories.map((category) => category.toLowerCase()));
+  const indexableCategories = categoryCounts
+    .map((entry) => entry._id)
+    .filter((category): category is string => typeof category === "string" && knownCategories.has(category.toLowerCase()));
 
   const urls: SitemapUrl[] = [
     { loc: absoluteUrl("/"), lastmod: new Date().toISOString() },
     ...staticRoutes.map((route) => ({ loc: absoluteUrl(route), lastmod: new Date().toISOString() })),
-    ...categories.map((category) => ({ loc: absoluteUrl(`/category/${categorySlug(category)}`), lastmod: new Date().toISOString() })),
+    ...indexableCategories.map((category) => ({ loc: absoluteUrl(`/category/${categorySlug(category)}`), lastmod: new Date().toISOString() })),
     ...articles.map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
       lastmod: new Date(article.updatedAt || article.publishedAt || new Date()).toISOString(),

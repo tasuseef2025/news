@@ -6,6 +6,6 @@ import { Article } from "@/models/Article";
 export async function GET(request: Request) {
   await connectDB();
   const { limit, skip } = pagination(request);
-  const articles = await Article.find({ status: "published" }).sort({ publishedAt: -1 }).skip(skip).limit(limit).lean();
+  const articles = await Article.find({ status: "published", reviewStatus: { $ne: "rejected" } }).sort({ publishedAt: -1 }).skip(skip).limit(limit).lean();
   return NextResponse.json({ articles: articles.map(serializeDocument) }, { headers: { "Cache-Control": "s-maxage=60, stale-while-revalidate=300" } });
 }

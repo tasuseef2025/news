@@ -6,6 +6,8 @@ import { publishArticleToX } from "@/lib/x-publishing";
 import { FeedSource } from "@/models/FeedSource";
 import { findStockImage, type StockImageResult } from "@/lib/stock-images";
 import { researchKeywords, type KeywordResearch } from "@/lib/trending-keywords";
+import { assessArticleQuality, contentHash, normalizeSourceUrl, textSimilarity, type QualityAssessment } from "@/lib/article-quality";
+import { ArticleRevision } from "@/models/ArticleRevision";
 
 export type FeedEntry = {
   title: string;
@@ -14,6 +16,8 @@ export type FeedEntry = {
   publishedAt?: Date;
   image?: string;
   category?: string;
+  guid?: string;
+  itemId?: string;
 };
 
 type GenerationMode = "ai" | "feed";
@@ -28,6 +32,8 @@ type EditorialPackage = {
   keywords?: string[];
   tags: string[];
   imageAlt?: string;
+  factualClaims?: string[];
+  qualityAssessment?: Partial<QualityAssessment>;
 };
 
 type EditorialResult = EditorialPackage & { generationMode: GenerationMode };
@@ -116,13 +122,17 @@ export function parseFeed(xml: string): FeedEntry[] {
       const description = readTag(block, "description") || readTag(block, "summary") || readTag(block, "content:encoded") || readTag(block, "content");
       const dateValue = readTag(block, "pubDate") || readTag(block, "published") || readTag(block, "updated");
       const category = readTag(block, "category");
+      const guid = readTag(block, "guid") || readTag(block, "id");
+      const itemId = readTag(block, "id") || guid || link;
       return {
         title: stripHtml(title),
         link,
         description: stripHtml(description),
         publishedAt: dateValue ? new Date(dateValue) : undefined,
         image: imageFromEntry(block),
-        category: stripHtml(category)
+        category: stripHtml(category),
+        guid: stripHtml(guid),
+        itemId: stripHtml(itemId)
       };
     })
     .filter((entry) => entry.title && entry.link);
@@ -170,15 +180,74 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function hasDuplicateArticle(entry: FeedEntry) {
-  const title = entry.title.trim();
-  const duplicateChecks: Array<Record<string, unknown>> = [{ sourceUrl: entry.link }];
+type ExistingStory = {
+  _id: unknown;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content: string;
+  status: string;
+  category: string;
+  sourceContentHash?: string;
+  sourceUrl?: string;
+  sourceName?: string;
+  publishedAt?: Date;
+  image?: string;
+  imageAlt?: string;
+  imageCredit?: string;
+  imageCreditUrl?: string;
+  references?: Array<{ name: string; url: string; publishedAt?: Date }>;
+};
 
-  if (title) {
-    duplicateChecks.push({ title: new RegExp(`^${escapeRegExp(title)}$`, "i") });
+type StoryMatch = {
+  article: ExistingStory;
+  kind: "exact" | "similar";
+  similarity: number;
+  sourceChanged: boolean;
+};
+
+async function findExistingStory(entry: FeedEntry, category: string, rssFeedUrl: string): Promise<StoryMatch | null> {
+  const normalizedUrl = normalizeSourceUrl(entry.link);
+  const incomingSourceHash = contentHash(`${entry.title}\n${entry.description}`);
+  const exactChecks: Array<Record<string, unknown>> = [
+    { sourceUrl: { $in: [entry.link, normalizedUrl] } },
+    { originalSourceUrl: normalizedUrl }
+  ];
+
+  if (entry.guid) exactChecks.push({ sourceGuid: entry.guid, rssFeedUrl });
+  if (entry.itemId) exactChecks.push({ sourceItemId: entry.itemId, rssFeedUrl });
+
+  const exact = await Article.findOne({ $or: exactChecks })
+    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl references")
+    .lean<ExistingStory>();
+
+  if (exact) {
+    return {
+      article: exact,
+      kind: "exact",
+      similarity: 1,
+      sourceChanged: exact.sourceContentHash !== incomingSourceHash
+    };
   }
 
-  return Article.exists({ $or: duplicateChecks });
+  const cutoff = new Date(Date.now() - Number(process.env.FEED_STORY_WINDOW_DAYS || 10) * 24 * 60 * 60 * 1000);
+  const candidates = await Article.find({
+    status: { $in: ["published", "draft"] },
+    category: new RegExp(`^${escapeRegExp(category)}$`, "i"),
+    createdAt: { $gte: cutoff }
+  })
+    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl references")
+    .sort({ publishedAt: -1 })
+    .limit(120)
+    .lean<ExistingStory[]>();
+
+  const threshold = Number(process.env.FEED_STORY_SIMILARITY_THRESHOLD || 0.72);
+  const best = candidates
+    .map((article) => ({ article, similarity: textSimilarity(entry.title, article.title) }))
+    .filter((candidate) => candidate.similarity >= threshold)
+    .sort((left, right) => right.similarity - left.similarity)[0];
+
+  return best ? { ...best, kind: "similar", sourceChanged: true } : null;
 }
 
 function normalizedForCompare(value = "") {
@@ -264,7 +333,9 @@ function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry
     metaDescription,
     keywords: cleanTags(keywords, category, entry.category),
     tags: cleanTags([...(Array.isArray(input.tags) ? input.tags : []), ...keywords], category, entry.category),
-    imageAlt
+    imageAlt,
+    factualClaims: Array.isArray(input.factualClaims) ? input.factualClaims.map((claim) => cleanText(String(claim))).filter(Boolean).slice(0, 12) : [],
+    qualityAssessment: input.qualityAssessment
   };
 }
 
@@ -281,7 +352,7 @@ function aiCategories() {
 
 function shouldUseAiForEntry(entry: FeedEntry, category: string) {
   if (process.env.FEED_AI_ENABLED === "false") return false;
-  const minSummaryChars = Number(process.env.FEED_AI_MIN_SUMMARY_CHARS || 120);
+  const minSummaryChars = Number(process.env.FEED_MIN_SOURCE_CHARS || process.env.FEED_AI_MIN_SUMMARY_CHARS || 180);
   if (feedSummaryLength(entry) < minSummaryChars) return false;
   const allowedCategories = aiCategories();
   return !allowedCategories.length || allowedCategories.includes(category.toLowerCase());
@@ -315,7 +386,7 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
           {
             role: "system",
             content:
-              "You are a senior digital news editor for Novexa News. Create original, copyright-safe journalism from RSS/feed metadata only. You may use the source as reference, but never copy publisher sentences, structure, images, thumbnails, or distinctive phrasing. Do not invent facts, quotes, numbers, dates, allegations, causes, or outcomes. If feed details are thin, write a useful concise brief with context and attribution instead of pretending to know more. Write in a natural human newsroom voice, not a repetitive template. Return only valid JSON."
+              "You are a senior digital news editor for Novexa News. Treat RSS metadata as source material, not prose to paraphrase. Extract only supported factual claims, then create genuinely original structure and wording. Never copy sentences, paragraph order, thumbnails, or distinctive phrasing. Never invent facts, quotes, numbers, dates, allegations, causes, reactions, or outcomes. Do not claim on-the-ground or independent reporting. If the supplied evidence cannot support a useful article, set approved to false. Prioritize information value over length and return only valid JSON."
           },
           {
             role: "user",
@@ -342,7 +413,16 @@ Return only valid JSON with this exact shape:
   "keywords": ["primary keyword", "secondary keyword"],
   "tags": ["5 to 8 relevant tags"],
   "imageAlt": "descriptive image alt text suggestion",
-  "content": "650-900 words when verified feed detail supports it; 300-500 words if the feed metadata is thin. Use a strong introduction, H2: heading lines, short paragraphs, a conclusion, and a short FAQ only when appropriate."
+  "factualClaims": ["atomic claims directly supported by supplied source material"],
+  "qualityAssessment": {
+    "approved": true,
+    "reason": "brief evidence-based reason",
+    "qualityScore": 0,
+    "originalityScore": 0,
+    "factualConfidence": 0,
+    "duplicateRisk": 0
+  },
+  "content": "Use only as much length as the evidence supports. Include a strong lead, what happened, important facts, why it matters, supported context, and what happens next only when known. Use H2: heading lines where useful."
 }
 
 Editorial rules:
@@ -353,7 +433,10 @@ Editorial rules:
 - Use the researched primary keyword naturally in the title, introduction, one heading, metadata, and body only when grammar and facts support it.
 - Do not claim a query is trending or mention search volume inside the article.
 - Never change the story angle or introduce unrelated facts merely to fit a high-volume keyword.
-- If the feed has limited verified detail, write a shorter factual brief instead of inventing details.
+- Do not paraphrase the RSS summary sentence by sentence or preserve its structure.
+- Explain why the story matters and add background only when that context is supported by the supplied source metadata.
+- If the evidence is insufficient for a useful article, return qualityAssessment.approved=false instead of adding filler.
+- Do not create unnecessary sections or force a target word count.
 - Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
 - Do not say the article was written by AI.
 - Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
@@ -448,53 +531,134 @@ export async function ingestFeedSource(sourceId: string) {
   const xml = await response.text();
   const entries = parseFeed(xml).slice(0, Number(process.env.FEED_IMPORT_LIMIT || 3));
   const created = [];
+  const updated = [];
   const skipped = [];
+  const rejected: Array<{ sourceUrl: string; reason: string; parentStoryId?: string }> = [];
   const aiSkipped = [];
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
   const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
   const dailyPublishLimit = Number(process.env.FEED_DAILY_PUBLISH_LIMIT || 12);
-  const minimumPublishWords = Number(process.env.FEED_MIN_PUBLISH_WORDS || 600);
   let aiUsedToday = await Article.countDocuments({ generationMode: "ai", createdAt: { $gte: startOfDay } });
   let aiUsedThisRun = 0;
   let publishedToday = await Article.countDocuments({
     status: "published",
-    sourceUrl: { $exists: true, $ne: "" },
+    originalSourceUrl: { $exists: true, $ne: "" },
     createdAt: { $gte: startOfDay }
   });
 
   for (const entry of entries) {
-    const duplicate = await hasDuplicateArticle(entry);
-    if (duplicate) {
+    const category = autoCategory(entry, source.defaultCategory);
+    const normalizedUrl = normalizeSourceUrl(entry.link);
+    const incomingSourceHash = contentHash(`${entry.title}\n${entry.description}`);
+    const storyMatch = await findExistingStory(entry, category, source.url);
+
+    if (storyMatch?.kind === "exact" && !storyMatch.sourceChanged) {
       skipped.push(entry.link);
       continue;
     }
 
-    const category = autoCategory(entry, source.defaultCategory);
+    if (storyMatch?.kind === "similar") {
+      const reason = `Possible developing-story match (${Math.round(storyMatch.similarity * 100)}% title similarity); editorial merge review required`;
+      const draftTitle = cleanText(entry.title).slice(0, 95);
+      const draftPayload = normalizeArticlePayload({
+        title: draftTitle,
+        excerpt: humanSummary(entry),
+        content: humanSummary(entry),
+        category,
+        author: "Novexa News Desk",
+        sourceName: source.name,
+        sourceUrl: normalizedUrl,
+        originalSourceName: source.name,
+        originalSourceUrl: normalizedUrl,
+        rssFeedUrl: source.url,
+        sourceGuid: entry.guid || undefined,
+        sourceItemId: entry.itemId || normalizedUrl,
+        sourcePublishedAt: entry.publishedAt,
+        importedAt: new Date(),
+        references: [{ name: source.name, url: normalizedUrl, publishedAt: entry.publishedAt }],
+        sourceContentHash: incomingSourceHash,
+        contentHash: contentHash(humanSummary(entry)),
+        generationMode: "feed",
+        reviewStatus: "needs_review",
+        rejectionReasons: [reason],
+        duplicateRisk: Math.round(storyMatch.similarity * 100),
+        isDevelopingStory: true,
+        parentStoryId: storyMatch.article._id,
+        image: generatedOgPath(draftTitle, category),
+        imageAlt: `${draftTitle} news image`,
+        status: "draft",
+        tags: cleanTags([], category, entry.category)
+      });
+      const slug = await uniqueArticleSlug(draftPayload.slug, normalizedUrl);
+      const draft = await Article.create({ ...draftPayload, slug, publishedAt: undefined });
+      created.push(draft);
+      rejected.push({ sourceUrl: normalizedUrl, reason, parentStoryId: String(storyMatch.article._id) });
+      continue;
+    }
+
     const useAi = shouldUseAiForEntry(entry, category) && aiUsedThisRun < runAiLimit && aiUsedToday < dailyAiLimit;
     if (!useAi) aiSkipped.push(entry.link);
 
-    const keywordResearch = await researchKeywords(entry);
+    const keywordResearch = useAi
+      ? await researchKeywords(entry)
+      : {
+          primaryKeyword: cleanText(entry.title).toLowerCase(),
+          relatedKeywords: [cleanText(entry.title).toLowerCase()],
+          source: "editorial" as const,
+          researchedAt: new Date()
+        };
+
     const editorial = await editorialPackage(entry, source.name, category, useAi, keywordResearch);
     if (useAi) aiUsedThisRun += 1;
     if (editorial.generationMode === "ai") aiUsedToday += 1;
 
-    const contentWordCount = cleanText(editorial.content).split(/\s+/).filter(Boolean).length;
-    const shouldPublish = source.autoPublish
-      && editorial.generationMode === "ai"
-      && contentWordCount >= minimumPublishWords
-      && publishedToday < dailyPublishLimit;
-    const { image, stockImage } = await feedImage(entry, editorial.title, category);
-    const content = editorial.content;
-    const initialPayload = normalizeArticlePayload({
+    let assessment = assessArticleQuality({
       title: editorial.title,
-      excerpt: editorial.excerpt,
-      content,
-      category,
-      author: "Novexa News Desk",
+      content: editorial.content,
+      metaDescription: editorial.metaDescription,
+      sourceTitle: entry.title,
+      sourceSummary: entry.description,
+      sourceUrl: normalizedUrl,
+      duplicateSimilarity: storyMatch?.similarity,
+      updatingExisting: storyMatch?.kind === "exact",
+      modelScores: editorial.qualityAssessment
+    });
+
+    if (editorial.qualityAssessment?.approved === false) {
+      const modelReason = cleanText(editorial.qualityAssessment.reason || "Model found insufficient evidence");
+      assessment = {
+        ...assessment,
+        approved: false,
+        reasons: [...new Set([...assessment.reasons, modelReason])],
+        reason: [...new Set([...assessment.reasons, modelReason])].join("; ")
+      };
+    }
+
+    const approved = editorial.generationMode === "ai" && assessment.approved;
+    const shouldPublish = source.autoPublish && approved && publishedToday < dailyPublishLimit;
+    const sourceFields = {
       sourceName: source.name,
-      sourceUrl: entry.link,
+      sourceUrl: normalizedUrl,
+      originalSourceName: source.name,
+      originalSourceUrl: normalizedUrl,
+      rssFeedUrl: source.url,
+      sourceGuid: entry.guid || undefined,
+      sourceItemId: entry.itemId || normalizedUrl,
+      sourcePublishedAt: entry.publishedAt,
+      importedAt: new Date(),
+      aiGeneratedAt: editorial.generationMode === "ai" ? new Date() : undefined,
+      lastUpdatedAt: storyMatch ? new Date() : undefined,
+      references: [{ name: source.name, url: normalizedUrl, publishedAt: entry.publishedAt }],
+      sourceContentHash: incomingSourceHash,
+      contentHash: contentHash(editorial.content),
+      reviewStatus: approved ? "approved" : editorial.generationMode === "ai" ? "rejected" : "needs_review",
+      rejectionReasons: approved ? [] : assessment.reasons.length ? assessment.reasons : ["AI generation was not available"],
+      qualityScore: assessment.qualityScore,
+      originalityScore: assessment.originalityScore,
+      factualConfidence: assessment.factualConfidence,
+      duplicateRisk: assessment.duplicateRisk,
       generationMode: editorial.generationMode,
       primaryKeyword: keywordResearch.primaryKeyword,
       keywordResearch: {
@@ -503,11 +667,77 @@ export async function ingestFeedSource(sourceId: string) {
         geo: keywordResearch.geo,
         approximateTraffic: keywordResearch.approximateTraffic,
         researchedAt: keywordResearch.researchedAt
-      },
-      image,
-      imageAlt: editorial.imageAlt || stockImage?.alt || editorial.title,
-      imageCredit: stockImage?.credit,
-      imageCreditUrl: stockImage?.pageUrl,
+      }
+    };
+
+    if (storyMatch?.kind === "exact") {
+      if (!shouldPublish || storyMatch.article.status !== "published") {
+        rejected.push({ sourceUrl: normalizedUrl, reason: assessment.reason, parentStoryId: String(storyMatch.article._id) });
+        continue;
+      }
+
+      await ArticleRevision.create({
+        articleId: storyMatch.article._id,
+        title: storyMatch.article.title,
+        excerpt: storyMatch.article.excerpt,
+        content: storyMatch.article.content,
+        sourceUrl: storyMatch.article.sourceUrl,
+        sourceName: storyMatch.article.sourceName,
+        reason: "Source item changed; canonical developing story updated"
+      });
+
+      const updatedPayload = normalizeArticlePayload({
+        title: editorial.title,
+        slug: storyMatch.article.slug,
+        excerpt: editorial.excerpt,
+        content: editorial.content,
+        category,
+        author: "Novexa News Desk",
+        ...sourceFields,
+        references: [
+          ...(storyMatch.article.references || []).filter((reference) => reference.url !== normalizedUrl),
+          sourceFields.references[0]
+        ],
+        image: storyMatch.article.image || generatedOgPath(editorial.title, category),
+        imageAlt: storyMatch.article.imageAlt || editorial.imageAlt || editorial.title,
+        imageCredit: storyMatch.article.imageCredit,
+        imageCreditUrl: storyMatch.article.imageCreditUrl,
+        ogImage: generatedOgPath(editorial.title, category),
+        metaTitle: editorial.metaTitle,
+        metaDescription: editorial.metaDescription,
+        status: "published",
+        tags: editorial.tags,
+        isDevelopingStory: true,
+        publishedAt: storyMatch.article.publishedAt
+      });
+
+      const article = await Article.findByIdAndUpdate(
+        storyMatch.article._id,
+        { $set: updatedPayload },
+        { new: true }
+      );
+      if (article) {
+        await publishArticleToX(article);
+        updated.push(article);
+      }
+      continue;
+    }
+
+    const imageResult = shouldPublish
+      ? await feedImage(entry, editorial.title, category)
+      : { image: generatedOgPath(editorial.title, category), stockImage: null };
+
+    const initialPayload = normalizeArticlePayload({
+      title: editorial.title,
+      excerpt: editorial.excerpt,
+      content: editorial.content,
+      category,
+      author: "Novexa News Desk",
+      ...sourceFields,
+      image: imageResult.image,
+      imageAlt: editorial.imageAlt || imageResult.stockImage?.alt || editorial.title,
+      imageCredit: imageResult.stockImage?.credit,
+      imageCreditUrl: imageResult.stockImage?.pageUrl,
       ogImage: generatedOgPath(editorial.title, category),
       slug: editorial.slug,
       metaTitle: editorial.metaTitle,
@@ -516,24 +746,27 @@ export async function ingestFeedSource(sourceId: string) {
       tags: editorial.tags,
       publishedAt: entry.publishedAt?.toISOString()
     });
-    const slug = await uniqueArticleSlug(initialPayload.slug, entry.link);
+    const slug = await uniqueArticleSlug(initialPayload.slug, normalizedUrl);
     const articlePayload = slug === initialPayload.slug ? initialPayload : normalizeArticlePayload({ ...initialPayload, slug });
 
     const article = await Article.create({
       ...articlePayload,
       publishedAt: shouldPublish ? entry.publishedAt || new Date() : undefined
     });
-    await publishArticleToX(article);
-    if (shouldPublish) publishedToday += 1;
+    if (shouldPublish) {
+      await publishArticleToX(article);
+      publishedToday += 1;
+    } else {
+      rejected.push({ sourceUrl: normalizedUrl, reason: assessment.reason || "Held for editorial review" });
+    }
     created.push(article);
   }
 
   source.lastFetchedAt = new Date();
   await source.save();
 
-  return { created, skipped, aiSkipped, total: entries.length };
+  return { created, updated, skipped, rejected, aiSkipped, total: entries.length };
 }
-
 export function sourceSlug(name: string) {
   return categorySlug(name);
 }

@@ -22,6 +22,14 @@ function serializeArticle(article: unknown): Article {
 
   const image = safeArticleImage({ image: doc.image, title: doc.title, category: doc.category });
   const ogImage = safeArticleOgImage({ image: doc.ogImage || image, title: doc.title, category: doc.category });
+  const raw = doc as unknown as {
+    sourcePublishedAt?: Date;
+    importedAt?: Date;
+    aiGeneratedAt?: Date;
+    lastUpdatedAt?: Date;
+    references?: Array<{ name: string; url: string; publishedAt?: Date }>;
+    parentStoryId?: { toString: () => string };
+  };
 
   return {
     ...doc,
@@ -31,7 +39,16 @@ function serializeArticle(article: unknown): Article {
     publishedAt: new Date(doc.publishedAt).toISOString(),
     scheduledAt: doc.scheduledAt ? new Date(doc.scheduledAt).toISOString() : undefined,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : undefined,
-    updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined
+    updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined,
+    sourcePublishedAt: raw.sourcePublishedAt ? new Date(raw.sourcePublishedAt).toISOString() : undefined,
+    importedAt: raw.importedAt ? new Date(raw.importedAt).toISOString() : undefined,
+    aiGeneratedAt: raw.aiGeneratedAt ? new Date(raw.aiGeneratedAt).toISOString() : undefined,
+    lastUpdatedAt: raw.lastUpdatedAt ? new Date(raw.lastUpdatedAt).toISOString() : undefined,
+    references: raw.references?.map((reference) => ({
+      ...reference,
+      publishedAt: reference.publishedAt ? new Date(reference.publishedAt).toISOString() : undefined
+    })),
+    parentStoryId: raw.parentStoryId?.toString()
   };
 }
 
@@ -47,7 +64,7 @@ export async function getArticles(filters?: {
   try {
     await connectDB();
     await publishDueScheduledArticles();
-    const query: Record<string, unknown> = { status: "published" };
+    const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
     if (filters?.category) query.category = new RegExp(`^${filters.category}$`, "i");
     if (typeof filters?.featured === "boolean") query.featured = filters.featured;
     if (typeof filters?.trending === "boolean") query.trending = filters.trending;
@@ -69,7 +86,7 @@ export async function getArticleBySlug(slug: string) {
   try {
     await connectDB();
     await publishDueScheduledArticles();
-    const doc = await ArticleModel.findOne({ slug, status: "published" }).lean();
+    const doc = await ArticleModel.findOne({ slug, status: "published", reviewStatus: { $ne: "rejected" } }).lean();
 
     return doc ? serializeArticle(doc) : null;
   } catch {

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Search News",
   description: "Search Novexa News for breaking updates, Pakistan news, world affairs, business, technology, sports, health and analysis.",
   alternates: { canonical: absoluteUrl("/search") },
-  robots: { index: true, follow: true }
+  robots: { index: false, follow: true }
 };
 
 type Props = {
@@ -25,7 +25,7 @@ export default async function SearchPage({ searchParams }: Props) {
   if (query) {
     await connectDB();
     await publishDueScheduledArticles();
-    const filter = { status: "published", $text: { $search: query } };
+    const filter = { status: "published", reviewStatus: { $ne: "rejected" }, $text: { $search: query } };
     const [docs, count] = await Promise.all([
       Article.find(filter).sort({ score: { $meta: "textScore" }, publishedAt: -1 }).limit(24).lean(),
       Article.countDocuments(filter)

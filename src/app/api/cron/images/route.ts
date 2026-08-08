@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const force = searchParams.get("force") === "true";
 
   await connectDB();
-  const articles = await Article.find({ status: "published" }).sort({ publishedAt: -1 }).limit(limit).select("_id title slug category image content").lean();
+  const articles = await Article.find({ status: "published", reviewStatus: { $ne: "rejected" } }).sort({ publishedAt: -1 }).limit(limit).select("_id title slug category image content").lean();
   const usedArticles = await Article.find({ image: { $type: "string" } }).select({ image: 1 }).sort({ publishedAt: -1 }).limit(1000).lean();
   const usedImages = usedArticles.map((article) => article.image).filter((image): image is string => Boolean(image));
   let updated = 0;

@@ -7,6 +7,7 @@
                     "build":  "node node_modules/next/dist/bin/next build",
                     "start":  "node node_modules/next/dist/bin/next start",
                     "typecheck":  "node node_modules/typescript/bin/tsc --noEmit",
+                    "test:quality": "node --import tsx --test --experimental-test-isolation=none tests/article-quality.test.ts",
                     "server":  "node node_modules/tsx/dist/cli.mjs server/index.ts",
                     "seed:admin":  "node node_modules/tsx/dist/cli.mjs server/seed-admin.ts",
                     "validate:env":  "node node_modules/tsx/dist/cli.mjs server/scripts/validate-env.ts",
@@ -14,7 +15,10 @@
                     "cron:worker":  "node server/cron-worker.mjs",
                     "seed:feeds":  "node node_modules/tsx/dist/cli.mjs server/seed-feeds.ts",
                     "refresh:article-image":  "node node_modules/tsx/dist/cli.mjs server/scripts/refresh-article-image.ts",
-                    "seo:quarantine-fallbacks":  "node node_modules/tsx/dist/cli.mjs server/scripts/quarantine-fallback-articles.ts"
+                    "seo:quarantine-fallbacks":  "node node_modules/tsx/dist/cli.mjs server/scripts/quarantine-fallback-articles.ts",
+                    "seo:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/seo-audit.ts",
+                    "content:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/content-audit.ts",
+                    "seo:migrate": "node node_modules/tsx/dist/cli.mjs server/scripts/backfill-seo-fields.ts"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",

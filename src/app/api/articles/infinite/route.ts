@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   await connectDB();
   const { limit, searchParams } = pagination(request);
   const cursor = searchParams.get("cursor");
-  const query: Record<string, unknown> = { status: "published" };
+  const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
   if (cursor) query.publishedAt = { $lt: new Date(cursor) };
   const articles = await Article.find(query).sort({ publishedAt: -1 }).limit(limit).lean();
   const nextCursor = articles.at(-1)?.publishedAt ?? null;

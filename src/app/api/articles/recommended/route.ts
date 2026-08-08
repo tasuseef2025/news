@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   await connectDB();
   const { limit, searchParams } = pagination(request);
   const category = searchParams.get("category");
-  const query: Record<string, unknown> = { status: "published" };
+  const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
   if (category) query.category = new RegExp(`^${category}$`, "i");
   const articles = await Article.find(query).sort({ trending: -1, views: -1, publishedAt: -1 }).limit(limit).lean();
   return NextResponse.json({ articles: articles.map(serializeDocument) }, { headers: { "Cache-Control": "s-maxage=180, stale-while-revalidate=600" } });

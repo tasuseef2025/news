@@ -54,6 +54,8 @@ export async function POST(request: Request) {
 
   const data = {
     ...parsed.data,
+    reviewStatus: parsed.data.status === "published" ? "approved" : "pending",
+    lastUpdatedAt: new Date(),
     publishedAt: parsed.data.status === "published" ? new Date() : undefined,
     scheduledAt: parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : undefined
   };

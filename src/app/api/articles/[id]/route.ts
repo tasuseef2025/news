@@ -7,6 +7,8 @@ import { Article } from "@/models/Article";
 import { hasPermission } from "@/lib/permissions";
 import { normalizeArticleUpdate } from "@/lib/content-automation";
 import { publishArticleToX } from "@/lib/x-publishing";
+import { absoluteUrl } from "@/lib/utils";
+import { ArticleRevision } from "@/models/ArticleRevision";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -45,7 +47,18 @@ export async function PATCH(request: Request, { params }: Params) {
   if (["published", "scheduled"].includes(payload.status) && !hasPermission(role, "publish_articles")) {
     return NextResponse.json({ message: "Missing publish permission" }, { status: 403 });
   }
-  const parsed = articleSchema.partial().safeParse(normalizeArticleUpdate(payload));
+  await connectDB();
+  const existing = await Article.findById(id);
+  if (!existing) {
+    return NextResponse.json({ message: "Article not found" }, { status: 404 });
+  }
+
+  const normalized = normalizeArticleUpdate(payload);
+  if (existing.status === "published") {
+    normalized.slug = existing.slug;
+    normalized.canonicalUrl = absoluteUrl(`/news/${existing.slug}`);
+  }
+  const parsed = articleSchema.partial().safeParse(normalized);
 
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid payload", errors: parsed.error.flatten() }, { status: 400 });
@@ -53,11 +66,29 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const update = {
     ...parsed.data,
-    ...(parsed.data.status === "published" ? { publishedAt: new Date() } : {}),
+    ...(parsed.data.status === "published" && existing.status !== "published" ? { publishedAt: new Date() } : {}),
+    ...(parsed.data.status === "published" ? { reviewStatus: "approved", rejectionReasons: [] } : {}),
+    lastUpdatedAt: new Date(),
     ...(parsed.data.scheduledAt ? { scheduledAt: new Date(parsed.data.scheduledAt) } : {})
   };
 
-  await connectDB();
+  const materiallyChanged = ["title", "excerpt", "content", "metaTitle", "metaDescription"].some((field) => {
+    const key = field as keyof typeof parsed.data;
+    return parsed.data[key] !== undefined && parsed.data[key] !== existing.get(field);
+  });
+  if (materiallyChanged) {
+    await ArticleRevision.create({
+      articleId: existing._id,
+      title: existing.title,
+      excerpt: existing.excerpt,
+      content: existing.content,
+      metaTitle: existing.metaTitle,
+      metaDescription: existing.metaDescription,
+      sourceName: existing.sourceName,
+      sourceUrl: existing.sourceUrl,
+      reason: "manual-editor-update"
+    });
+  }
   const article = await Article.findByIdAndUpdate(id, update, { new: true });
 
   if (!article) {

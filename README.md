@@ -34,6 +34,7 @@ npm run seed:admin
 
 ```bash
 npm run typecheck
+npm run test:quality
 npm run build
 ```
 
@@ -46,3 +47,4 @@ npm run build
 - [Automation](docs/AUTOMATION.md)
 - [Vercel Cron Notes](docs/VERCEL_CRON.md)
 - [Live Scores](docs/LIVE_SCORES.md)
+- [Content Quality And SEO Operations](docs/CONTENT_QUALITY.md)

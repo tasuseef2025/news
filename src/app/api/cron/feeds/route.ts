@@ -24,6 +24,8 @@ export async function GET(request: Request) {
         sourceName: source.name,
         total: result.total,
         created: result.created.length,
+        updated: result.updated.length,
+        rejected: result.rejected.length,
         published: result.created.filter((article) => article.status === "published").length,
         drafts: result.created.filter((article) => article.status === "draft").length,
         skipped: result.skipped.length,

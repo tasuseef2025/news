@@ -12,7 +12,11 @@ function escapeXml(value = "") {
 
 export async function GET() {
   await connectDB();
-  const articles = await Article.find({ status: "published", publishedAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } }).sort({ publishedAt: -1 }).limit(1000).lean();
+  const articles = await Article.find({
+    status: "published",
+    reviewStatus: { $ne: "rejected" },
+    publishedAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) }
+  }).sort({ publishedAt: -1 }).limit(1000).lean();
   const urls = articles
     .map(
       (article) => `<url><loc>${absoluteUrl(`/news/${article.slug}`)}</loc><news:news><news:publication><news:name>${escapeXml(siteConfig.name)}</news:name><news:language>${siteConfig.language}</news:language></news:publication><news:publication_date>${new Date(article.publishedAt).toISOString()}</news:publication_date><news:title>${escapeXml(article.title)}</news:title></news:news></url>`
