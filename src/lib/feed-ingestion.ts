@@ -36,7 +36,16 @@ type EditorialPackage = {
   qualityAssessment?: Partial<QualityAssessment>;
 };
 
-type EditorialResult = EditorialPackage & { generationMode: GenerationMode };
+type EditorialResult = EditorialPackage & {
+  generationMode: GenerationMode;
+  aiAttempted: boolean;
+  aiFailureReason?: string;
+};
+
+type AiEditorialResult = {
+  editorial: EditorialPackage | null;
+  failureReason?: string;
+};
 
 function decodeEntities(value = "") {
   return value
@@ -361,15 +370,21 @@ function shouldUseAiForEntry(entry: FeedEntry, category: string) {
 async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean, keywordResearch: KeywordResearch): Promise<EditorialResult> {
   if (useAi) {
     const generated = await aiEditorialPackage(entry, sourceName, category, keywordResearch);
-    if (generated) return { ...generated, generationMode: "ai" };
+    if (generated.editorial) return { ...generated.editorial, generationMode: "ai", aiAttempted: true };
+    return {
+      ...fallbackEditorialPackage(entry, sourceName, category),
+      generationMode: "feed",
+      aiAttempted: true,
+      aiFailureReason: generated.failureReason || "OpenAI returned no usable editorial package"
+    };
   }
 
-  return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed" };
+  return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed", aiAttempted: false };
 }
 
-async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch) {
+async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { editorial: null, failureReason: "OPENAI_API_KEY is not configured" };
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -382,6 +397,43 @@ async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category
         model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
         max_output_tokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
         reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
+        text: {
+          format: {
+            type: "json_schema",
+            name: "novexa_news_article",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["title", "slug", "excerpt", "metaTitle", "metaDescription", "keywords", "tags", "imageAlt", "factualClaims", "qualityAssessment", "content"],
+              properties: {
+                title: { type: "string" },
+                slug: { type: "string" },
+                excerpt: { type: "string" },
+                metaTitle: { type: "string" },
+                metaDescription: { type: "string" },
+                keywords: { type: "array", items: { type: "string" } },
+                tags: { type: "array", items: { type: "string" } },
+                imageAlt: { type: "string" },
+                factualClaims: { type: "array", items: { type: "string" } },
+                qualityAssessment: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: ["approved", "reason", "qualityScore", "originalityScore", "factualConfidence", "duplicateRisk"],
+                  properties: {
+                    approved: { type: "boolean" },
+                    reason: { type: "string" },
+                    qualityScore: { type: "number", minimum: 0, maximum: 100 },
+                    originalityScore: { type: "number", minimum: 0, maximum: 100 },
+                    factualConfidence: { type: "number", minimum: 0, maximum: 100 },
+                    duplicateRisk: { type: "number", minimum: 0, maximum: 100 }
+                  }
+                },
+                content: { type: "string" }
+              }
+            }
+          }
+        },
         input: [
           {
             role: "system",
@@ -408,6 +460,7 @@ Return only valid JSON with this exact shape:
 {
   "title": "unique SEO title, 50-60 characters, accurate and not copied",
   "slug": "seo-friendly-url-slug",
+  "excerpt": "concise factual standfirst",
   "metaTitle": "SEO title, 50-60 characters",
   "metaDescription": "SEO meta description, 150-160 characters",
   "keywords": ["primary keyword", "secondary keyword"],
@@ -452,23 +505,36 @@ Editorial rules:
         status: response.status,
         code: failure?.error?.code || "unknown"
       });
-      return null;
+      return {
+        editorial: null,
+        failureReason: `OpenAI request failed (${response.status}: ${failure?.error?.code || failure?.error?.type || "unknown"})`
+      };
     }
     const data = await response.json();
     const text = typeof data.output_text === "string"
       ? data.output_text
       : data.output?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content || []).map((item: { text?: string }) => item.text).filter(Boolean).join("\n");
 
-    const validated = validateEditorialPackage(parseEditorialJson(text || ""), entry, sourceName, category);
-    if (!validated) return null;
+    const parsed = parseEditorialJson(text || "");
+    if (!parsed) return { editorial: null, failureReason: "OpenAI response was not valid editorial JSON" };
+    if (parsed.qualityAssessment?.approved === false) {
+      return { editorial: null, failureReason: cleanText(parsed.qualityAssessment.reason || "OpenAI found insufficient source evidence") };
+    }
+    const validated = validateEditorialPackage(parsed, entry, sourceName, category);
+    if (!validated) {
+      const words = cleanText(parsed.content || "").split(/\s+/).filter(Boolean).length;
+      return { editorial: null, failureReason: `OpenAI package failed validation (${words} content words)` };
+    }
     return {
-      ...validated,
-      keywords: cleanTags([keywordResearch.primaryKeyword, ...keywordResearch.relatedKeywords, ...(validated.keywords || [])], category, entry.category),
-      tags: cleanTags([keywordResearch.primaryKeyword, ...validated.tags], category, entry.category)
+      editorial: {
+        ...validated,
+        keywords: cleanTags([keywordResearch.primaryKeyword, ...keywordResearch.relatedKeywords, ...(validated.keywords || [])], category, entry.category),
+        tags: cleanTags([keywordResearch.primaryKeyword, ...validated.tags], category, entry.category)
+      }
     };
   } catch (error) {
     console.error("OpenAI editorial generation failed", error instanceof Error ? error.message : "Unknown error");
-    return null;
+    return { editorial: null, failureReason: error instanceof Error ? error.message : "Unknown OpenAI generation error" };
   }
 }
 
@@ -540,7 +606,7 @@ export async function ingestFeedSource(sourceId: string) {
   const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
   const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
   const dailyPublishLimit = Number(process.env.FEED_DAILY_PUBLISH_LIMIT || 12);
-  let aiUsedToday = await Article.countDocuments({ generationMode: "ai", createdAt: { $gte: startOfDay } });
+  let aiUsedToday = await Article.countDocuments({ aiAttemptedAt: { $gte: startOfDay } });
   let aiUsedThisRun = 0;
   let publishedToday = await Article.countDocuments({
     status: "published",
@@ -611,8 +677,10 @@ export async function ingestFeedSource(sourceId: string) {
         };
 
     const editorial = await editorialPackage(entry, source.name, category, useAi, keywordResearch);
-    if (useAi) aiUsedThisRun += 1;
-    if (editorial.generationMode === "ai") aiUsedToday += 1;
+    if (editorial.aiAttempted) {
+      aiUsedThisRun += 1;
+      aiUsedToday += 1;
+    }
 
     let assessment = assessArticleQuality({
       title: editorial.title,
@@ -638,6 +706,9 @@ export async function ingestFeedSource(sourceId: string) {
 
     const approved = editorial.generationMode === "ai" && assessment.approved;
     const shouldPublish = source.autoPublish && approved && publishedToday < dailyPublishLimit;
+    const rejectionReasons = approved
+      ? []
+      : [...new Set([...(editorial.aiFailureReason ? [editorial.aiFailureReason] : []), ...assessment.reasons, ...(assessment.reasons.length ? [] : ["AI generation was not available"])])];
     const sourceFields = {
       sourceName: source.name,
       sourceUrl: normalizedUrl,
@@ -649,12 +720,14 @@ export async function ingestFeedSource(sourceId: string) {
       sourcePublishedAt: entry.publishedAt,
       importedAt: new Date(),
       aiGeneratedAt: editorial.generationMode === "ai" ? new Date() : undefined,
+      aiAttemptedAt: editorial.aiAttempted ? new Date() : undefined,
+      aiFailureReason: editorial.aiFailureReason,
       lastUpdatedAt: storyMatch ? new Date() : undefined,
       references: [{ name: source.name, url: normalizedUrl, publishedAt: entry.publishedAt }],
       sourceContentHash: incomingSourceHash,
       contentHash: contentHash(editorial.content),
       reviewStatus: approved ? "approved" : editorial.generationMode === "ai" ? "rejected" : "needs_review",
-      rejectionReasons: approved ? [] : assessment.reasons.length ? assessment.reasons : ["AI generation was not available"],
+      rejectionReasons,
       qualityScore: assessment.qualityScore,
       originalityScore: assessment.originalityScore,
       factualConfidence: assessment.factualConfidence,

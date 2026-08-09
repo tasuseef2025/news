@@ -38,6 +38,8 @@ export type Article = {
   sourcePublishedAt?: string;
   importedAt?: string;
   aiGeneratedAt?: string;
+  aiAttemptedAt?: string;
+  aiFailureReason?: string;
   lastUpdatedAt?: string;
   references?: Array<{ name: string; url: string; publishedAt?: string }>;
   reviewStatus?: "pending" | "approved" | "rejected" | "needs_review";

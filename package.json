@@ -18,7 +18,9 @@
                     "seo:quarantine-fallbacks":  "node node_modules/tsx/dist/cli.mjs server/scripts/quarantine-fallback-articles.ts",
                     "seo:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/seo-audit.ts",
                     "content:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/content-audit.ts",
-                    "seo:migrate": "node node_modules/tsx/dist/cli.mjs server/scripts/backfill-seo-fields.ts"
+                    "seo:migrate": "node node_modules/tsx/dist/cli.mjs server/scripts/backfill-seo-fields.ts",
+                    "feeds:diagnose": "node node_modules/tsx/dist/cli.mjs server/scripts/feed-diagnostic.ts",
+                    "openai:diagnose": "node node_modules/tsx/dist/cli.mjs server/scripts/openai-diagnostic.ts"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",

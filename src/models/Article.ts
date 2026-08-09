@@ -19,6 +19,8 @@ export type ArticleDocument = {
   sourcePublishedAt?: Date;
   importedAt?: Date;
   aiGeneratedAt?: Date;
+  aiAttemptedAt?: Date;
+  aiFailureReason?: string;
   lastUpdatedAt?: Date;
   references?: Array<{ name: string; url: string; publishedAt?: Date }>;
   sourceContentHash?: string;
@@ -82,6 +84,8 @@ const articleSchema = new Schema<ArticleDocument>(
     sourcePublishedAt: Date,
     importedAt: Date,
     aiGeneratedAt: Date,
+    aiAttemptedAt: { type: Date, index: true },
+    aiFailureReason: { type: String, trim: true },
     lastUpdatedAt: Date,
     references: [{ name: { type: String, required: true }, url: { type: String, required: true }, publishedAt: Date }],
     sourceContentHash: { type: String, index: true },

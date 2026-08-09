@@ -26,6 +26,7 @@ function serializeArticle(article: unknown): Article {
     sourcePublishedAt?: Date;
     importedAt?: Date;
     aiGeneratedAt?: Date;
+    aiAttemptedAt?: Date;
     lastUpdatedAt?: Date;
     references?: Array<{ name: string; url: string; publishedAt?: Date }>;
     parentStoryId?: { toString: () => string };
@@ -43,6 +44,7 @@ function serializeArticle(article: unknown): Article {
     sourcePublishedAt: raw.sourcePublishedAt ? new Date(raw.sourcePublishedAt).toISOString() : undefined,
     importedAt: raw.importedAt ? new Date(raw.importedAt).toISOString() : undefined,
     aiGeneratedAt: raw.aiGeneratedAt ? new Date(raw.aiGeneratedAt).toISOString() : undefined,
+    aiAttemptedAt: raw.aiAttemptedAt ? new Date(raw.aiAttemptedAt).toISOString() : undefined,
     lastUpdatedAt: raw.lastUpdatedAt ? new Date(raw.lastUpdatedAt).toISOString() : undefined,
     references: raw.references?.map((reference) => ({
       ...reference,
