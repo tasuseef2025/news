@@ -32,3 +32,5 @@ gitignore.git
 backups/
 .dev-*.log
 .prod-*.log
+.vercel
+.env*.local

@@ -29,7 +29,8 @@ export async function GET(request: Request) {
         published: result.created.filter((article) => article.status === "published").length,
         drafts: result.created.filter((article) => article.status === "draft").length,
         skipped: result.skipped.length,
-        aiSkipped: result.aiSkipped.length
+        aiSkipped: result.aiSkipped.length,
+        rejectionReasons: [...new Set(result.rejected.map((item) => item.reason))].slice(0, 3)
       });
     } catch (error) {
       results.push({

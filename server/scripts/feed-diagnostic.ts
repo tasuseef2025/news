@@ -35,12 +35,18 @@ async function run() {
     aiEnabled: process.env.FEED_AI_ENABLED !== "false",
     aiCategories: process.env.FEED_AI_CATEGORIES || "Pakistan,World,Politics,Business,Economy,Technology,Artificial Intelligence,Sports,Health",
     openAiModel: process.env.OPENAI_MODEL || null,
+    maxOutputTokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
     importLimit: Number(process.env.FEED_IMPORT_LIMIT || 3),
     dailyPublishLimit: Number(process.env.FEED_DAILY_PUBLISH_LIMIT || 12),
     dailyAiLimit: Number(process.env.FEED_AI_DAILY_LIMIT || 20),
     runAiLimit: Number(process.env.FEED_AI_RUN_LIMIT || 3),
+    aiRetryHours: Math.max(1, Number(process.env.FEED_AI_RETRY_HOURS || 24)),
     minimumWords: Number(process.env.FEED_MIN_PUBLISH_WORDS || 500),
-    minimumSourceCharacters: Number(process.env.FEED_MIN_SOURCE_CHARS || 180)
+    minimumSourceCharacters: Number(process.env.FEED_MIN_SOURCE_CHARS || 180),
+    minimumQualityScore: Number(process.env.FEED_MIN_QUALITY_SCORE || 70),
+    minimumOriginalityScore: Number(process.env.FEED_MIN_ORIGINALITY_SCORE || 65),
+    minimumFactualConfidence: Number(process.env.FEED_MIN_FACTUAL_CONFIDENCE || 70),
+    maximumDuplicateRisk: Number(process.env.FEED_MAX_DUPLICATE_RISK || 72)
   };
 
   console.log(JSON.stringify({

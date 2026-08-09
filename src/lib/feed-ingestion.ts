@@ -205,6 +205,7 @@ type ExistingStory = {
   imageAlt?: string;
   imageCredit?: string;
   imageCreditUrl?: string;
+  aiAttemptedAt?: Date;
   references?: Array<{ name: string; url: string; publishedAt?: Date }>;
 };
 
@@ -227,7 +228,7 @@ async function findExistingStory(entry: FeedEntry, category: string, rssFeedUrl:
   if (entry.itemId) exactChecks.push({ sourceItemId: entry.itemId, rssFeedUrl });
 
   const exact = await Article.findOne({ $or: exactChecks })
-    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl references")
+    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl aiAttemptedAt references")
     .lean<ExistingStory>();
 
   if (exact) {
@@ -245,7 +246,7 @@ async function findExistingStory(entry: FeedEntry, category: string, rssFeedUrl:
     category: new RegExp(`^${escapeRegExp(category)}$`, "i"),
     createdAt: { $gte: cutoff }
   })
-    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl references")
+    .select("_id title slug excerpt content status category sourceContentHash sourceUrl sourceName publishedAt image imageAlt imageCredit imageCreditUrl aiAttemptedAt references")
     .sort({ publishedAt: -1 })
     .limit(120)
     .lean<ExistingStory[]>();
@@ -319,12 +320,16 @@ function cleanTags(tags: unknown[], category: string, feedTag?: string) {
     .slice(0, 8);
 }
 
+function minimumPublishWords() {
+  return Math.max(300, Number(process.env.FEED_MIN_PUBLISH_WORDS || 500));
+}
+
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
   if (!input?.title || !input.content) return null;
   const proposedTitle = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
   const title = isCopiedSourceTitle(proposedTitle, entry.title) ? alternativeHeadline(entry, category) : proposedTitle;
   const content = cleanArticleContent(input.content);
-  if (!title || content.split(/\s+/).filter(Boolean).length < 300) return null;
+  if (!title || content.split(/\s+/).filter(Boolean).length < minimumPublishWords()) return null;
 
   const excerpt = cleanText(input.excerpt || humanSummary(entry)).slice(0, 240).replace(/[\s.,;:!?-]+$/, "");
   const metaTitle = cleanText(input.metaTitle || title).slice(0, 68).replace(/[\s.,;:!?-]+$/, "");
@@ -385,6 +390,8 @@ async function editorialPackage(entry: FeedEntry, sourceName: string, category: 
 async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { editorial: null, failureReason: "OPENAI_API_KEY is not configured" };
+  const minimumWords = minimumPublishWords();
+  const preferredMaximumWords = Math.max(minimumWords + 200, 700);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -475,7 +482,7 @@ Return only valid JSON with this exact shape:
     "factualConfidence": 0,
     "duplicateRisk": 0
   },
-  "content": "Use only as much length as the evidence supports. Include a strong lead, what happened, important facts, why it matters, supported context, and what happens next only when known. Use H2: heading lines where useful."
+  "content": "Write a complete article between ${minimumWords} and ${preferredMaximumWords} words when the supplied evidence supports that length. Include a strong lead, what happened, important facts, why it matters, supported context, and what happens next only when known. Use H2: heading lines where useful."
 }
 
 Editorial rules:
@@ -488,8 +495,8 @@ Editorial rules:
 - Never change the story angle or introduce unrelated facts merely to fit a high-volume keyword.
 - Do not paraphrase the RSS summary sentence by sentence or preserve its structure.
 - Explain why the story matters and add background only when that context is supported by the supplied source metadata.
-- If the evidence is insufficient for a useful article, return qualityAssessment.approved=false instead of adding filler.
-- Do not create unnecessary sections or force a target word count.
+- A publishable article must contain at least ${minimumWords} words. Use the available verified facts to add useful explanation and supported context, not repetition.
+- If the evidence cannot support at least ${minimumWords} factual words, return qualityAssessment.approved=false instead of adding filler or inventing details.
 - Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
 - Do not say the article was written by AI.
 - Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
@@ -620,7 +627,15 @@ export async function ingestFeedSource(sourceId: string) {
     const incomingSourceHash = contentHash(`${entry.title}\n${entry.description}`);
     const storyMatch = await findExistingStory(entry, category, source.url);
 
-    if (storyMatch?.kind === "exact" && !storyMatch.sourceChanged) {
+    const retryHours = Math.max(1, Number(process.env.FEED_AI_RETRY_HOURS || 24));
+    const retryCutoff = Date.now() - retryHours * 60 * 60 * 1000;
+    const canRetryExactDraft = storyMatch?.kind === "exact"
+      && storyMatch.article.status === "draft"
+      && source.autoPublish
+      && shouldUseAiForEntry(entry, category)
+      && (!storyMatch.article.aiAttemptedAt || storyMatch.article.aiAttemptedAt.getTime() <= retryCutoff);
+
+    if (storyMatch?.kind === "exact" && !storyMatch.sourceChanged && !canRetryExactDraft) {
       skipped.push(entry.link);
       continue;
     }
@@ -744,20 +759,48 @@ export async function ingestFeedSource(sourceId: string) {
     };
 
     if (storyMatch?.kind === "exact") {
-      if (!shouldPublish || storyMatch.article.status !== "published") {
-        rejected.push({ sourceUrl: normalizedUrl, reason: assessment.reason, parentStoryId: String(storyMatch.article._id) });
+      if (!shouldPublish) {
+        await Article.findByIdAndUpdate(storyMatch.article._id, {
+          $set: {
+            aiAttemptedAt: sourceFields.aiAttemptedAt,
+            aiFailureReason: sourceFields.aiFailureReason,
+            importedAt: sourceFields.importedAt,
+            keywordResearch: sourceFields.keywordResearch,
+            primaryKeyword: sourceFields.primaryKeyword,
+            reviewStatus: sourceFields.reviewStatus,
+            rejectionReasons: sourceFields.rejectionReasons,
+            qualityScore: sourceFields.qualityScore,
+            originalityScore: sourceFields.originalityScore,
+            factualConfidence: sourceFields.factualConfidence,
+            duplicateRisk: sourceFields.duplicateRisk
+          }
+        });
+        rejected.push({
+          sourceUrl: normalizedUrl,
+          reason: rejectionReasons.join("; ") || assessment.reason,
+          parentStoryId: String(storyMatch.article._id)
+        });
         continue;
       }
 
-      await ArticleRevision.create({
-        articleId: storyMatch.article._id,
-        title: storyMatch.article.title,
-        excerpt: storyMatch.article.excerpt,
-        content: storyMatch.article.content,
-        sourceUrl: storyMatch.article.sourceUrl,
-        sourceName: storyMatch.article.sourceName,
-        reason: "Source item changed; canonical developing story updated"
-      });
+      const wasPublished = storyMatch.article.status === "published";
+      if (wasPublished) {
+        await ArticleRevision.create({
+          articleId: storyMatch.article._id,
+          title: storyMatch.article.title,
+          excerpt: storyMatch.article.excerpt,
+          content: storyMatch.article.content,
+          sourceUrl: storyMatch.article.sourceUrl,
+          sourceName: storyMatch.article.sourceName,
+          reason: "Source item changed; canonical developing story updated"
+        });
+      }
+
+      const existingImage = storyMatch.article.image || "";
+      const needsEditorialImage = !existingImage || existingImage.startsWith("/api/og");
+      const imageResult = needsEditorialImage
+        ? await feedImage(entry, editorial.title, category)
+        : { image: existingImage, stockImage: null };
 
       const updatedPayload = normalizeArticlePayload({
         title: editorial.title,
@@ -771,17 +814,17 @@ export async function ingestFeedSource(sourceId: string) {
           ...(storyMatch.article.references || []).filter((reference) => reference.url !== normalizedUrl),
           sourceFields.references[0]
         ],
-        image: storyMatch.article.image || generatedOgPath(editorial.title, category),
-        imageAlt: storyMatch.article.imageAlt || editorial.imageAlt || editorial.title,
-        imageCredit: storyMatch.article.imageCredit,
-        imageCreditUrl: storyMatch.article.imageCreditUrl,
+        image: imageResult.image,
+        imageAlt: editorial.imageAlt || storyMatch.article.imageAlt || editorial.title,
+        imageCredit: imageResult.stockImage?.credit || storyMatch.article.imageCredit,
+        imageCreditUrl: imageResult.stockImage?.pageUrl || storyMatch.article.imageCreditUrl,
         ogImage: generatedOgPath(editorial.title, category),
         metaTitle: editorial.metaTitle,
         metaDescription: editorial.metaDescription,
         status: "published",
         tags: editorial.tags,
-        isDevelopingStory: true,
-        publishedAt: storyMatch.article.publishedAt
+        isDevelopingStory: wasPublished,
+        publishedAt: storyMatch.article.publishedAt || entry.publishedAt || new Date()
       });
 
       const article = await Article.findByIdAndUpdate(
@@ -791,6 +834,7 @@ export async function ingestFeedSource(sourceId: string) {
       );
       if (article) {
         await publishArticleToX(article);
+        if (!wasPublished) publishedToday += 1;
         updated.push(article);
       }
       continue;
@@ -830,7 +874,7 @@ export async function ingestFeedSource(sourceId: string) {
       await publishArticleToX(article);
       publishedToday += 1;
     } else {
-      rejected.push({ sourceUrl: normalizedUrl, reason: assessment.reason || "Held for editorial review" });
+      rejected.push({ sourceUrl: normalizedUrl, reason: rejectionReasons.join("; ") || assessment.reason || "Held for editorial review" });
     }
     created.push(article);
   }
