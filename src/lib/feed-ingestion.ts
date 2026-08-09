@@ -20,6 +20,30 @@ export type FeedEntry = {
   itemId?: string;
 };
 
+export type FeedAiBudget = {
+  remainingThisRun: number;
+  remainingToday: number;
+  attempted: number;
+  dailyLimit: number;
+  pacedAllowance: number;
+};
+
+export type PreparedFeedSource = {
+  sourceId: string;
+  name: string;
+  url: string;
+  defaultCategory: string;
+  autoPublish: boolean;
+  entries: FeedEntry[];
+};
+
+export type FeedIngestionOptions = {
+  aiBudget?: FeedAiBudget;
+  deferWithoutAi?: boolean;
+  keywordResearchByUrl?: Map<string, KeywordResearch>;
+  priorityByUrl?: Map<string, number>;
+};
+
 type GenerationMode = "ai" | "feed";
 
 type EditorialPackage = {
@@ -372,6 +396,50 @@ function shouldUseAiForEntry(entry: FeedEntry, category: string) {
   return !allowedCategories.length || allowedCategories.includes(category.toLowerCase());
 }
 
+export function isFeedEntryAiEligible(entry: FeedEntry, fallbackCategory: string) {
+  return shouldUseAiForEntry(entry, autoCategory(entry, fallbackCategory));
+}
+
+export function scoreFeedCandidate(entry: FeedEntry, fallbackCategory: string, keywordResearch: KeywordResearch) {
+  const category = autoCategory(entry, fallbackCategory).toLowerCase();
+  const categoryWeight = new Map([
+    ["breaking news", 24], ["pakistan", 22], ["world", 22], ["politics", 20],
+    ["business", 20], ["economy", 20], ["technology", 18], ["artificial intelligence", 18],
+    ["health", 16], ["sports", 14], ["entertainment", 12]
+  ]).get(category) || 8;
+  const evidenceScore = Math.min(30, feedSummaryLength(entry) / 20);
+  const ageHours = entry.publishedAt ? Math.max(0, (Date.now() - entry.publishedAt.getTime()) / 3_600_000) : 24;
+  const freshnessScore = Math.max(0, 24 - ageHours);
+  const trendScore = keywordResearch.source === "google-trends"
+    ? 55 + Math.min(35, Math.log10(Math.max(10, keywordResearch.approximateTraffic || 10)) * 8)
+    : 0;
+  return Math.round((trendScore + evidenceScore + freshnessScore + categoryWeight) * 100) / 100;
+}
+
+export async function createPacedFeedAiBudget(): Promise<FeedAiBudget> {
+  const dailyLimit = Math.max(0, Number(process.env.FEED_AI_DAILY_LIMIT || 20));
+  const perCronLimit = Math.max(0, Number(process.env.FEED_AI_PER_CRON_LIMIT || 1));
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const usedToday = await Article.countDocuments({ aiAttemptedAt: { $gte: startOfDay } });
+  const elapsedFraction = Math.min(1, Math.max(0, (now.getTime() - startOfDay.getTime()) / 86_400_000));
+  const pacingEnabled = process.env.FEED_AI_PACE_DAILY_LIMIT !== "false";
+  const pacedAllowance = pacingEnabled
+    ? Math.min(dailyLimit, Math.max(1, Math.floor(elapsedFraction * dailyLimit) + 1))
+    : dailyLimit;
+  const remainingToday = Math.max(0, dailyLimit - usedToday);
+  const availableByPace = Math.max(0, pacedAllowance - usedToday);
+
+  return {
+    remainingThisRun: Math.min(perCronLimit, remainingToday, availableByPace),
+    remainingToday,
+    attempted: 0,
+    dailyLimit,
+    pacedAllowance
+  };
+}
+
 async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean, keywordResearch: KeywordResearch): Promise<EditorialResult> {
   if (useAi) {
     const generated = await aiEditorialPackage(entry, sourceName, category, keywordResearch);
@@ -594,8 +662,14 @@ async function feedImage(entry: FeedEntry, title: string, category: string): Pro
   return { image: generated, stockImage: null };
 }
 
-export async function ingestFeedSource(sourceId: string) {
-  const source = await FeedSource.findById(sourceId);
+export async function prepareFeedSource(sourceId: string): Promise<PreparedFeedSource> {
+  const source = await FeedSource.findById(sourceId).select("_id name url defaultCategory autoPublish").lean<{
+    _id: { toString: () => string };
+    name: string;
+    url: string;
+    defaultCategory: string;
+    autoPublish: boolean;
+  }>();
   if (!source) throw new Error("Feed source not found");
 
   const response = await fetch(source.url, { headers: { "User-Agent": "NovexaNewsBot/1.0" }, signal: AbortSignal.timeout(12000) });
@@ -603,13 +677,30 @@ export async function ingestFeedSource(sourceId: string) {
 
   const xml = await response.text();
   const entries = parseFeed(xml).slice(0, Number(process.env.FEED_IMPORT_LIMIT || 3));
+  return {
+    sourceId: source._id.toString(),
+    name: source.name,
+    url: source.url,
+    defaultCategory: source.defaultCategory,
+    autoPublish: source.autoPublish,
+    entries
+  };
+}
+
+export async function ingestPreparedFeedSource(source: PreparedFeedSource, options: FeedIngestionOptions = {}) {
+  const entries = [...source.entries].sort((left, right) => {
+    const leftPriority = options.priorityByUrl?.get(normalizeSourceUrl(left.link)) || 0;
+    const rightPriority = options.priorityByUrl?.get(normalizeSourceUrl(right.link)) || 0;
+    return rightPriority - leftPriority || (right.publishedAt?.getTime() || 0) - (left.publishedAt?.getTime() || 0);
+  });
   const created = [];
   const updated = [];
   const skipped = [];
   const rejected: Array<{ sourceUrl: string; reason: string; parentStoryId?: string }> = [];
   const aiSkipped = [];
+  const deferred: Array<{ sourceUrl: string; reason: string }> = [];
   const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  startOfDay.setUTCHours(0, 0, 0, 0);
   const dailyAiLimit = Number(process.env.FEED_AI_DAILY_LIMIT || 20);
   const runAiLimit = Number(process.env.FEED_AI_RUN_LIMIT || 3);
   const dailyPublishLimit = Number(process.env.FEED_DAILY_PUBLISH_LIMIT || 12);
@@ -679,11 +770,24 @@ export async function ingestFeedSource(sourceId: string) {
       continue;
     }
 
-    const useAi = shouldUseAiForEntry(entry, category) && aiUsedThisRun < runAiLimit && aiUsedToday < dailyAiLimit;
-    if (!useAi) aiSkipped.push(entry.link);
+    const aiEligible = shouldUseAiForEntry(entry, category) && (!options.deferWithoutAi || source.autoPublish);
+    const hasAiCapacity = options.aiBudget
+      ? options.aiBudget.remainingThisRun > 0 && options.aiBudget.remainingToday > 0
+      : aiUsedThisRun < runAiLimit && aiUsedToday < dailyAiLimit;
+    const useAi = aiEligible && hasAiCapacity;
+    if (!useAi) {
+      aiSkipped.push(entry.link);
+      if (options.deferWithoutAi) {
+        deferred.push({
+          sourceUrl: normalizedUrl,
+          reason: aiEligible ? "Deferred for a later paced AI slot" : "Source evidence or category is not eligible for AI publishing"
+        });
+        continue;
+      }
+    }
 
     const keywordResearch = useAi
-      ? await researchKeywords(entry)
+      ? options.keywordResearchByUrl?.get(normalizedUrl) || await researchKeywords(entry)
       : {
           primaryKeyword: cleanText(entry.title).toLowerCase(),
           relatedKeywords: [cleanText(entry.title).toLowerCase()],
@@ -695,6 +799,11 @@ export async function ingestFeedSource(sourceId: string) {
     if (editorial.aiAttempted) {
       aiUsedThisRun += 1;
       aiUsedToday += 1;
+      if (options.aiBudget) {
+        options.aiBudget.remainingThisRun = Math.max(0, options.aiBudget.remainingThisRun - 1);
+        options.aiBudget.remainingToday = Math.max(0, options.aiBudget.remainingToday - 1);
+        options.aiBudget.attempted += 1;
+      }
     }
 
     let assessment = assessArticleQuality({
@@ -879,10 +988,14 @@ export async function ingestFeedSource(sourceId: string) {
     created.push(article);
   }
 
-  source.lastFetchedAt = new Date();
-  await source.save();
+  await FeedSource.findByIdAndUpdate(source.sourceId, { $set: { lastFetchedAt: new Date() } });
 
-  return { created, updated, skipped, rejected, aiSkipped, total: entries.length };
+  return { created, updated, skipped, rejected, aiSkipped, deferred, total: entries.length };
+}
+
+export async function ingestFeedSource(sourceId: string, options: FeedIngestionOptions = {}) {
+  const prepared = await prepareFeedSource(sourceId);
+  return ingestPreparedFeedSource(prepared, options);
 }
 export function sourceSlug(name: string) {
   return categorySlug(name);

@@ -55,7 +55,9 @@ Requires `publish_articles` permission.
 - Extracts title, link, description, published date, category, and image.
 - Falls back to page `og:image` / `twitter:image` when the feed has no usable image.
 - Uses OpenAI rewriting when `OPENAI_API_KEY` is configured.
-- Uses a local non-repetitive article generator when OpenAI is not configured.
+- Ranks eligible stories using Google Trends relevance, freshness, source evidence, and editorial category.
+- Shares one paced AI budget across the complete cron run instead of giving every source its own allowance.
+- Defers automatic candidates when no AI slot is available instead of creating short fallback drafts.
 - Auto-detects the closest site category.
 - Generates slug, meta title, meta description, canonical URL, reading time, OG image, and structured data.
 - Saves the article as `published` when `autoPublish` is true, otherwise as `draft`.
@@ -69,9 +71,12 @@ Feed imports can optionally use OpenAI to produce a more natural, copyright-safe
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 FEED_AI_MAX_OUTPUT_TOKENS=1200
+FEED_AI_DAILY_LIMIT=20
+FEED_AI_PER_CRON_LIMIT=1
+FEED_AI_PACE_DAILY_LIMIT=true
 ```
 
-If `OPENAI_API_KEY` is missing, the importer uses a local non-repetitive fallback article generator.
+The automated cron only publishes an article after AI generation and deterministic quality validation both pass. Direct manual ingestion can still save fallback material for editorial review.
 
 ## Copyright And Editorial Safety
 

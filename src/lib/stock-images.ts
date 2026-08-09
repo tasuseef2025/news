@@ -77,8 +77,9 @@ const topicQueries: Array<{ terms: RegExp; query: string }> = [
   { terms: /\b(cricket|test match|t20|odi|wicket|batsman|bowler)\b/i, query: "cricket match stadium" },
   { terms: /\b(football|soccer|premier league|champions league|fifa)\b/i, query: "football match stadium" },
   { terms: /\b(stock|shares|market|inflation|economy|interest rate)\b/i, query: "stock market finance" },
+  { terms: /\b(hormuz|strait|shipping|ship|tanker|maritime|vessel|port)\b/i, query: "cargo ship maritime shipping sea" },
   { terms: /\b(ai|artificial intelligence|software|cyber|technology|smartphone)\b/i, query: "modern technology computing" },
-  { terms: /\b(weather|rain|storm|flood|heatwave|snow)\b/i, query: "weather forecast climate" },
+  { terms: /\b(weather|rain|storm|flood|heatwave|snow|typhoon|hurricane|cyclone)\b/i, query: "severe storm clouds ocean weather" },
   { terms: /\b(health|medical|doctor|hospital|medicine)\b/i, query: "healthcare medical" },
   { terms: /\b(school|university|student|education|scholarship)\b/i, query: "students education classroom" },
   { terms: /\b(travel|tourism|flight|airport|hotel)\b/i, query: "travel airport tourism" }

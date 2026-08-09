@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assessArticleQuality, normalizeSourceUrl, textSimilarity } from "../src/lib/article-quality";
+import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
 
 test("normalizes source URLs and removes tracking parameters", () => {
   assert.equal(
@@ -34,4 +35,29 @@ test("rejects repeated newsroom automation filler", () => {
   });
   assert.equal(result.approved, false);
   assert.ok(result.reasons.some((reason) => reason.includes("automation filler")));
+});
+
+test("prioritizes relevant trending feed candidates", () => {
+  const entry: FeedEntry = {
+    title: "Central bank announces an interest-rate decision",
+    description: "The central bank published its latest policy decision with supporting inflation and market figures for businesses and households.",
+    link: "https://example.com/rates",
+    publishedAt: new Date()
+  };
+  const fallback = scoreFeedCandidate(entry, "Business", {
+    primaryKeyword: "central bank interest rates",
+    relatedKeywords: [],
+    source: "editorial",
+    researchedAt: new Date()
+  });
+  const trending = scoreFeedCandidate(entry, "Business", {
+    primaryKeyword: "central bank interest rates",
+    relatedKeywords: [],
+    source: "google-trends",
+    geo: "US",
+    approximateTraffic: 100_000,
+    researchedAt: new Date()
+  });
+
+  assert.ok(trending > fallback + 50);
 });

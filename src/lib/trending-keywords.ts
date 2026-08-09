@@ -63,8 +63,12 @@ function tokenize(value = "") {
 }
 
 function approximateTraffic(value = "") {
-  const parsed = Number(value.replace(/[^0-9]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
+  const normalized = value.trim().toUpperCase().replace(/,/g, "");
+  const parsed = Number(normalized.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(parsed)) return 0;
+  if (normalized.includes("M")) return Math.round(parsed * 1_000_000);
+  if (normalized.includes("K")) return Math.round(parsed * 1_000);
+  return Math.round(parsed);
 }
 
 async function fetchGeoTrends(geo: string): Promise<TrendItem[]> {
