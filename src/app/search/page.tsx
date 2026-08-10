@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { publishDueScheduledArticles, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export const metadata: Metadata = {
   title: "Search News",
@@ -25,7 +26,7 @@ export default async function SearchPage({ searchParams }: Props) {
   if (query) {
     await connectDB();
     await publishDueScheduledArticles();
-    const filter = { status: "published", reviewStatus: { $ne: "rejected" }, $text: { $search: query } };
+    const filter = { ...publicArticleFilter(), $text: { $search: query } };
     const [docs, count] = await Promise.all([
       Article.find(filter).sort({ score: { $meta: "textScore" }, publishedAt: -1 }).limit(24).lean(),
       Article.countDocuments(filter)

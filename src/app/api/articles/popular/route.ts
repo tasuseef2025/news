@@ -2,10 +2,11 @@
 import { connectDB } from "@/lib/db";
 import { pagination, serializeDocument } from "@/lib/api-utils";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function GET(request: Request) {
   await connectDB();
   const { limit, skip } = pagination(request);
-  const articles = await Article.find({ status: "published", reviewStatus: { $ne: "rejected" } }).sort({ views: -1, publishedAt: -1 }).skip(skip).limit(limit).lean();
+  const articles = await Article.find(publicArticleFilter()).sort({ views: -1, publishedAt: -1 }).skip(skip).limit(limit).lean();
   return NextResponse.json({ articles: articles.map(serializeDocument) }, { headers: { "Cache-Control": "s-maxage=120, stale-while-revalidate=600" } });
 }

@@ -13,6 +13,7 @@ import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
 import { CommentsSection } from "@/features/comments/comments-section";
 import { ArticleShare } from "@/features/articles/article-share";
 import { ArticleViewCounter } from "@/features/articles/article-view-counter";
+import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -29,16 +30,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const canonical = absoluteUrl(`/news/${article.slug}`);
   const image = displayImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
+  const indexable = isArticleIndexable(article);
 
   return {
     title: article.metaTitle || article.title,
     description: article.metaDescription || article.excerpt,
     alternates: { canonical },
     robots: {
-      index: true,
+      index: indexable,
       follow: true,
       googleBot: {
-        index: true,
+        index: indexable,
         follow: true,
         "max-image-preview": "large",
         "max-snippet": -1,
@@ -82,15 +84,15 @@ export default async function NewsArticlePage({ params }: Props) {
 
   await connectDB();
   const [related, recommended, latest] = await Promise.all([
-    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
+    Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean(),
-    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug } })
+    Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
       .sort({ trending: -1, views: -1, publishedAt: -1 })
       .limit(3)
       .lean(),
-    Article.find({ status: "published", reviewStatus: { $ne: "rejected" }, slug: { $ne: article.slug } })
+    Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean()

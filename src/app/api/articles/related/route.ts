@@ -2,6 +2,7 @@
 import { connectDB } from "@/lib/db";
 import { serializeDocument } from "@/lib/api-utils";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function GET(request: Request) {
   await connectDB();
@@ -11,8 +12,7 @@ export async function GET(request: Request) {
   const article = slug ? await Article.findOne({ slug, status: "published", reviewStatus: { $ne: "rejected" } }).lean<{ category: string; tags?: string[] }>() : null;
   if (!article) return NextResponse.json({ articles: [] });
   const query = {
-    status: "published",
-    reviewStatus: { $ne: "rejected" },
+    ...publicArticleFilter(),
     slug: { $ne: slug },
     $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }]
   };

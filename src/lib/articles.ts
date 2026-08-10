@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { Article as ArticleModel } from "@/models/Article";
 import type { Article } from "@/types";
 import { safeArticleImage, safeArticleOgImage } from "@/lib/article-images";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function publishDueScheduledArticles() {
   await ArticleModel.updateMany(
@@ -66,7 +67,7 @@ export async function getArticles(filters?: {
   try {
     await connectDB();
     await publishDueScheduledArticles();
-    const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
+    const query: Record<string, unknown> = publicArticleFilter();
     if (filters?.category) query.category = new RegExp(`^${filters.category}$`, "i");
     if (typeof filters?.featured === "boolean") query.featured = filters.featured;
     if (typeof filters?.trending === "boolean") query.trending = filters.trending;

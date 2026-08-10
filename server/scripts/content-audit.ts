@@ -1,5 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
+import { isArticleIndexable } from "../../src/lib/public-articles";
 
 function normalize(value: unknown) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -23,7 +24,8 @@ async function run() {
   const docs = await mongoose.connection.db.collection("articles").find({ status: "published" }).project({
     title: 1, slug: 1, content: 1, excerpt: 1, category: 1, tags: 1, sourceUrl: 1,
     originalSourceUrl: 1, contentHash: 1, sourceContentHash: 1, qualityScore: 1,
-    originalityScore: 1, factualConfidence: 1, duplicateRisk: 1
+    originalityScore: 1, factualConfidence: 1, duplicateRisk: 1, reviewStatus: 1,
+    generationMode: 1
   }).sort({ publishedAt: -1 }).toArray();
 
   const similarTitles: Array<{ first: string; second: string; score: number }> = [];
@@ -44,6 +46,19 @@ async function run() {
     generatedAt: new Date().toISOString(),
     mode: "read-only",
     totalPublished: docs.length,
+    publicIndexCandidates: finding(docs.filter(isArticleIndexable).map((doc) => doc.slug)),
+    reviewStatus: Object.fromEntries(
+      [...new Set(docs.map((doc) => String(doc.reviewStatus || "missing")))].map((status) => [
+        status,
+        docs.filter((doc) => String(doc.reviewStatus || "missing") === status).length
+      ])
+    ),
+    generationMode: Object.fromEntries(
+      [...new Set(docs.map((doc) => String(doc.generationMode || "missing")))].map((mode) => [
+        mode,
+        docs.filter((doc) => String(doc.generationMode || "missing") === mode).length
+      ])
+    ),
     thinContent: finding(docs.filter((doc) => normalize(doc.content).split(" ").length < 500).map((doc) => doc.slug)),
     missingSource: finding(docs.filter((doc) => !doc.originalSourceUrl && !doc.sourceUrl).map((doc) => doc.slug)),
     exactContentDuplicates: finding([...hashGroups].filter(([, slugs]) => slugs.length > 1).map(([hash, slugs]) => ({ hash, slugs }))),

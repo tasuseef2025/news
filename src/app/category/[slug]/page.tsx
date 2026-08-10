@@ -8,6 +8,7 @@ import { categories, categorySlug } from "@/lib/categories";
 import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -34,8 +35,7 @@ async function categoryCount(category: string) {
   try {
     await connectDB();
     return await Article.countDocuments({
-      status: "published",
-      reviewStatus: { $ne: "rejected" },
+      ...publicArticleFilter(),
       category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
     });
   } catch {
@@ -78,8 +78,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const page = pageNumber(query.page);
   await connectDB();
   const filter = {
-    status: "published",
-    reviewStatus: { $ne: "rejected" },
+    ...publicArticleFilter(),
     category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
   };
   const [docs, total] = await Promise.all([

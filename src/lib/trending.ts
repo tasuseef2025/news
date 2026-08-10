@@ -1,9 +1,10 @@
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function updateTrendingPosts(limit = 10) {
   const recentWindow = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const top = await Article.aggregate([
-    { $match: { status: "published", reviewStatus: { $ne: "rejected" } } },
+    { $match: publicArticleFilter() },
     {
       $addFields: {
         ageHours: {

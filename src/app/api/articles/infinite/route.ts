@@ -2,12 +2,13 @@
 import { connectDB } from "@/lib/db";
 import { pagination, serializeDocument } from "@/lib/api-utils";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function GET(request: Request) {
   await connectDB();
   const { limit, searchParams } = pagination(request);
   const cursor = searchParams.get("cursor");
-  const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
+  const query: Record<string, unknown> = publicArticleFilter();
   if (cursor) query.publishedAt = { $lt: new Date(cursor) };
   const articles = await Article.find(query).sort({ publishedAt: -1 }).limit(limit).lean();
   const nextCursor = articles.at(-1)?.publishedAt ?? null;

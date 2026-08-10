@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { pagination, serializeDocument } from "@/lib/api-utils";
 import { publishDueScheduledArticles } from "@/lib/articles";
 import { Article } from "@/models/Article";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 export async function GET(request: Request) {
   await connectDB();
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
   const { limit, skip, searchParams } = pagination(request);
   const q = searchParams.get("q")?.trim();
   const category = searchParams.get("category");
-  const query: Record<string, unknown> = { status: "published", reviewStatus: { $ne: "rejected" } };
+  const query: Record<string, unknown> = publicArticleFilter();
   if (q) query.$text = { $search: q };
   if (category) query.category = new RegExp(`^${category}$`, "i");
   const [articles, total] = await Promise.all([
