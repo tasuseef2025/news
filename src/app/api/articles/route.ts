@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getArticles } from "@/lib/articles";
@@ -63,6 +64,11 @@ export async function POST(request: Request) {
   await connectDB();
   const article = await Article.create(data);
   const social = await publishArticleToX(article);
+
+  revalidatePath("/", "layout");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
+  revalidatePath("/rss.xml");
 
   return NextResponse.json({ article, social }, { status: 201 });
 }

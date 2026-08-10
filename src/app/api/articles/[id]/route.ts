@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
@@ -96,6 +97,11 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const social = await publishArticleToX(article);
+  revalidatePath("/", "layout");
+  revalidatePath(`/news/${article.slug}`);
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
+  revalidatePath("/rss.xml");
   return NextResponse.json({ article, social });
 }
 
@@ -112,6 +118,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (!article) {
     return NextResponse.json({ message: "Article not found" }, { status: 404 });
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath(`/news/${article.slug}`);
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
+  revalidatePath("/rss.xml");
 
   return NextResponse.json({ message: "Article deleted" });
 }
