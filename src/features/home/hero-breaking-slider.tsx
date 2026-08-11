@@ -2,10 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ArticleImage } from "@/components/media/article-image";
 import type { Article } from "@/types";
 
 export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
@@ -46,7 +46,7 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
           transition={{ duration: 0.45 }}
           className="absolute inset-0"
         >
-          <Image src={article.image} alt={article.title} fill priority className="object-cover opacity-70" />
+          <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} fill priority className="object-cover opacity-70" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/10" />
         </motion.div>
       </AnimatePresence>

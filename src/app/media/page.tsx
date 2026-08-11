@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Images, PlayCircle } from "lucide-react";
 import { getArticles } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
+import { ArticleImage } from "@/components/media/article-image";
 
 export const metadata: Metadata = {
   title: "Media",
@@ -29,7 +29,7 @@ export default async function MediaPage() {
             <article key={article._id || article.slug}>
               <Link href={`/news/${article.slug}`} className="group block">
                 <div className="relative aspect-video overflow-hidden rounded-md bg-muted">
-                  <Image src={article.image} alt={article.imageAlt || article.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                  <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   <span className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground">
                     {article.videoUrl ? <PlayCircle className="h-5 w-5" /> : <Images className="h-5 w-5" />}
                   </span>

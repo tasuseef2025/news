@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { ArticleImage } from "@/components/media/article-image";
 import type { Article } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -8,9 +8,11 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
   return (
     <article className={cn("group grid gap-3", large && "md:grid-cols-[1.2fr_0.8fr] md:items-center")}>
       <Link href={`/news/${article.slug}`} className="relative block overflow-hidden rounded-lg bg-muted">
-        <Image
+        <ArticleImage
           src={article.image}
           alt={article.imageAlt || article.title}
+          title={article.title}
+          category={article.category}
           width={900}
           height={560}
           priority={priority}

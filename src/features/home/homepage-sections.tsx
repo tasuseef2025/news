@@ -6,6 +6,7 @@ import type { Advertisement, Article } from "@/types";
 import type { CategoryCard } from "@/lib/homepage";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
+import { ArticleImage } from "@/components/media/article-image";
 
 export function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
@@ -76,7 +77,7 @@ export function CompactArticleList({ title, articles }: { title: string; article
         <div className="grid gap-4">
           {articles.map((article) => (
             <Link key={article.slug} href={`/news/${article.slug}`} className="grid grid-cols-[86px_1fr] gap-3">
-              <Image src={article.image} alt={article.title} width={180} height={120} className="aspect-[4/3] rounded-md object-cover" />
+              <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} width={180} height={120} className="aspect-[4/3] rounded-md object-cover" />
               <span className="text-sm font-bold leading-5 hover:text-primary">{article.title}</span>
             </Link>
           ))}
@@ -97,7 +98,7 @@ export function VideoSection({ articles }: { articles: Article[] }) {
           {articles.map((article) => (
             <Link key={article.slug} href={`/news/${article.slug}`} className="group grid gap-3">
               <div className="relative overflow-hidden rounded-lg bg-muted">
-                <Image src={article.image} alt={article.title} width={700} height={440} className="aspect-video object-cover transition duration-500 group-hover:scale-105" />
+                <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} width={700} height={440} className="aspect-video object-cover transition duration-500 group-hover:scale-105" />
                 <span className="absolute inset-0 grid place-items-center bg-black/25">
                   <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground">
                     <Play className="h-5 w-5 fill-current" />
@@ -127,7 +128,7 @@ export function CategoryCards({ cards }: { cards: CategoryCard[] }) {
             className="group relative min-h-36 overflow-hidden rounded-lg border bg-card p-4"
           >
             {card.image ? (
-              <Image src={card.image} alt={card.name} fill className="object-cover opacity-30 transition group-hover:scale-105 group-hover:opacity-45" />
+              <ArticleImage src={card.image} alt={`${card.name} news`} title={`${card.name} News`} category={card.name} fill className="object-cover opacity-30 transition group-hover:scale-105 group-hover:opacity-45" />
             ) : null}
             <div className="relative z-10 flex h-full flex-col justify-end">
               <h3 className="text-xl font-black group-hover:text-primary">{card.name}</h3>

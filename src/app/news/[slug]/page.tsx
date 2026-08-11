@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
@@ -14,6 +13,7 @@ import { CommentsSection } from "@/features/comments/comments-section";
 import { ArticleShare } from "@/features/articles/article-share";
 import { ArticleViewCounter } from "@/features/articles/article-view-counter";
 import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
+import { ArticleImage } from "@/components/media/article-image";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -145,9 +145,11 @@ export default async function NewsArticlePage({ params }: Props) {
           </div>
           <ArticleShare title={article.title} url={articleUrl} shareImageUrl={shareImageUrl} />
         </div>
-        <Image
+        <ArticleImage
           src={article.image}
           alt={article.imageAlt || article.title}
+          title={article.title}
+          category={article.category}
           width={1400}
           height={820}
           priority
@@ -184,7 +186,7 @@ export default async function NewsArticlePage({ params }: Props) {
         {article.gallery?.length ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {article.gallery.map((image) => (
-              <Image key={image} src={image} alt={article.imageAlt || article.title} width={900} height={560} className="aspect-[16/10] rounded-lg object-cover" />
+              <ArticleImage key={image} src={image} alt={article.imageAlt || article.title} title={article.title} category={article.category} width={900} height={560} className="aspect-[16/10] rounded-lg object-cover" />
             ))}
           </div>
         ) : null}
@@ -233,7 +235,7 @@ function ArticleRail({ title, articles }: { title: string; articles: ReturnType<
       <div className="grid gap-4 md:grid-cols-3">
         {articles.map((item) => (
           <a key={item.slug} href={`/news/${item.slug}`} className="group grid gap-2">
-            <Image src={item.image} alt={item.imageAlt || item.title} width={520} height={320} loading="lazy" className="aspect-[16/10] rounded-lg object-cover" />
+            <ArticleImage src={item.image} alt={item.imageAlt || item.title} title={item.title} category={item.category} width={520} height={320} loading="lazy" className="aspect-[16/10] rounded-lg object-cover" />
             <span className="font-black leading-tight group-hover:text-primary">{item.title}</span>
           </a>
         ))}
