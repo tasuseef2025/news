@@ -18,6 +18,9 @@ export default function AboutPage() {
       <p>Abdul Basit is the Founder and Editor of <strong>Novexa News</strong>, a modern digital news platform dedicated to delivering timely and reliable news from around the world. As a Full Stack MERN Developer and DevOps Engineer, he designed and developed the platform using modern web technologies and AI-powered automation to publish news efficiently while maintaining high standards of quality.</p>
       <p>With a strong background in React.js, Node.js, Express.js, MongoDB, cloud infrastructure, and SEO, Abdul focuses on creating fast, scalable, and user-friendly digital experiences. His vision for Novexa News is to make trustworthy information easily accessible, covering topics such as technology, business, finance, cryptocurrency, world news, sports, entertainment, health, and lifestyle.</p>
       <p>When he is not developing new features or optimizing the platform, Abdul enjoys exploring emerging technologies, artificial intelligence, and innovative ways to improve online publishing.</p>
+      <h2>Editorial Team</h2>
+      <p><strong>Syeda Manal Tirmizi</strong> is an editor, educator and researcher at Novexa News. She holds an M.Phil. in Political Science and lectures in BS Political Science and International Relations.</p>
+      <p>As a Research Associate, she studies political dynamics and international relations. Her work reflects a commitment to academic excellence, responsible analysis and helping shape the next generation of informed leaders.</p>
     </StaticPage>
   );
 }

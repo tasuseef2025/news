@@ -1,5 +1,6 @@
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
+import { authorProfilePath } from "@/lib/authors";
 
 type ArticleLike = {
   title?: string;
@@ -88,7 +89,7 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     : {
         "@type": "Person",
         name: authorName,
-        ...(authorName.toLowerCase().includes("abdul basit") ? { url: absoluteUrl("/author/abdul-basit") } : {})
+        url: absoluteUrl(authorProfilePath(authorName))
       };
   const citations = [
     ...(article.references || []).map((reference) => reference.url),

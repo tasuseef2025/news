@@ -20,6 +20,7 @@ Privacy policy: ${absoluteUrl("/privacy-policy")}
 About: ${absoluteUrl("/about")}
 Contact: ${absoluteUrl("/contact")}
 Author: ${absoluteUrl("/author/abdul-basit")}
+Editor and author: ${absoluteUrl("/author/syeda-manal-tirmizi")}
 
 Attribution and copyright policy:
 Novexa News articles generated from monitored public feeds are written in original wording and include source attribution. The site does not claim ownership of third-party source reporting, publisher images, or external media. Risky publisher images should be replaced with generated Novexa OpenGraph images unless licensed use is confirmed.

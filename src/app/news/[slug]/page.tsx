@@ -14,6 +14,7 @@ import { ArticleShare } from "@/features/articles/article-share";
 import { ArticleViewCounter } from "@/features/articles/article-view-counter";
 import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
 import { ArticleImage } from "@/components/media/article-image";
+import { authorProfilePath } from "@/lib/authors";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -131,7 +132,7 @@ export default async function NewsArticlePage({ params }: Props) {
           <p className="text-lg leading-8 text-muted-foreground">{article.excerpt}</p>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Link
-              href={article.author?.toLowerCase().includes("abdul basit") ? "/author/abdul-basit" : "/about"}
+              href={authorProfilePath(article.author)}
               className="font-semibold text-foreground hover:text-primary"
             >
               {article.author || "Novexa News Desk"}
