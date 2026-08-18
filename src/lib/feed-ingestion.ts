@@ -4,7 +4,7 @@ import { cleanText, normalizeArticlePayload, stripHtml } from "@/lib/content-aut
 import { Article } from "@/models/Article";
 import { publishArticleToX } from "@/lib/x-publishing";
 import { FeedSource } from "@/models/FeedSource";
-import { findStockImage, type StockImageResult } from "@/lib/stock-images";
+import { findStockImage, isTrackingOrPlaceholderImage, stockImageIdentity, type StockImageResult } from "@/lib/stock-images";
 import { researchKeywords, type KeywordResearch } from "@/lib/trending-keywords";
 import { assessArticleQuality, contentHash, normalizeSourceUrl, textSimilarity, type QualityAssessment } from "@/lib/article-quality";
 import { ArticleRevision } from "@/models/ArticleRevision";
@@ -650,12 +650,16 @@ async function uniqueArticleSlug(baseSlug: string, sourceUrl: string) {
 async function feedImage(entry: FeedEntry, title: string, category: string): Promise<{ image: string; stockImage: StockImageResult | null }> {
   const generated = generatedOgPath(title, category);
   const sourceImage = firstImageUrl(entry.image) || (await ogImage(entry.link));
-
-  if (sourceImage && isLowRiskAutoImageUrl(sourceImage)) return { image: sourceImage, stockImage: null };
-  if (sourceImage && process.env.FEED_USE_SOURCE_IMAGES === "true") return { image: sourceImage, stockImage: null };
-
-  const recentArticles = await Article.find({ image: { $type: "string" } }).select({ image: 1 }).sort({ createdAt: -1 }).limit(300).lean();
+  const recentArticles = await Article.find({ image: { $type: "string" } }).select({ image: 1 }).sort({ createdAt: -1 }).limit(1000).lean();
   const recentImages = recentArticles.map((article) => article.image).filter((image): image is string => Boolean(image));
+  const usedImageIds = new Set(recentImages.map(stockImageIdentity));
+  const sourceImageIsUsable = sourceImage
+    && !isTrackingOrPlaceholderImage(sourceImage)
+    && !usedImageIds.has(stockImageIdentity(sourceImage));
+
+  if (sourceImageIsUsable && isLowRiskAutoImageUrl(sourceImage)) return { image: sourceImage, stockImage: null };
+  if (sourceImageIsUsable && process.env.FEED_USE_SOURCE_IMAGES === "true") return { image: sourceImage, stockImage: null };
+
   const stockImage = await findStockImage({ title, category, excludeUrls: recentImages });
   if (stockImage?.url) return { image: stockImage.url, stockImage };
 

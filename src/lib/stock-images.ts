@@ -72,6 +72,10 @@ const genericHeadlineWords = new Set([
 ]);
 
 const topicQueries: Array<{ terms: RegExp; query: string }> = [
+  { terms: /\b(election|parliament|senate|minister|president|prime minister|government|opposition)\b/i, query: "government parliament election press conference" },
+  { terms: /\b(court|judge|judgment|judgement|legal|lawyer|supreme court)\b/i, query: "courthouse law justice legal documents" },
+  { terms: /\b(diplomacy|diplomatic|peace talks|treaty|pact|bilateral|foreign office)\b/i, query: "international diplomacy meeting flags" },
+  { terms: /\b(inflation|exports|imports|trade|budget|tax|revenue|economy)\b/i, query: "economy trade finance market" },
   { terms: /\b(journalism|journalist|news website|press freedom|media censorship|website access)\b/i, query: "journalism newsroom press freedom" },
   { terms: /\b(petrol|diesel|fuel|petroleum|gasoline|oil price)\b/i, query: "petrol diesel fuel station" },
   { terms: /\b(cricket|test match|t20|odi|wicket|batsman|bowler)\b/i, query: "cricket match stadium" },
@@ -135,12 +139,31 @@ function pickDeterministic<T>(items: T[], seed: string) {
   return items[imageHash(seed) % items.length];
 }
 
-function imageIdentity(value: string) {
+export function stockImageIdentity(value: string) {
   try {
-    const url = new URL(value);
+    const url = new URL(value, "https://www.novexa.news");
+    if (url.pathname === "/api/og") {
+      const title = url.searchParams.get("title")?.trim().toLowerCase() || "";
+      const category = url.searchParams.get("category")?.trim().toLowerCase() || "";
+      return `/api/og?title=${title}&category=${category}`;
+    }
     return `${url.hostname}${url.pathname}`.toLowerCase();
   } catch {
     return value.toLowerCase().split("?")[0];
+  }
+}
+
+export function isTrackingOrPlaceholderImage(value: string) {
+  if (!value) return true;
+  try {
+    const url = new URL(value, "https://www.novexa.news");
+    const path = `${url.hostname}${url.pathname}`.toLowerCase();
+    return /(?:tracking|spacer|beacon|transparent)(?:[._/?=-]|$)/.test(path)
+      || /(?:^|[?&])(?:w|width)=1(?:&|$)/.test(url.search)
+      || /(?:^|[?&])(?:h|height)=1(?:&|$)/.test(url.search)
+      || /(?:^|[/_-])1x1(?:[._/?-]|$)/.test(path);
+  } catch {
+    return true;
   }
 }
 
@@ -193,7 +216,7 @@ async function pexelsImage(query: string, title: string, excluded: Set<string>):
 
     const data = await response.json();
     const photos = Array.isArray(data.photos)
-      ? (data.photos as PexelsPhoto[]).filter((photo) => pexelsUrl(photo) && !excluded.has(imageIdentity(pexelsUrl(photo))))
+      ? (data.photos as PexelsPhoto[]).filter((photo) => pexelsUrl(photo) && !excluded.has(stockImageIdentity(pexelsUrl(photo))))
       : [];
     const photo = pickDeterministic(photos, title);
     const imageUrl = photo ? pexelsUrl(photo) : "";
@@ -235,7 +258,7 @@ async function pixabayImage(query: string, title: string, excluded: Set<string>)
 
     const data = await response.json();
     const images = Array.isArray(data.hits)
-      ? (data.hits as PixabayHit[]).filter((image) => pixabayUrl(image) && !excluded.has(imageIdentity(pixabayUrl(image))))
+      ? (data.hits as PixabayHit[]).filter((image) => pixabayUrl(image) && !excluded.has(stockImageIdentity(pixabayUrl(image))))
       : [];
     const selected = pickDeterministic(images, title);
     const imageUrl = selected ? pixabayUrl(selected) : "";
@@ -266,6 +289,6 @@ export async function findStockImage({
   const query = stockQuery(title, category);
   if (!query) return null;
 
-  const excluded = new Set(excludeUrls.map(imageIdentity));
+  const excluded = new Set(excludeUrls.map(stockImageIdentity));
   return (await pexelsImage(query, title, excluded)) || (await pixabayImage(query, title, excluded));
 }
