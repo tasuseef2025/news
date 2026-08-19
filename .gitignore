@@ -34,3 +34,7 @@ backups/
 .prod-*.log
 .vercel
 .env*.local
+
+# local analysis/build artifacts
+.tmp-*/
+tsconfig.tsbuildinfo

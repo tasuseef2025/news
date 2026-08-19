@@ -6,6 +6,9 @@ const lowRiskImageHosts = [
   "images.pexels.com",
   "pixabay.com",
   "cdn.pixabay.com",
+  "live.staticflickr.com",
+  "upload.wikimedia.org",
+  "commons.wikimedia.org",
   "www.nasa.gov",
   "assets.science.nasa.gov"
 ];
