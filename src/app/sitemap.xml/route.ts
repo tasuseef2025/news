@@ -90,7 +90,7 @@ export async function GET() {
     .map((url) => `<url><loc>${escapeXml(url.loc)}</loc>${url.lastmod ? `<lastmod>${url.lastmod}</lastmod>` : ""}${url.image ? `<image:image><image:loc>${escapeXml(url.image)}</image:loc></image:image>` : ""}</url>`)
     .join("")}</urlset>`;
 
-  return new Response(xml, { headers: { "Content-Type": "application/xml", "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400" } });
+  return new Response(xml, { headers: { "Content-Type": "application/xml", "Cache-Control": "s-maxage=300, stale-while-revalidate=600" } });
 }
 
 

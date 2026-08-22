@@ -1,0 +1,94 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-19T19:41:08.565Z",
+    "mode": "dry-run",
+    "processed": 8,
+    "published": 7,
+    "held": 1,
+    "successRate": "88%",
+    "averageWordsAfter": 896,
+    "averageExternalLinks": 0.6,
+    "byHost": {
+      "theguardian.com": {
+        "processed": 8,
+        "published": 7
+      }
+    },
+    "heldReasons": {
+      "Headline does not sufficiently match the article": 1
+    }
+  },
+  "outcomes": [
+    {
+      "id": "6a85e11cdb8edb32f1096a53",
+      "slug": "webb-warns-balogun-saga-feeding-distrust-premier-league-referees-open-up",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 1106,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85f62dd0ef0a837d16de85",
+      "slug": "sheffield-united-ownership-dispute-wound-up-debt-efl-rosen",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 39,
+      "wordsAfter": 835,
+      "externalLinks": 0
+    },
+    {
+      "id": "6a85cbfd222caa25a8019987",
+      "slug": "arsenal-agree-51m-deal-konsa-villa-watkins-transfer",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 44,
+      "wordsAfter": 863,
+      "externalLinks": 0
+    },
+    {
+      "id": "6a85c4f864206eba573a6ce7",
+      "slug": "zion-suzuki-villa-premier-league-japanese-goalkeeper-breakthrough",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 944,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85ef25f18c7c22f53eb2c6",
+      "slug": "winter-energy-bills-set-to-climb-as-tax-cut-is-overtaken-by-market-costs",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 45,
+      "wordsAfter": 862,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a854d6dffd250b8445fcddb",
+      "slug": "treasury-buybacks-ease-pressure-on-long-dated-us-bonds-after-sharp-yield-surge",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 787,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a850e2a48bed91e8dcbf6a3",
+      "slug": "london-clean-air-zone-linked-to-stronger-lung-growth-in-children",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 36,
+      "wordsAfter": 878,
+      "externalLinks": 0
+    },
+    {
+      "id": "6a84e3f8f72fc7876ad50143",
+      "slug": "world-update-spain-s-world-cup-winning-captain-completed-move-camp-where",
+      "host": "theguardian.com",
+      "status": "held",
+      "reason": "Headline does not sufficiently match the article",
+      "wordsBefore": 46
+    }
+  ]
+}

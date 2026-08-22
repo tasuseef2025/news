@@ -209,6 +209,40 @@ export default async function NewsArticlePage({ params }: Props) {
   );
 }
 
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href) && !href.startsWith(absoluteUrl("/"));
+}
+
+/**
+ * Renders inline markdown links so sourced citations become real anchors.
+ * Anything that is not a well-formed http(s) link stays plain text.
+ */
+function renderInline(text: string, keyPrefix: string) {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const [, label, href] = match;
+    nodes.push(
+      <a
+        key={`${keyPrefix}-link-${match.index}`}
+        href={href}
+        className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        {...(isExternalHref(href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        {label}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes.length ? nodes : text;
+}
+
 function ArticleContent({ content }: { content: string }) {
   const blocks = content.split(/\n+/).map((block) => block.trim()).filter(Boolean);
 
@@ -223,7 +257,11 @@ function ArticleContent({ content }: { content: string }) {
           return <h3 key={`${block}-${index}`} className="mb-3 mt-6 text-2xl font-black">{block.replace(/^(h3:|###\s+)/i, "").trim()}</h3>;
         }
 
-        return <p key={`${block}-${index}`} className="mb-5 text-lg leading-8">{block}</p>;
+        return (
+          <p key={`${block}-${index}`} className="mb-5 text-lg leading-8">
+            {renderInline(block, `${index}`)}
+          </p>
+        );
       })}
     </div>
   );
