@@ -46,7 +46,7 @@ export type FeedIngestionOptions = {
 
 type GenerationMode = "ai" | "feed";
 
-type EditorialPackage = {
+export type EditorialPackage = {
   title: string;
   slug?: string;
   excerpt: string;
@@ -66,7 +66,7 @@ type EditorialResult = EditorialPackage & {
   aiFailureReason?: string;
 };
 
-type AiEditorialResult = {
+export type AiEditorialResult = {
   editorial: EditorialPackage | null;
   failureReason?: string;
 };
@@ -455,7 +455,7 @@ async function editorialPackage(entry: FeedEntry, sourceName: string, category: 
   return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed", aiAttempted: false };
 }
 
-async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
+export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { editorial: null, failureReason: "OPENAI_API_KEY is not configured" };
   const minimumWords = minimumPublishWords();

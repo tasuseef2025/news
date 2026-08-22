@@ -72,8 +72,6 @@ export async function getHomepageData(): Promise<HomepageData> {
       trending,
       editorsPicks,
       latest,
-      popular,
-      recent,
       categorySections,
       categoryStats,
       advertisements
@@ -82,8 +80,6 @@ export async function getHomepageData(): Promise<HomepageData> {
       findArticles({ trending: true }, { limit: 6, sort: { views: -1, publishedAt: -1 } }),
       findArticles({ featured: true }, { limit: 6 }),
       findArticles({}, { limit: 8 }),
-      findArticles({}, { limit: 6, sort: { views: -1, publishedAt: -1 } }),
-      findArticles({}, { limit: 5 }),
       Promise.all(
         homepageCategories.map(async (category) => [
           category,
@@ -103,6 +99,17 @@ export async function getHomepageData(): Promise<HomepageData> {
         { $sort: { count: -1 } }
       ]),
       AdvertisementModel.find({ active: true }).sort({ createdAt: -1 }).limit(8).lean()
+    ]);
+
+    const trendingIds = trending.map((article) => article._id).filter(Boolean);
+    const latestIds = latest.map((article) => article._id).filter(Boolean);
+
+    const [popular, recent] = await Promise.all([
+      findArticles(
+        { _id: { $nin: trendingIds } },
+        { limit: 6, sort: { views: -1, publishedAt: -1 } }
+      ),
+      findArticles({ _id: { $nin: latestIds } }, { limit: 5 })
     ]);
 
     const sections = { ...emptySections, ...Object.fromEntries(categorySections) } as Record<string, Article[]>;

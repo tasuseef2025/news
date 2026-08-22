@@ -6,7 +6,11 @@ import mongoose from "mongoose";
 const apply = process.argv.includes("--apply");
 const templates = [
   "The story falls under the",
-  "This newsroom brief was automatically prepared from a monitored public feed"
+  "This newsroom brief was automatically prepared from a monitored public feed",
+  "indexed archive",
+  "refreshed version keeps the original",
+  "preserving the original topic",
+  "indexed page active"
 ];
 const backupDirectory = path.resolve("backups");
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

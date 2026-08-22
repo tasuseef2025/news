@@ -102,6 +102,7 @@ export default async function NewsArticlePage({ params }: Props) {
   const articleUrl = absoluteUrl(`/news/${article.slug}`);
   const shareImageUrl = absoluteUrl(`/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
+  const showReportingBasis = article.generationMode !== "manual" || article.author === "Novexa News Desk";
   const schema = generateStructuredData({
     ...article,
     image: displayImage(article.image),
@@ -166,7 +167,7 @@ export default async function NewsArticlePage({ params }: Props) {
           </p>
         ) : <div className="mb-8" />}
         <ArticleContent content={article.content} />
-        {article.originalSourceName || article.sourceName ? (
+        {showReportingBasis && (article.originalSourceName || article.sourceName) ? (
           <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             Reporting basis: {article.originalSourceUrl || article.sourceUrl ? (
               <a href={article.originalSourceUrl || article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
@@ -244,7 +245,14 @@ function renderInline(text: string, keyPrefix: string) {
 }
 
 function ArticleContent({ content }: { content: string }) {
-  const blocks = content.split(/\n+/).map((block) => block.trim()).filter(Boolean);
+  const blocks = content
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*\/\s*p\s*>\s*<\s*p[^>]*>/gi, "\n\n")
+    .replace(/<\s*p[^>]*>/gi, "")
+    .replace(/<\s*\/\s*p\s*>/gi, "")
+    .split(/\n+/)
+    .map((block) => block.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 
   return (
     <div className="prose prose-slate max-w-none dark:prose-invert">

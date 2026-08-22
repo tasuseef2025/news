@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 export function GET() {
   const body = `User-agent: *
 Allow: /
+Allow: /api/og
 Disallow: /admin
 Disallow: /api/
 Disallow: /auth/

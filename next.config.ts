@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import duplicateRedirects from "./src/lib/duplicate-redirects.json";
 
 const disableVercelImageOptimization = process.env.NEXT_IMAGE_UNOPTIMIZED !== "false";
 
@@ -6,6 +7,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   eslint: {
     ignoreDuringBuilds: true
+  },
+  async redirects() {
+    return duplicateRedirects.map((redirect) => ({
+      source: redirect.source,
+      destination: redirect.destination,
+      permanent: true
+    }));
   },
   images: {
     unoptimized: disableVercelImageOptimization,
