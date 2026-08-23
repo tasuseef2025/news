@@ -24,13 +24,19 @@ function displayImage(value: string) {
   return value?.startsWith("/") ? absoluteUrl(value) : value;
 }
 
+function socialImage(value: string) {
+  const image = displayImage(value);
+  if (!image.includes("res.cloudinary.com") || !image.includes("/image/upload/")) return image;
+  return image.replace("/image/upload/", "/image/upload/c_fill,g_auto,w_1200,h_630,q_auto/");
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) return {};
 
   const canonical = absoluteUrl(`/news/${article.slug}`);
-  const image = displayImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
+  const image = socialImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const indexable = isArticleIndexable(article);
 
   return {
@@ -100,7 +106,6 @@ export default async function NewsArticlePage({ params }: Props) {
   ]);
 
   const articleUrl = absoluteUrl(`/news/${article.slug}`);
-  const shareImageUrl = absoluteUrl(`/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
   const showReportingBasis = article.generationMode !== "manual" || article.author === "Novexa News Desk";
   const schema = generateStructuredData({
@@ -145,7 +150,7 @@ export default async function NewsArticlePage({ params }: Props) {
             <ArticleViewCounter articleId={article._id} initialViews={article.views} />
             <span>{article.readingTime ?? 1} min read</span>
           </div>
-          <ArticleShare title={article.title} url={articleUrl} shareImageUrl={shareImageUrl} />
+          <ArticleShare title={article.title} url={articleUrl} />
         </header>
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,780px)_minmax(280px,1fr)] lg:items-start lg:gap-12">
