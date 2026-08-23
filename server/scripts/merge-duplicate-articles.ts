@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import mongoose from "mongoose";
 import { Article } from "../../src/models/Article";
+import { publicArticleFilter } from "../../src/lib/public-articles";
 
 const CLUSTER_THRESHOLD = 0.72;
 const DIRECT_MERGE_THRESHOLD = 0.8;
@@ -51,7 +52,7 @@ async function run() {
   if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is not configured");
   await mongoose.connect(process.env.MONGODB_URI, { dbName: "news_website", bufferCommands: false });
 
-  const docs = await mongoose.connection.db.collection("articles").find({ status: "published" }).project({
+  const docs = await mongoose.connection.db.collection("articles").find(publicArticleFilter()).project({
     title: 1, slug: 1, category: 1, content: 1, qualityScore: 1, publishedAt: 1, views: 1
   }).sort({ publishedAt: -1 }).toArray() as unknown as Doc[];
 

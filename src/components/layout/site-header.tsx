@@ -14,6 +14,7 @@ import { categories, categorySlug, primaryNavigationCategories } from "@/lib/cat
 
 const mainNav = [
   { label: "Home", href: "/" },
+  { label: "Latest", href: "/latest" },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Media", href: "/media" },

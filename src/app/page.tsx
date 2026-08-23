@@ -37,7 +37,7 @@ export default async function HomePage() {
 
       <section className="border-y bg-card/70">
         <div className="container py-10">
-          <SectionHeader title="Latest News" href="/category/latest" />
+          <SectionHeader title="Latest News" href="/latest" />
           {data.latest.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {data.latest.map((article) => (

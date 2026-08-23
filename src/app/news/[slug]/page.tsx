@@ -327,7 +327,7 @@ function ArticleSidebar({
       <section className="border-t-2 border-foreground pt-3">
         <div className="flex items-center justify-between gap-3 border-b pb-3">
           <h2 className="font-editorial text-2xl font-bold">Latest News</h2>
-          <Link href="/" className="text-xs font-black uppercase text-primary hover:text-foreground">More</Link>
+          <Link href="/latest" className="text-xs font-black uppercase text-primary hover:text-foreground">More</Link>
         </div>
         <div className="divide-y">
           {recentStories.map((item) => (
