@@ -48,7 +48,8 @@ function serializeArticle(article: unknown): Article {
     aiAttemptedAt: raw.aiAttemptedAt ? new Date(raw.aiAttemptedAt).toISOString() : undefined,
     lastUpdatedAt: raw.lastUpdatedAt ? new Date(raw.lastUpdatedAt).toISOString() : undefined,
     references: raw.references?.map((reference) => ({
-      ...reference,
+      name: reference.name,
+      url: reference.url,
       publishedAt: reference.publishedAt ? new Date(reference.publishedAt).toISOString() : undefined
     })),
     parentStoryId: raw.parentStoryId?.toString()

@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 
 export function ArticleCard({ article, priority, large }: { article: Article; priority?: boolean; large?: boolean }) {
   return (
-    <article className={cn("group grid gap-3", large && "md:grid-cols-[1.2fr_0.8fr] md:items-center")}>
-      <Link href={`/news/${article.slug}`} className="relative block overflow-hidden rounded-lg bg-muted">
+    <article className={cn("group grid content-start gap-3", large && "md:grid-cols-[1.2fr_0.8fr] md:items-center")}>
+      <Link href={`/news/${article.slug}`} className="relative block overflow-hidden bg-muted">
         <ArticleImage
           src={article.image}
           alt={article.imageAlt || article.title}
@@ -16,7 +16,7 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
           width={900}
           height={560}
           priority={priority}
-          className={cn("aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-105", large && "md:aspect-[4/3]")}
+          className={cn("aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.025]", large && "md:aspect-[4/3]")}
         />
       </Link>
       <div className="grid content-start gap-2">
@@ -27,7 +27,7 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}
           </time>
         </div>
-        <Link href={`/news/${article.slug}`} className={cn("font-black leading-tight group-hover:text-primary", large ? "text-3xl md:text-4xl" : "text-xl")}>
+        <Link href={`/news/${article.slug}`} className={cn("font-editorial font-bold leading-[1.12] group-hover:text-primary", large ? "text-3xl md:text-4xl" : "text-[22px]")}>
           {article.title}
         </Link>
         <p className="text-sm leading-6 text-muted-foreground">{article.excerpt}</p>

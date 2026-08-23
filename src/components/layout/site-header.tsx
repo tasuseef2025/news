@@ -32,25 +32,25 @@ export function SiteHeader() {
   const canWriteArticles = hasPermission(session?.user.role, "create_articles");
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container grid h-16 grid-cols-[44px_1fr_92px] items-center gap-2 md:h-20 md:grid-cols-[120px_1fr_240px]">
+    <header className="sticky top-0 z-50 border-b border-t-4 border-t-primary bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
+      <div className="container grid h-16 grid-cols-[44px_1fr_92px] items-center gap-2 md:h-24 md:grid-cols-[120px_1fr_240px]">
         <div className="flex justify-start">
           <Button
             variant="ghost"
             size="icon"
             aria-label="Open menu"
             onClick={() => setMobileOpen((value) => !value)}
-            className="h-10 w-10 rounded-full bg-muted/70 hover:bg-muted"
+            className="h-10 w-10 rounded-full hover:bg-muted"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
 
         <Link href="/" className="mx-auto grid place-items-center text-center" aria-label="Novexa News home">
-          <span className="text-[26px] font-black uppercase leading-none tracking-normal text-foreground md:text-[40px]">
+          <span className="font-editorial text-[27px] font-bold uppercase leading-none tracking-normal text-foreground md:text-[46px]">
             Novexa News
           </span>
-          <span className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.38em] text-primary sm:block">
+          <span className="mt-1.5 hidden text-[10px] font-black uppercase tracking-normal text-primary sm:block">
             Daily Digital News
           </span>
         </Link>
@@ -70,8 +70,8 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <nav className="hidden border-t border-border/70 lg:block">
-        <div className="container flex h-11 items-center justify-center gap-7 text-[13px] font-black uppercase text-foreground">
+      <nav className="hidden border-y border-border lg:block">
+        <div className="container flex h-11 items-center justify-center gap-6 text-[12px] font-black uppercase text-foreground xl:gap-8">
           {mainNav.slice(0, 3).map((item) => (
             <NavLink key={item.href} href={item.href}>{item.label}</NavLink>
           ))}
