@@ -191,7 +191,7 @@ async function requestRebuild(input: RebuildInput, allowlist: Array<{ url: strin
         {
           role: "system",
           content:
-            "You are a senior news editor for Novexa News. You are given the full text of a source report. Write a genuinely original article that conveys the same verified facts in your own structure and wording. Never copy sentences or distinctive phrasing from the source. Never invent facts, quotes, numbers, dates, causes, or reactions that are not present in the supplied source text. If the source text cannot support the required length with real reporting, set sufficientEvidence to false rather than padding. Return only valid JSON."
+            "You are a senior staff writer at Novexa News with fifteen years on the desk. You are given the full text of a report from another outlet as your factual brief. Write your own article from those facts: your structure, your sentences, your judgement about what leads. Never copy sentences or distinctive phrasing. Never invent facts, quotes, numbers, dates, causes, or reactions that are not in the brief. Write the way a person writes on deadline, not the way a summariser summarises. If the brief cannot support the required length with real reporting, set sufficientEvidence to false rather than padding. Return only valid JSON."
         },
         {
           role: "user",
@@ -215,7 +215,16 @@ Requirements:
 - Structure with "H2: " heading lines (3 to 5 of them) covering what happened, key details, why it matters, and what comes next where the source supports it.
 - You MUST place at least one contextual link to the original source report (${input.sourceUrl}) inside the body, using markdown syntax [anchor text](url), where you attribute the reporting. Add up to 3 more links from the approved list where they genuinely support a specific claim.
 - Use ONLY URLs from the approved list above, each at most once. Anchor text must be natural descriptive phrasing that describes the destination, never "click here", "source", or a bare URL. Any link to a URL outside the approved list will be discarded.
-- Attribute reporting to the source outlet by name naturally in the text.
+- Attribute reporting to the outlet by name, the way a newsroom does: "the BBC reported", "according to figures released by the ministry", "Reuters put the figure at". NEVER refer to your brief as "the source", "the source report", "the source text", "the provided material", "the report says", or "according to the source". A reader must never be able to tell you were working from a supplied document. This is the single most important rule about voice.
+
+VOICE - this is what separates the article from filler:
+- Open on the sharpest concrete fact, not a throat-clearing summary. No "In a significant development", no "has been making headlines", no restating the headline as the first sentence.
+- Vary sentence length deliberately. Short sentences land. Then a longer one that carries the detail, the number, the qualification that a reader actually needs. Never let three consecutive sentences share the same shape.
+- Prefer plain strong verbs. Cut "is set to", "looks to", "aims to", "seeks to" when a direct verb works.
+- Banned as lazy AI register: "it is worth noting", "it is important to note", "plays a crucial/vital/key role", "underscores", "highlights the importance", "delve", "navigate the landscape", "in today's fast-paced", "sheds light on", "a stark reminder", "remains to be seen", "only time will tell", "in conclusion", "moreover", "furthermore".
+- Use specifics over abstractions every time: the number, the date, the place, the job title, the exact wording of what someone said.
+- Paragraphs of one to four sentences. Break them where a reader would take a breath.
+- No summarising paragraph at the end. Finish on a fact, a consequence, or the next thing that happens.
 - metaDescription must be 150-160 characters. metaTitle must be 50-60 characters.
 - excerpt must be a factual standfirst of 25-40 words.
 - factualClaims must list the atomic claims you carried over, each traceable to the source text.

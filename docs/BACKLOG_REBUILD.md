@@ -71,3 +71,32 @@ Runs are resumable. Each processed draft gets `rebuildAttemptedAt`, and subseque
 ## Pacing
 
 Do not publish all 3,435 in one day. A site that has 2,852 published articles suddenly adding thousands more in a day is the exact pattern Google's scaled content abuse policy targets, and AdSense review reads the same signal. Publish in daily batches and let indexing catch up.
+
+## Publishing fresh news (`npm run news:latest`)
+
+The same extraction and writing pipeline also runs against live feeds, so new articles arrive at 600+ words with real citations instead of the thin RSS-only drafts that created the backlog.
+
+It pulls every active feed on an extractable host, drops anything already in the database, keeps entries newer than `--max-age-hours` (default 72), and takes a fixed quota per category so the front page stays balanced.
+
+```powershell
+npm run news:latest -- --plan                       # selection + extraction only, no model spend
+npm run news:latest -- --per-category=2 --print      # full dry run, prints each article
+npm run news:latest -- --per-category=2 --apply      # write and publish
+npm run news:latest -- --categories=Technology,Sports --per-category=3 --apply
+```
+
+Flags: `--per-category`, `--categories`, `--max-age-hours`, `--concurrency` (default 2, max 4), `--plan`, `--print`, `--apply`.
+
+`--plan` is the cheap pre-flight. It stops before the paid model call and reports how many candidates extracted cleanly, which is enough to confirm feeds and extraction are healthy.
+
+A representative plan run found 279 feed entries, 224 of them new, and extracted 14 of 16 selected stories (88%) across World, Business, Football, Space, Startups, Technology, Sports and Pakistan.
+
+## Editorial voice
+
+`src/lib/article-rebuild.ts` carries explicit voice rules, because the first pass produced a giveaway tell: sentences like "the source report says senior executives backed him". A reader must never be able to detect that the writer worked from a supplied document.
+
+The prompt now forbids referring to the brief at all and requires newsroom attribution instead ("the BBC reported", "according to figures released by the ministry"). It also bans the standard AI register - "it is worth noting", "plays a crucial role", "underscores", "sheds light on", "remains to be seen", "in conclusion" - and requires varied sentence length, concrete ledes, and no summarising final paragraph.
+
+## Cost dependency
+
+Both `backlog:rebuild` and `news:latest` require OpenAI credit. When the balance is empty the API returns HTTP 429 `credit_balance_exhausted` and every article is held with that reason. Check with `npm run openai:diagnose` before a long run.

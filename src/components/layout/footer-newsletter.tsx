@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 
-export function FooterNewsletter() {
+export function FooterNewsletter({ source = "footer" }: { source?: string }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export function FooterNewsletter() {
     const response = await fetch("/api/newsletter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, source: "footer" })
+      body: JSON.stringify({ email, source })
     });
 
     setLoading(false);
