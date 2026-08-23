@@ -116,7 +116,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <head>
         <GoogleAdsense />
-        <script async src="https://news.google.com/swg/js/v1/publisher.js" />
       </head>
       <body className={inter.variable}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />

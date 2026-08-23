@@ -3,6 +3,7 @@
   ArticleGrid,
   CategoryCards,
   CompactArticleList,
+  Newsletter,
   RankedList,
   SectionHeader,
   VideoSection
@@ -12,7 +13,6 @@ import { ArticleCard } from "@/features/articles/article-card";
 import { getHomepageData } from "@/lib/homepage";
 import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
 import { InteractiveWidgetsPanel } from "@/features/widgets/interactive-widgets-panel";
-import { StayConnected } from "@/components/audience/stay-connected";
 
 export default async function HomePage() {
   const data = await getHomepageData();
@@ -50,10 +50,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="container py-8">
-        <StayConnected />
-      </section>
-
       <section className="container grid gap-12 py-12">
         <ArticleGrid title="Technology" articles={data.sections.Technology} category="Technology" />
         <ArticleGrid title="Business" articles={data.sections.Business} category="Business" />
@@ -85,6 +81,7 @@ export default async function HomePage() {
           <CompactArticleList title="Recent Articles" articles={data.recent} />
         </div>
 
+        <Newsletter />
         <AdvertisementSlot advertisements={data.advertisements} placement="footer" />
       </section>
     </main>

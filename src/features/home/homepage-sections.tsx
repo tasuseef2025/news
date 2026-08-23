@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Play, TrendingUp } from "lucide-react";
+import { Mail, Play, TrendingUp } from "lucide-react";
 import { ArticleCard } from "@/features/articles/article-card";
 import type { Advertisement, Article } from "@/types";
 import type { CategoryCard } from "@/lib/homepage";
@@ -192,5 +192,34 @@ export function AdvertisementSlot({
   );
 
   return advertisement.href ? <Link href={advertisement.href}>{body}</Link> : body;
+}
+
+export function Newsletter() {
+  return (
+    <section className="border-y-2 border-foreground bg-card py-7 md:px-8">
+      <div className="grid gap-5 md:grid-cols-[1fr_420px] md:items-center">
+        <div>
+          <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase text-primary">
+            <Mail className="h-5 w-5" />
+            Newsletter
+          </div>
+          <h2 className="font-editorial text-3xl font-bold">Get the morning edition in your inbox</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Subscribe for editor-selected headlines, analysis, and the biggest stories across every section.
+          </p>
+        </div>
+        <form className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="email"
+            placeholder="Email address"
+            className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-accent"
+          />
+          <button className="h-11 rounded-md bg-primary px-5 text-sm font-black text-primary-foreground hover:bg-primary/90">
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </section>
+  );
 }
 
