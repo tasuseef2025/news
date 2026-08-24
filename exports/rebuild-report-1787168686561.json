@@ -1,0 +1,133 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-19T19:44:46.556Z",
+    "mode": "dry-run",
+    "processed": 12,
+    "published": 10,
+    "held": 2,
+    "successRate": "83%",
+    "averageWordsAfter": 920,
+    "averageExternalLinks": 1.1,
+    "byHost": {
+      "theguardian.com": {
+        "processed": 11,
+        "published": 9
+      },
+      "bbc.co.uk": {
+        "processed": 1,
+        "published": 1
+      }
+    },
+    "heldReasons": {
+      "Rebuilt article kept N approved external links; minimum is N": 2
+    }
+  },
+  "outcomes": [
+    {
+      "id": "6a85f62dd0ef0a837d16de85",
+      "slug": "sheffield-united-ownership-faces-scrutiny-after-liquidation-of-buyout-company",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 39,
+      "wordsAfter": 813,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85ef25f18c7c22f53eb2c6",
+      "slug": "uk-households-face-fresh-winter-energy-squeeze-as-cap-forecast-rises",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 45,
+      "wordsAfter": 837,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85e11cdb8edb32f1096a53",
+      "slug": "webb-balogun-reprieve-refereeing-mistrust-pro-ref-transparency",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 959,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a854d6dffd250b8445fcddb",
+      "slug": "business-update-brent-crude-approaches-barrel-asian-shares-slump-after",
+      "host": "theguardian.com",
+      "status": "held",
+      "reason": "Rebuilt article kept 0 approved external links; minimum is 1",
+      "wordsBefore": 41
+    },
+    {
+      "id": "6a85cbfd222caa25a8019987",
+      "slug": "world-update-defender-provide-cover-injured-saliba-timber-villa-braced",
+      "host": "theguardian.com",
+      "status": "held",
+      "reason": "Rebuilt article kept 0 approved external links; minimum is 1",
+      "wordsBefore": 44
+    },
+    {
+      "id": "6a85c4f864206eba573a6ce7",
+      "slug": "zion-suzuki-reaches-premier-league-with-history-on-his-shoulders",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 989,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a850e2a48bed91e8dcbf6a3",
+      "slug": "london-clean-air-zone-linked-to-recovery-in-childrens-lung-growth",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 36,
+      "wordsAfter": 893,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84e3f8f72fc7876ad50143",
+      "slug": "barcelona-land-rodri-in-summer-coup-after-long-chase-for-midfield-leader",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 46,
+      "wordsAfter": 824,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84d5e546cf60e701f6354e",
+      "slug": "premier-league-chief-warns-fifa-lost-trust-over-world-cup-stake-plan",
+      "host": "bbc.co.uk",
+      "status": "published",
+      "wordsBefore": 29,
+      "wordsAfter": 1077,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84b2bed3e9a9f4eaa538d2",
+      "slug": "liverpool-1892-holdings-first-refusal-fsg-sale-12-months",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 823,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84abb58d2ff865ae9ed271",
+      "slug": "israel-withdraws-backing-infantino-fifa-revolt",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 37,
+      "wordsAfter": 908,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a849da4be41b2b7a629ea4c",
+      "slug": "meta-teen-safety-influencers-governments-tighten-rules",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 34,
+      "wordsAfter": 1080,
+      "externalLinks": 2
+    }
+  ]
+}

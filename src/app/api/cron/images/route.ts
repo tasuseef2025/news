@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { verifyCronRequest } from "@/lib/cron";
 import { connectDB } from "@/lib/db";
 import { generatedOgImagePath } from "@/lib/article-images";
+import { publicArticleFilter } from "@/lib/public-articles";
 import { findStockImage, isTrackingOrPlaceholderImage, stockImageIdentity } from "@/lib/stock-images";
 import { Article } from "@/models/Article";
 
@@ -20,8 +21,7 @@ export async function GET(request: Request) {
 
   await connectDB();
   const articleFilter = {
-    status: "published",
-    reviewStatus: { $ne: "rejected" },
+    ...publicArticleFilter(),
     ...(category ? { category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } : {})
   };
   const articles = await Article.find(articleFilter).sort({ publishedAt: -1 }).limit(limit).select("_id title slug category image").lean();

@@ -1,0 +1,254 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-19T19:49:30.104Z",
+    "mode": "apply",
+    "processed": 25,
+    "published": 25,
+    "held": 0,
+    "successRate": "100%",
+    "averageWordsAfter": 931,
+    "averageExternalLinks": 1,
+    "byHost": {
+      "theguardian.com": {
+        "processed": 23,
+        "published": 23
+      },
+      "bbc.co.uk": {
+        "processed": 1,
+        "published": 1
+      },
+      "tribune.com.pk": {
+        "processed": 1,
+        "published": 1
+      }
+    },
+    "heldReasons": {}
+  },
+  "outcomes": [
+    {
+      "id": "6a85f62dd0ef0a837d16de85",
+      "slug": "high-court-winding-up-order-raises-fresh-pressure-on-sheffield-united-ownership",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 39,
+      "wordsAfter": 916,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85e11cdb8edb32f1096a53",
+      "slug": "webb-warns-balogun-case-is-feeding-mistrust-in-refereeing",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 1058,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85ef25f18c7c22f53eb2c6",
+      "slug": "energy-bills-set-for-winter-jump-as-cap-rise-threatens-to-erase-vat-relief",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 45,
+      "wordsAfter": 960,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85c4f864206eba573a6ce7",
+      "slug": "zion-suzuki-arrives-at-villa-carrying-a-first-for-japan-and-a-bigger-test-ahead",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 1109,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a85cbfd222caa25a8019987",
+      "slug": "arsenal-land-konsa-as-villa-brace-for-more-transfer-pressure",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 44,
+      "wordsAfter": 1053,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a854d6dffd250b8445fcddb",
+      "slug": "treasury-buyback-expansion-eases-pressure-on-us-bond-markets",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 811,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84e3f8f72fc7876ad50143",
+      "slug": "rodri-completes-barcelona-switch-after-late-night-arrival-in-catalonia",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 46,
+      "wordsAfter": 996,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a850e2a48bed91e8dcbf6a3",
+      "slug": "london-clean-air-zone-linked-to-recovery-in-childrens-lung-growth",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 36,
+      "wordsAfter": 938,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84d5e546cf60e701f6354e",
+      "slug": "masters-backs-fa-stance-as-fifa-sell-off-row-deepens",
+      "host": "bbc.co.uk",
+      "status": "published",
+      "wordsBefore": 29,
+      "wordsAfter": 870,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84b2bed3e9a9f4eaa538d2",
+      "slug": "liverpool-1892-holdings-path-control-fsg-sell-option",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 839,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84abb58d2ff865ae9ed271",
+      "slug": "israel-joins-growing-revolt-against-infantino-after-fifa-sackings-and-world-cup-row",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 37,
+      "wordsAfter": 893,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a849da4be41b2b7a629ea4c",
+      "slug": "meta-turns-to-creators-as-governments-tighten-teen-social-media-rules",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 34,
+      "wordsAfter": 1055,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a847a7e83c0e9f660c73409",
+      "slug": "senegal-turn-to-vieira-after-world-cup-exit-in-search-of-reset",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 44,
+      "wordsAfter": 899,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a8473798bc9e95e63100e74",
+      "slug": "ikea-prepares-uk-secondhand-marketplace-loyalty-members-trade-used-furniture",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 43,
+      "wordsAfter": 785,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84888dcdc31b9238655cac",
+      "slug": "infantino-ally-says-most-federations-still-back-fifa-president-as-row-over-private-investment-grows",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 1024,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a842d2aaff4d47635c5ec4b",
+      "slug": "uk-labour-market-weakens-wage-pressure-subdued-ing-says",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 43,
+      "wordsAfter": 860,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a84342e4c963f3140f60b13",
+      "slug": "mike-ashley-frasers-hugo-boss-stake-increase-harvey-nichols",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 42,
+      "wordsAfter": 890,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a841f1a07df455e89d8769e",
+      "slug": "netflix-documentary-reveals-mourinho-as-both-performer-and-subject-of-his-own-legend",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 1040,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a8426222812130d802fb8f1",
+      "slug": "middle-east-tensions-keep-oil-firm-as-supply-fears-linger",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "wordsBefore": 12,
+      "wordsAfter": 853,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a846c6e02ba69702503d5d1",
+      "slug": "uk-weighs-intervention-as-official-warning-flags-gas-supply-risks-in-the-2030s",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 40,
+      "wordsAfter": 864,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a83fbedc3ea85e9fc637619",
+      "slug": "drc-ebola-deadliest-history-cases-surge",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 45,
+      "wordsAfter": 933,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a83e6d9fa88f24a348f30e2",
+      "slug": "middle-east-tensions-drive-government-borrowing-costs-to-multiyear-highs",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 41,
+      "wordsAfter": 842,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a8376599c017f501d6aa8f7",
+      "slug": "fifa-chief-ousted-after-public-revolt-over-infantinos-world-cup-investor-plan",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 40,
+      "wordsAfter": 894,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a83532d173701f2554b622a",
+      "slug": "premier-league-to-test-referee-audio-in-live-tv-coverage-this-season",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 44,
+      "wordsAfter": 891,
+      "externalLinks": 1
+    },
+    {
+      "id": "6a834c258f3ee0426509674a",
+      "slug": "racing-santander-return-la-liga-draw-villarreal-sergio-martinez",
+      "host": "theguardian.com",
+      "status": "published",
+      "wordsBefore": 48,
+      "wordsAfter": 1003,
+      "externalLinks": 1
+    }
+  ]
+}

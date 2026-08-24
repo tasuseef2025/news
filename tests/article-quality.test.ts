@@ -2,6 +2,32 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assessArticleQuality, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
 import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
+import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
+
+test("only explicitly approved articles enter public discovery surfaces", () => {
+  assert.equal(publicArticleFilter().reviewStatus, "approved");
+  assert.equal(
+    isArticleIndexable({
+      status: "published",
+      generationMode: "manual",
+      content: "verified ".repeat(600)
+    }),
+    false
+  );
+});
+
+test("approved articles that meet the quality floor remain indexable", () => {
+  assert.equal(
+    isArticleIndexable({
+      status: "published",
+      reviewStatus: "approved",
+      generationMode: "manual",
+      duplicateRisk: 10,
+      content: "verified ".repeat(600)
+    }),
+    true
+  );
+});
 
 test("normalizes source URLs and removes tracking parameters", () => {
   assert.equal(

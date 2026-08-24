@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 type ShareProps = {
   title: string;
   url: string;
-  shareImageUrl: string;
 };
 
 const platforms = [
@@ -33,7 +32,7 @@ const platforms = [
   }
 ];
 
-export function ArticleShare({ title, url, shareImageUrl }: ShareProps) {
+export function ArticleShare({ title, url }: ShareProps) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
@@ -47,24 +46,16 @@ export function ArticleShare({ title, url, shareImageUrl }: ShareProps) {
     await navigator.share({ title, url });
   }
 
-  async function shareCardToInstagram() {
-    await navigator.clipboard.writeText(`${title}\n${url}`);
+  async function shareToInstagram() {
+    const text = `${title}\n${url}`;
+    await navigator.clipboard.writeText(text);
 
-    try {
-      const response = await fetch(shareImageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "novexa-news-card.png", { type: blob.type || "image/png" });
-      const shareData = { title, text: `${title}\n${url}`, files: [file] };
-
-      if (navigator.canShare?.(shareData)) {
-        await navigator.share(shareData);
-        return;
-      }
-    } catch {
-      // Desktop browsers usually cannot share image files directly to Instagram.
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
     }
 
-    window.open(shareImageUrl, "_blank", "noopener,noreferrer");
+    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -83,7 +74,7 @@ export function ArticleShare({ title, url, shareImageUrl }: ShareProps) {
           </Button>
         );
       })}
-      <Button type="button" size="icon" variant="outline" onClick={shareCardToInstagram} title="Share image card to Instagram" aria-label="Share image card to Instagram">
+      <Button type="button" size="icon" variant="outline" onClick={shareToInstagram} title="Share article link to Instagram" aria-label="Share article link to Instagram">
         <Instagram className="h-4 w-4" />
       </Button>
       <Button type="button" size="icon" variant="outline" onClick={copyLink} title="Copy article link" aria-label="Copy article link">

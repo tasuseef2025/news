@@ -48,3 +48,4 @@ npm run build
 - [Vercel Cron Notes](docs/VERCEL_CRON.md)
 - [Live Scores](docs/LIVE_SCORES.md)
 - [Content Quality And SEO Operations](docs/CONTENT_QUALITY.md)
+- [Backlog Rebuild](docs/BACKLOG_REBUILD.md)

@@ -37,6 +37,7 @@
   --color-primary-foreground: rgb(var(--primary-foreground));
   --color-accent: rgb(var(--accent));
   --font-sans: var(--font-inter);
+  --font-editorial: Georgia, "Times New Roman", serif;
 }
 
 * {
@@ -48,6 +49,11 @@ body {
   background: rgb(var(--background));
   color: rgb(var(--foreground));
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+.font-editorial {
+  font-family: var(--font-editorial);
 }
 
 a {

@@ -9,11 +9,14 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true
   },
   async redirects() {
-    return duplicateRedirects.map((redirect) => ({
-      source: redirect.source,
-      destination: redirect.destination,
-      permanent: true
-    }));
+    return [
+      { source: "/category/latest", destination: "/latest", permanent: true },
+      ...duplicateRedirects.map((redirect) => ({
+        source: redirect.source,
+        destination: redirect.destination,
+        permanent: true
+      }))
+    ];
   },
   images: {
     unoptimized: disableVercelImageOptimization,

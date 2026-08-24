@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-19T19:45:27.546Z",
+    "mode": "dry-run",
+    "processed": 1,
+    "published": 1,
+    "held": 0,
+    "successRate": "100%",
+    "averageWordsAfter": 808,
+    "averageExternalLinks": 1,
+    "byHost": {
+      "tribune.com.pk": {
+        "processed": 1,
+        "published": 1
+      }
+    },
+    "heldReasons": {}
+  },
+  "outcomes": [
+    {
+      "id": "6a8426222812130d802fb8f1",
+      "slug": "oil-edges-higher-middle-east-ceasefire-hopes-fade-hormuz-risks-linger",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "wordsBefore": 12,
+      "wordsAfter": 808,
+      "externalLinks": 1
+    }
+  ]
+}

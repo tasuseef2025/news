@@ -23,7 +23,7 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
 
   if (!article) {
     return (
-      <section className="grid min-h-[420px] place-items-center rounded-lg border bg-card p-8 text-center">
+      <section className="grid min-h-[400px] place-items-center border-y bg-card p-8 text-center">
         <div>
           <p className="text-sm font-black uppercase text-primary">Breaking News</p>
           <h1 className="mt-2 text-3xl font-black">No published breaking stories found</h1>
@@ -36,7 +36,7 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
   }
 
   return (
-    <section className="relative min-h-[420px] overflow-hidden rounded-lg bg-black text-white md:min-h-[560px]">
+    <section className="relative min-h-[420px] overflow-hidden bg-black text-white md:min-h-[520px]">
       <AnimatePresence mode="wait">
         <motion.div
           key={article.slug}
@@ -47,16 +47,16 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
           className="absolute inset-0"
         >
           <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} fill priority className="object-cover opacity-70" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/5" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 flex min-h-[420px] flex-col justify-end p-5 md:min-h-[560px] md:p-8">
+      <div className="relative z-10 flex min-h-[420px] flex-col justify-end p-5 md:min-h-[520px] md:p-8">
         <div className="max-w-3xl">
           <div className="mb-4 flex w-fit items-center gap-2 rounded-sm bg-primary px-3 py-1 text-xs font-black uppercase text-primary-foreground">
             Hero Breaking News
           </div>
-          <Link href={`/news/${article.slug}`} className="text-4xl font-black leading-tight hover:text-primary md:text-6xl">
+          <Link href={`/news/${article.slug}`} className="font-editorial text-4xl font-bold leading-[1.04] hover:text-primary md:text-6xl">
             {article.title}
           </Link>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/85 md:text-lg">{article.excerpt}</p>

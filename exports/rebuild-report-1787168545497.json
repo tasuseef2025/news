@@ -1,0 +1,39 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-19T19:42:25.496Z",
+    "mode": "dry-run",
+    "processed": 2,
+    "published": 2,
+    "held": 0,
+    "successRate": "100%",
+    "averageWordsAfter": 961,
+    "averageExternalLinks": 0,
+    "byHost": {
+      "bbc.co.uk": {
+        "processed": 2,
+        "published": 2
+      }
+    },
+    "heldReasons": {}
+  },
+  "outcomes": [
+    {
+      "id": "6a84d5e546cf60e701f6354e",
+      "slug": "masters-backs-fa-stance-as-fifa-sell-off-row-deepens",
+      "host": "bbc.co.uk",
+      "status": "published",
+      "wordsBefore": 29,
+      "wordsAfter": 994,
+      "externalLinks": 0
+    },
+    {
+      "id": "6a78c028bdca23649ed8881e",
+      "slug": "liverpool-preseason-warning-signs-monaco-slip",
+      "host": "bbc.co.uk",
+      "status": "published",
+      "wordsBefore": 25,
+      "wordsAfter": 927,
+      "externalLinks": 0
+    }
+  ]
+}

@@ -24,13 +24,19 @@ function displayImage(value: string) {
   return value?.startsWith("/") ? absoluteUrl(value) : value;
 }
 
+function socialImage(value: string) {
+  const image = displayImage(value);
+  if (!image.includes("res.cloudinary.com") || !image.includes("/image/upload/")) return image;
+  return image.replace("/image/upload/", "/image/upload/c_fill,g_auto,w_1200,h_630,q_auto/");
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
   if (!article) return {};
 
   const canonical = absoluteUrl(`/news/${article.slug}`);
-  const image = displayImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
+  const image = socialImage(article.ogImage || article.image || `/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const indexable = isArticleIndexable(article);
 
   return {
@@ -84,23 +90,22 @@ export default async function NewsArticlePage({ params }: Props) {
   if (!article) notFound();
 
   await connectDB();
-  const [related, recommended, latest] = await Promise.all([
+  const [related, topStories, latest] = await Promise.all([
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
       .sort({ publishedAt: -1 })
-      .limit(3)
+      .limit(4)
       .lean(),
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
       .sort({ trending: -1, views: -1, publishedAt: -1 })
-      .limit(3)
+      .limit(5)
       .lean(),
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
       .sort({ publishedAt: -1 })
-      .limit(3)
+      .limit(8)
       .lean()
   ]);
 
   const articleUrl = absoluteUrl(`/news/${article.slug}`);
-  const shareImageUrl = absoluteUrl(`/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`);
   const breadcrumbSchema = articleBreadcrumbs(article);
   const showReportingBasis = article.generationMode !== "manual" || article.author === "Novexa News Desk";
   const schema = generateStructuredData({
@@ -111,26 +116,26 @@ export default async function NewsArticlePage({ params }: Props) {
   });
 
   return (
-    <main className="container max-w-4xl py-8">
+    <main className="container py-7 md:py-10">
       <GoogleSwgBasic />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbSchema }} />
-      <nav className="mb-6 flex flex-wrap gap-2 text-sm font-bold text-muted-foreground" aria-label="Breadcrumb">
-        <a href="/" className="hover:text-primary">Home</a>
+      <nav className="mb-7 flex max-w-5xl flex-wrap gap-2 text-xs font-bold uppercase text-muted-foreground" aria-label="Breadcrumb">
+        <Link href="/" className="hover:text-primary">Home</Link>
         <span>/</span>
-        <a href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-primary">{article.category}</a>
+        <Link href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-primary">{article.category}</Link>
         <span>/</span>
-        <span className="text-foreground">{article.title}</span>
+        <span className="max-w-xl truncate text-foreground">{article.title}</span>
       </nav>
       <article>
-        <div className="mb-6 grid gap-4">
+        <header className="mb-8 grid max-w-5xl gap-4 border-b pb-7">
           <div className="flex flex-wrap gap-2 text-sm font-bold uppercase text-primary">
-            <span>{article.category}</span>
+            <Link href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-foreground">{article.category}</Link>
             {article.subcategory ? <span>/ {article.subcategory}</span> : null}
             {article.breakingNews ? <span className="rounded-sm bg-primary px-2 text-primary-foreground">Breaking</span> : null}
           </div>
-          <h1 className="text-4xl font-black leading-tight md:text-6xl">{article.title}</h1>
-          <p className="text-lg leading-8 text-muted-foreground">{article.excerpt}</p>
+          <h1 className="font-editorial text-4xl font-bold leading-[1.05] md:text-6xl">{article.title}</h1>
+          <p className="max-w-4xl text-lg leading-8 text-muted-foreground md:text-xl">{article.excerpt}</p>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Link
               href={authorProfilePath(article.author)}
@@ -145,87 +150,129 @@ export default async function NewsArticlePage({ params }: Props) {
             <ArticleViewCounter articleId={article._id} initialViews={article.views} />
             <span>{article.readingTime ?? 1} min read</span>
           </div>
-          <ArticleShare title={article.title} url={articleUrl} shareImageUrl={shareImageUrl} />
-        </div>
-        <ArticleImage
-          src={article.image}
-          alt={article.imageAlt || article.title}
-          title={article.title}
-          category={article.category}
-          width={1400}
-          height={820}
-          priority
-          className="aspect-[16/9] w-full rounded-lg object-cover"
-        />
-        {article.imageCredit ? (
-          <p className="mb-8 mt-2 text-sm text-muted-foreground">
-            Image credit: {article.imageCreditUrl ? (
-              <a href={article.imageCreditUrl} target="_blank" rel="nofollow noopener noreferrer" className="underline hover:text-foreground">
-                {article.imageCredit}
-              </a>
-            ) : article.imageCredit}
-          </p>
-        ) : <div className="mb-8" />}
-        <ArticleContent content={article.content} />
-        {article.references?.length ? (
-          <section className="mt-8 border-t pt-5">
-            <h2 className="text-lg font-black">Source links</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {article.references.map((reference) => (
-                <a
-                  key={reference.url}
-                  href={reference.url}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer"
-                  className="rounded-md border border-emerald-600/30 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
-                >
-                  {reference.name}
+          <ArticleShare title={article.title} url={articleUrl} />
+        </header>
+
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,780px)_minmax(280px,1fr)] lg:items-start lg:gap-12">
+          <div className="min-w-0">
+            <ArticleImage
+              src={article.image}
+              alt={article.imageAlt || article.title}
+              title={article.title}
+              category={article.category}
+              width={1400}
+              height={820}
+              priority
+              className="aspect-[16/9] w-full object-cover"
+            />
+            {article.imageCredit ? (
+              <p className="mb-8 mt-2 border-b pb-3 text-xs text-muted-foreground">
+                Image credit: {article.imageCreditUrl ? (
+                  <a href={article.imageCreditUrl} target="_blank" rel="nofollow noopener noreferrer" className="underline hover:text-foreground">
+                    {article.imageCredit}
+                  </a>
+                ) : article.imageCredit}
+              </p>
+            ) : <div className="mb-8" />}
+            <ArticleContent content={article.content} />
+            {article.references?.length ? (
+              <section className="mt-8 border-t pt-5">
+                <h2 className="font-editorial text-xl font-bold">Source links</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {article.references.map((reference) => (
+                    <a
+                      key={reference.url}
+                      href={reference.url}
+                      target="_blank"
+                      rel="nofollow noopener noreferrer"
+                      className="rounded-md border border-emerald-600/30 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                    >
+                      {reference.name}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+            {showReportingBasis && (article.originalSourceName || article.sourceName) ? (
+              <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                Reporting basis: {article.originalSourceUrl || article.sourceUrl ? (
+                  <a href={article.originalSourceUrl || article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
+                    {article.originalSourceName || article.sourceName}
+                  </a>
+                ) : article.originalSourceName || article.sourceName}. Prepared from attributed source material and edited under the {" "}
+                <Link href="/editorial-policy" className="font-semibold underline hover:text-foreground">Novexa News editorial policy</Link>.
+              </aside>
+            ) : null}
+            {article.videoUrl ? (
+              <div className="mt-8 border-y bg-card py-4">
+                <h2 className="font-editorial mb-3 text-xl font-bold">Video</h2>
+                <a href={article.videoUrl} className="font-bold text-primary" target="_blank" rel="noreferrer">
+                  Watch video
                 </a>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        {showReportingBasis && (article.originalSourceName || article.sourceName) ? (
-          <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Reporting basis: {article.originalSourceUrl || article.sourceUrl ? (
-              <a href={article.originalSourceUrl || article.sourceUrl} target="_blank" rel="nofollow noopener noreferrer" className="font-semibold underline hover:text-foreground">
-                {article.originalSourceName || article.sourceName}
-              </a>
-            ) : article.originalSourceName || article.sourceName}. Prepared from attributed source material and edited under the {" "}
-            <Link href="/editorial-policy" className="font-semibold underline hover:text-foreground">Novexa News editorial policy</Link>.
-          </aside>
-        ) : null}
-        {article.videoUrl ? (
-          <div className="mt-8 rounded-lg border bg-card p-4">
-            <h2 className="mb-3 text-xl font-black">Video</h2>
-            <a href={article.videoUrl} className="font-bold text-primary" target="_blank" rel="noreferrer">
-              Watch video
-            </a>
+              </div>
+            ) : null}
+            {article.gallery?.length ? (
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                {article.gallery.map((image) => (
+                  <ArticleImage key={image} src={image} alt={article.imageAlt || article.title} title={article.title} category={article.category} width={900} height={560} className="aspect-[16/10] object-cover" />
+                ))}
+              </div>
+            ) : null}
+            {article.tags?.length ? (
+              <div className="mt-8 flex flex-wrap gap-2 border-t pt-5">
+                {article.tags.map((tag) => (
+                  <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`} className="rounded-md border px-3 py-2 text-sm font-bold transition hover:border-primary hover:text-primary">
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+            <CommentsSection articleId={article._id} allowComments={article.allowComments} />
           </div>
-        ) : null}
-        {article.gallery?.length ? (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {article.gallery.map((image) => (
-              <ArticleImage key={image} src={image} alt={article.imageAlt || article.title} title={article.title} category={article.category} width={900} height={560} className="aspect-[16/10] rounded-lg object-cover" />
-            ))}
-          </div>
-        ) : null}
-        {article.tags?.length ? (
-          <div className="mt-8 flex flex-wrap gap-2">
-            {article.tags.map((tag) => (
-              <span key={tag} className="rounded-md border px-3 py-2 text-sm font-bold">
-                {tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <CommentsSection articleId={article._id} allowComments={article.allowComments} />
+
+          <ArticleSidebar
+            topStories={topStories.map(serializeArticle)}
+            latest={latest.map(serializeArticle)}
+          />
+        </div>
         <ArticleRail title="Related Articles" articles={related.map(serializeArticle)} />
-        <ArticleRail title="Recommended Articles" articles={recommended.map(serializeArticle)} />
-        <ArticleRail title="Latest Articles" articles={latest.map(serializeArticle)} />
       </article>
     </main>
   );
+}
+
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href) && !href.startsWith(absoluteUrl("/"));
+}
+
+/**
+ * Renders inline markdown links so sourced citations become real anchors.
+ * Anything that is not a well-formed http(s) link stays plain text.
+ */
+function renderInline(text: string, keyPrefix: string) {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const [, label, href] = match;
+    nodes.push(
+      <a
+        key={`${keyPrefix}-link-${match.index}`}
+        href={href}
+        className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+        {...(isExternalHref(href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        {label}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes.length ? nodes : text;
 }
 
 function ArticleContent({ content }: { content: string }) {
@@ -242,14 +289,18 @@ function ArticleContent({ content }: { content: string }) {
     <div className="prose prose-slate max-w-none dark:prose-invert">
       {blocks.map((block, index) => {
         if (/^(h2:|##\s+)/i.test(block)) {
-          return <h2 key={`${block}-${index}`} className="mb-4 mt-8 text-3xl font-black">{block.replace(/^(h2:|##\s+)/i, "").trim()}</h2>;
+          return <h2 key={`${block}-${index}`} className="font-editorial mb-4 mt-10 border-t pt-5 text-3xl font-bold">{block.replace(/^(h2:|##\s+)/i, "").trim()}</h2>;
         }
 
         if (/^(h3:|###\s+)/i.test(block)) {
-          return <h3 key={`${block}-${index}`} className="mb-3 mt-6 text-2xl font-black">{block.replace(/^(h3:|###\s+)/i, "").trim()}</h3>;
+          return <h3 key={`${block}-${index}`} className="font-editorial mb-3 mt-7 text-2xl font-bold">{block.replace(/^(h3:|###\s+)/i, "").trim()}</h3>;
         }
 
-        return <p key={`${block}-${index}`} className="mb-5 text-lg leading-8">{block}</p>;
+        return (
+          <p key={`${block}-${index}`} className="font-editorial mb-6 text-[19px] leading-8">
+            {renderInline(block, `${index}`)}
+          </p>
+        );
       })}
     </div>
   );
@@ -257,17 +308,59 @@ function ArticleContent({ content }: { content: string }) {
 function ArticleRail({ title, articles }: { title: string; articles: ReturnType<typeof serializeArticle>[] }) {
   if (!articles.length) return null;
   return (
-    <section className="mt-10 border-t pt-6">
-      <h2 className="mb-4 text-2xl font-black">{title}</h2>
-      <div className="grid gap-4 md:grid-cols-3">
+    <section className="mt-12 border-t-2 border-foreground pt-4">
+      <h2 className="font-editorial mb-5 text-3xl font-bold">{title}</h2>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {articles.map((item) => (
           <a key={item.slug} href={`/news/${item.slug}`} className="group grid gap-2">
-            <ArticleImage src={item.image} alt={item.imageAlt || item.title} title={item.title} category={item.category} width={520} height={320} loading="lazy" className="aspect-[16/10] rounded-lg object-cover" />
-            <span className="font-black leading-tight group-hover:text-primary">{item.title}</span>
+            <ArticleImage src={item.image} alt={item.imageAlt || item.title} title={item.title} category={item.category} width={520} height={320} loading="lazy" className="aspect-[16/10] object-cover" />
+            <span className="font-editorial text-lg font-bold leading-tight group-hover:text-primary">{item.title}</span>
           </a>
         ))}
       </div>
     </section>
+  );
+}
+
+function ArticleSidebar({
+  topStories,
+  latest
+}: {
+  topStories: ReturnType<typeof serializeArticle>[];
+  latest: ReturnType<typeof serializeArticle>[];
+}) {
+  const topSlugs = new Set(topStories.map((item) => item.slug));
+  const recentStories = latest.filter((item) => !topSlugs.has(item.slug)).slice(0, 5);
+
+  return (
+    <aside className="grid gap-9 lg:sticky lg:top-48" aria-label="More news">
+      <section className="border-t-2 border-foreground pt-3">
+        <h2 className="font-editorial border-b pb-3 text-2xl font-bold">Top Stories</h2>
+        <div className="divide-y">
+          {topStories.map((item, index) => (
+            <Link key={item.slug} href={`/news/${item.slug}`} className="group grid grid-cols-[32px_1fr] gap-3 py-4">
+              <span className="font-editorial text-xl font-bold text-primary">{String(index + 1).padStart(2, "0")}</span>
+              <span className="font-editorial text-[17px] font-bold leading-5 group-hover:text-primary">{item.title}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t-2 border-foreground pt-3">
+        <div className="flex items-center justify-between gap-3 border-b pb-3">
+          <h2 className="font-editorial text-2xl font-bold">Latest News</h2>
+          <Link href="/latest" className="text-xs font-black uppercase text-primary hover:text-foreground">More</Link>
+        </div>
+        <div className="divide-y">
+          {recentStories.map((item) => (
+            <Link key={item.slug} href={`/news/${item.slug}`} className="group grid grid-cols-[88px_1fr] gap-3 py-4">
+              <ArticleImage src={item.image} alt={item.imageAlt || item.title} title={item.title} category={item.category} width={176} height={112} loading="lazy" className="aspect-[4/3] object-cover" />
+              <span className="font-editorial text-base font-bold leading-5 group-hover:text-primary">{item.title}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </aside>
   );
 }
 

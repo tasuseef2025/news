@@ -32,7 +32,7 @@ function escapeXml(value = "") {
   return value.replace(/[<>&'"]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[char] || char));
 }
 
-const staticRoutes = ["/about", "/contact", "/privacy-policy", "/terms", "/editorial-policy", "/cookie-policy", "/advertise", "/careers", "/author/abdul-basit", "/author/syeda-manal-tirmizi", "/live-scores"] as const;
+const staticRoutes = ["/latest", "/about", "/contact", "/privacy-policy", "/terms", "/editorial-policy", "/cookie-policy", "/advertise", "/careers", "/author/abdul-basit", "/author/syeda-manal-tirmizi", "/live-scores"] as const;
 
 function validImageUrl(value?: string | null) {
   if (!value) return "";
@@ -90,7 +90,7 @@ export async function GET() {
     .map((url) => `<url><loc>${escapeXml(url.loc)}</loc>${url.lastmod ? `<lastmod>${url.lastmod}</lastmod>` : ""}${url.image ? `<image:image><image:loc>${escapeXml(url.image)}</image:loc></image:image>` : ""}</url>`)
     .join("")}</urlset>`;
 
-  return new Response(xml, { headers: { "Content-Type": "application/xml", "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400" } });
+  return new Response(xml, { headers: { "Content-Type": "application/xml", "Cache-Control": "s-maxage=300, stale-while-revalidate=600" } });
 }
 
 

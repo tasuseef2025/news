@@ -18,22 +18,24 @@ export default async function HomePage() {
   const data = await getHomepageData();
 
   return (
-    <main>
-      <section className="container grid gap-8 py-8 xl:grid-cols-[1fr_340px]">
-        <div className="grid gap-8">
-          <AdvertisementSlot advertisements={data.advertisements} placement="top" />
-          <HeroBreakingSlider articles={data.hero} />
-          <ArticleGrid title="Editor's Picks" articles={data.editorsPicks} />
-        </div>
+    <main className="pb-10">
+      <section className="container py-6 md:py-8">
+        <AdvertisementSlot advertisements={data.advertisements} placement="top" />
+        <div className="mt-8 grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">
+          <div className="grid content-start gap-10">
+            <HeroBreakingSlider articles={data.hero} />
+            <ArticleGrid title="Editor's Picks" articles={data.editorsPicks} />
+          </div>
 
-        <aside className="grid content-start gap-6">
-          <RankedList title="Trending News" articles={data.trending} icon="trend" />
-          <AdvertisementSlot advertisements={data.advertisements} placement="sidebar" className="min-h-48" />
-          <CompactArticleList title="Popular Articles" articles={data.popular} />
-        </aside>
+          <aside className="grid content-start gap-8">
+            <RankedList title="Trending News" articles={data.trending} icon="trend" />
+            <CompactArticleList title="Most Read" articles={data.popular.slice(0, 4)} />
+            <AdvertisementSlot advertisements={data.advertisements} placement="sidebar" className="min-h-40" />
+          </aside>
+        </div>
       </section>
 
-      <section className="border-y bg-card">
+      <section className="border-y bg-card/70">
         <div className="container py-10">
           <SectionHeader title="Latest News" href="/latest" />
           {data.latest.length ? (
@@ -48,7 +50,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="container grid gap-10 py-10">
+      <section className="container grid gap-12 py-12">
         <ArticleGrid title="Technology" articles={data.sections.Technology} category="Technology" />
         <ArticleGrid title="Business" articles={data.sections.Business} category="Business" />
         <AdvertisementSlot advertisements={data.advertisements} placement="middle" />

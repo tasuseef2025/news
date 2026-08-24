@@ -88,15 +88,29 @@ function toDateTimeLocal(value?: string) {
   return date.toISOString().slice(0, 16);
 }
 
+function articleFormValues(article?: Article): ArticleFormValues {
+  if (!article) return defaultValues;
+  return {
+    ...defaultValues,
+    ...article,
+    galleryText: article.gallery?.join(", ") ?? "",
+    tagsText: article.tags?.join(", ") ?? "",
+    scheduledAt: toDateTimeLocal(article.scheduledAt)
+  };
+}
+
 export function ArticleManagement({
   initialArticles,
-  permissions
+  permissions,
+  selectedArticleId
 }: {
   initialArticles: Article[];
   permissions: Permission[];
+  selectedArticleId?: string;
 }) {
+  const selectedArticle = initialArticles.find((article) => article._id === selectedArticleId);
   const [articles, setArticles] = useState<Article[]>(initialArticles);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(selectedArticle?._id ?? null);
   const [message, setMessage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<ArticleStatus | null>(null);
@@ -112,7 +126,7 @@ export function ArticleManagement({
     formState: { errors, isSubmitting }
   } = useForm<ArticleFormValues>({
     resolver: zodResolver(articleFormSchema),
-    defaultValues
+    defaultValues: articleFormValues(selectedArticle)
   });
 
   const watched = watch();
@@ -165,13 +179,7 @@ export function ArticleManagement({
   function editArticle(article: Article) {
     setEditingId(article._id ?? null);
     setMessage("");
-    reset({
-      ...defaultValues,
-      ...article,
-      galleryText: article.gallery?.join(", ") ?? "",
-      tagsText: article.tags?.join(", ") ?? "",
-      scheduledAt: toDateTimeLocal(article.scheduledAt)
-    });
+    reset(articleFormValues(article));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 

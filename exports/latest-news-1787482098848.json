@@ -1,0 +1,173 @@
+{
+  "summary": {
+    "generatedAt": "2026-08-23T10:48:18.839Z",
+    "mode": "dry-run",
+    "selected": 16,
+    "published": 14,
+    "held": 2,
+    "averageWords": 643,
+    "averageLinks": 0.1,
+    "byCategory": {
+      "World": 2,
+      "Business": 2,
+      "Football": 1,
+      "Space": 2,
+      "Startups": 2,
+      "Technology": 2,
+      "Sports": 2,
+      "Pakistan": 1
+    },
+    "headlines": [
+      "[World] Artemis II crew to receive top US space medal for historic lunar journey",
+      "[World] Russia withdraws ambassador to UK as Kremlin ratchets pressure over Ukraine support",
+      "[Business] ‘Pretty shambolic’: new EU border checks cause stress for UK travellers",
+      "[Football] Lincoln spirits soar despite defeat on second-tier return 65 years in the making",
+      "[Business] First Bus bans under-16s in Stoke-on-Trent travelling alone after 6pm after disorder",
+      "[Space] Curiosity Blog, Sols 4982–4987: Back to Our Regularly Scheduled Programming",
+      "[Startups] Two years after launch, Walmart’s Flipkart is closing in on India’s quick-commerce leaders",
+      "[Startups] Harvard’s $699 startup bootcamp offers AI avatars of its instructors",
+      "[Technology] Let there be sunlight: Vatican plans solar and agriculture plant to cover its electricity needs",
+      "[Technology] Chinese robot beats Usain Bolt's 100m world record in test run",
+      "[Sports] Pakistan roar back to beat Japan",
+      "[Space] APOD: 2026 August 22 – Mostly Perseids",
+      "[Sports] Arshad seeks revival under former coach",
+      "[Pakistan] Snowfall forces suspension of rescue efforts to recover Dr Asma Mushtaq’s body from Spantik"
+    ],
+    "heldReasons": [
+      "extraction too-short",
+      "extraction fetch-failed"
+    ]
+  },
+  "outcomes": [
+    {
+      "category": "World",
+      "host": "theguardian.com",
+      "status": "published",
+      "title": "Artemis II crew to receive top US space medal for historic lunar journey",
+      "words": 501,
+      "links": 1
+    },
+    {
+      "category": "World",
+      "host": "theguardian.com",
+      "status": "published",
+      "title": "Russia withdraws ambassador to UK as Kremlin ratchets pressure over Ukraine support",
+      "words": 454,
+      "links": 0
+    },
+    {
+      "category": "Football",
+      "host": "theguardian.com",
+      "status": "held",
+      "title": "Isak returns to Newcastle with Liverpool, Premier League buildup, and more – matchday live",
+      "words": 63,
+      "links": 0,
+      "reason": "extraction too-short"
+    },
+    {
+      "category": "Business",
+      "host": "theguardian.com",
+      "status": "published",
+      "title": "‘Pretty shambolic’: new EU border checks cause stress for UK travellers",
+      "words": 1589,
+      "links": 0
+    },
+    {
+      "category": "Football",
+      "host": "theguardian.com",
+      "status": "published",
+      "title": "Lincoln spirits soar despite defeat on second-tier return 65 years in the making",
+      "words": 819,
+      "links": 0
+    },
+    {
+      "category": "Business",
+      "host": "theguardian.com",
+      "status": "published",
+      "title": "First Bus bans under-16s in Stoke-on-Trent travelling alone after 6pm after disorder",
+      "words": 903,
+      "links": 0
+    },
+    {
+      "category": "Space",
+      "host": "science.nasa.gov",
+      "status": "published",
+      "title": "Curiosity Blog, Sols 4982–4987: Back to Our Regularly Scheduled Programming",
+      "words": 659,
+      "links": 0
+    },
+    {
+      "category": "Startups",
+      "host": "techcrunch.com",
+      "status": "published",
+      "title": "Two years after launch, Walmart’s Flipkart is closing in on India’s quick-commerce leaders",
+      "words": 961,
+      "links": 1
+    },
+    {
+      "category": "Startups",
+      "host": "techcrunch.com",
+      "status": "published",
+      "title": "Harvard’s $699 startup bootcamp offers AI avatars of its instructors",
+      "words": 209,
+      "links": 0
+    },
+    {
+      "category": "Technology",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "title": "Let there be sunlight: Vatican plans solar and agriculture plant to cover its electricity needs",
+      "words": 493,
+      "links": 0
+    },
+    {
+      "category": "Technology",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "title": "Chinese robot beats Usain Bolt's 100m world record in test run",
+      "words": 236,
+      "links": 0
+    },
+    {
+      "category": "Sports",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "title": "Pakistan roar back to beat Japan",
+      "words": 426,
+      "links": 0
+    },
+    {
+      "category": "Space",
+      "host": "science.nasa.gov",
+      "status": "published",
+      "title": "APOD: 2026 August 22 – Mostly Perseids",
+      "words": 188,
+      "links": 0
+    },
+    {
+      "category": "Sports",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "title": "Arshad seeks revival under former coach",
+      "words": 612,
+      "links": 0
+    },
+    {
+      "category": "Pakistan",
+      "host": "tribune.com.pk",
+      "status": "published",
+      "title": "Snowfall forces suspension of rescue efforts to recover Dr Asma Mushtaq’s body from Spantik",
+      "words": 949,
+      "links": 0
+    },
+    {
+      "category": "Pakistan",
+      "host": "tribune.com.pk",
+      "status": "held",
+      "title": "Gill, Padikkal fifties put India in control in Colombo",
+      "words": 0,
+      "links": 0,
+      "reason": "extraction fetch-failed"
+    }
+  ]
+}

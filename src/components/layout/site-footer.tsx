@@ -2,6 +2,7 @@
 import { Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import { connectDB } from "@/lib/db";
 import { categorySlug, primaryNavigationCategories } from "@/lib/categories";
+import { publicArticleFilter } from "@/lib/public-articles";
 import { Article } from "@/models/Article";
 import { Tag } from "@/models/Tag";
 import { FooterNewsletter } from "@/components/layout/footer-newsletter";
@@ -41,10 +42,10 @@ async function getFooterData() {
   try {
     await connectDB();
     const [latestArticles, storedTags, articleTags] = await Promise.all([
-      Article.find({ status: "published" }).select("title slug").sort({ publishedAt: -1 }).limit(5).lean(),
+      Article.find(publicArticleFilter()).select("title slug").sort({ publishedAt: -1 }).limit(5).lean(),
       Tag.find().select("name slug").sort({ name: 1 }).limit(12).lean(),
       Article.aggregate([
-        { $match: { status: "published" } },
+        { $match: publicArticleFilter() },
         { $unwind: "$tags" },
         { $group: { _id: "$tags", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
