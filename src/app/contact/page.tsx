@@ -4,8 +4,8 @@ import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Contact Novexa News for editorial queries, corrections, advertising and partnership requests.",
+  title: "Contact Novexa News Editorial and Business Teams",
+  description: "Contact Novexa News for editorial queries, correction requests, advertising proposals, business partnerships, media questions and general feedback.",
   alternates: { canonical: absoluteUrl("/contact") }
 };
 

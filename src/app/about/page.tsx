@@ -4,8 +4,8 @@ import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "About Us",
-  description: "Learn about Novexa News, our mission, founder and commitment to reliable digital journalism.",
+  title: "About Novexa News and Our Editorial Mission",
+  description: "Learn about Novexa News, our founder, editorial team, publishing mission and commitment to reliable digital journalism across Pakistan, world, business, technology, sports and lifestyle coverage.",
   alternates: { canonical: absoluteUrl("/about") }
 };
 

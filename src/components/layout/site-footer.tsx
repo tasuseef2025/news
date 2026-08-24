@@ -157,7 +157,7 @@ export async function SiteFooter() {
                 {popularTags.map((tag) => (
                   <Link
                     key={tag.slug}
-                    href={`/api/search?q=${encodeURIComponent(tag.name)}`}
+                    href={`/search?q=${encodeURIComponent(tag.name)}`}
                     className="rounded-md border bg-background px-3 py-2 text-xs font-black text-muted-foreground transition hover:bg-muted hover:text-primary"
                   >
                     {tag.name}

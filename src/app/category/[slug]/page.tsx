@@ -16,7 +16,6 @@ type Props = {
 };
 
 const PAGE_SIZE = 18;
-const MIN_INDEXABLE_ARTICLES = 2;
 
 function resolveCategory(slug: string) {
   return categories.find((category) => categorySlug(category) === slug);
@@ -28,7 +27,7 @@ function pageNumber(value?: string) {
 }
 
 function categoryDescription(category: string) {
-  return `Latest ${category} reporting, verified updates and analysis from ${siteConfig.name}.`;
+  return `Read the latest ${category} news, verified updates, explainers and analysis from ${siteConfig.name}, with reviewed coverage organized for fast scanning and search.`;
 }
 
 async function categoryCount(category: string) {
@@ -52,10 +51,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const count = await categoryCount(category);
   const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
   const description = categoryDescription(category);
-  const indexable = count >= MIN_INDEXABLE_ARTICLES && (page - 1) * PAGE_SIZE < count;
+  const indexable = page === 1 || (count > 0 && (page - 1) * PAGE_SIZE < count);
 
   return {
-    title: page > 1 ? `${category} News - Page ${page}` : `${category} News`,
+    title: page > 1 ? `${category} News and Latest Updates - Page ${page}` : `${category} News and Latest Updates`,
     description,
     alternates: { canonical },
     robots: { index: indexable, follow: true },
@@ -125,7 +124,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       ) : (
         <section className="border-y py-10">
           <h2 className="text-xl font-bold">Coverage is being prepared</h2>
-          <p className="mt-2 text-muted-foreground">No reviewed stories are published in this section yet.</p>
+          <p className="mt-2 max-w-3xl text-muted-foreground">
+            This section is reserved for reviewed {category.toLowerCase()} coverage. New stories appear here after editorial review, source checks, SEO metadata validation and image-alt checks.
+          </p>
+          <p className="mt-2 max-w-3xl text-muted-foreground">
+            You can continue with the latest Novexa News homepage while this category is being expanded with fresh reporting and verified updates.
+          </p>
           <Link href="/" className="mt-4 inline-block font-semibold text-primary">Return to the latest news</Link>
         </section>
       )}

@@ -5,7 +5,7 @@ import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions",
-  description: "Read the terms and conditions for using Novexa News.",
+  description: "Read the terms and conditions for using Novexa News, including website access rules, content limits, intellectual property, disclaimers and contact information.",
   alternates: { canonical: absoluteUrl("/terms") }
 };
 

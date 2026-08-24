@@ -5,7 +5,7 @@ import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Editorial Policy",
-  description: "Learn about Novexa News editorial standards, corrections, attribution and AI-assisted publishing approach.",
+  description: "Learn about Novexa News editorial standards for accuracy, attribution, corrections, responsible AI-assisted publishing, authorship, source transparency and independence.",
   alternates: { canonical: absoluteUrl("/editorial-policy") }
 };
 

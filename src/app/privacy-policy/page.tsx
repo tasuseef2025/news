@@ -4,8 +4,8 @@ import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "Read the Novexa News privacy policy and how we handle data, analytics, cookies and communications.",
+  title: "Novexa News Privacy Policy and Data Practices",
+  description: "Read the Novexa News privacy policy covering visitor data, analytics, cookies, advertising technologies, communications, service providers and contact options.",
   alternates: { canonical: absoluteUrl("/privacy-policy") }
 };
 

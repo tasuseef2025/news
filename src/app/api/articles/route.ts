@@ -9,6 +9,7 @@ import { Article } from "@/models/Article";
 import { hasPermission } from "@/lib/permissions";
 import { normalizeArticlePayload } from "@/lib/content-automation";
 import { publishArticleToX } from "@/lib/x-publishing";
+import { validatePublishReadiness } from "@/lib/article-quality";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
 
   if (["published", "scheduled"].includes(parsed.data.status) && !hasPermission(role, "publish_articles")) {
     return NextResponse.json({ message: "Missing publish permission" }, { status: 403 });
+  }
+
+  const readiness = validatePublishReadiness({ ...parsed.data, generationMode: parsed.data.generationMode || "manual" });
+  if (!readiness.approved) {
+    return NextResponse.json({ message: "Article failed publish quality checks", errors: readiness.reasons }, { status: 422 });
   }
 
   const data = {

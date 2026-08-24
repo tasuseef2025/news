@@ -25,7 +25,15 @@ export const articleSchema = z.object({
   canonicalUrl: optionalUrl,
   schemaMarkup: z.string().optional().default(""),
   readingTime: z.number().int().min(1).optional().default(1),
-  scheduledAt: z.string().optional().default("")
+  scheduledAt: z.string().optional().default(""),
+  sourceName: z.string().optional().default(""),
+  sourceUrl: optionalUrl,
+  originalSourceName: z.string().optional().default(""),
+  originalSourceUrl: optionalUrl,
+  references: z.array(z.object({ name: z.string().min(1), url: z.string().url(), publishedAt: z.union([z.string(), z.date()]).optional() })).default([]),
+  generationMode: z.enum(["manual", "ai", "feed"]).optional().default("manual"),
+  imageAlt: z.string().optional().default(""),
+  duplicateRisk: z.number().min(0).max(100).optional().default(0)
 });
 
 export const signInSchema = z.object({

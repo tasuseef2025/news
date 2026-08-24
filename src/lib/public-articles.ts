@@ -12,7 +12,11 @@ const maximumDuplicateRisk = Math.min(100, Number(process.env.FEED_MAX_DUPLICATE
 
 const fallbackPhrases = [
   "the story falls under the",
-  "this newsroom brief was automatically prepared from a monitored public feed"
+  "this newsroom brief was automatically prepared from a monitored public feed",
+  "this development is important for readers",
+  "the immediate takeaway is",
+  "for search visitors",
+  "this story continues to attract attention"
 ];
 
 export function publicArticleFilter() {

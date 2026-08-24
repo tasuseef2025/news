@@ -4,8 +4,8 @@ import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Advertise",
-  description: "Advertise with Novexa News across news, technology, business, finance, sports and lifestyle audiences.",
+  title: "Advertise With Novexa News Audiences",
+  description: "Advertise with Novexa News through display placements, sponsored campaigns and partnerships reaching readers across news, technology, business, finance, sports, entertainment and lifestyle.",
   alternates: { canonical: absoluteUrl("/advertise") }
 };
 

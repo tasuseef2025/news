@@ -4,8 +4,8 @@ import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Careers",
-  description: "Explore editorial, technology and partnership opportunities with Novexa News.",
+  title: "Careers and Contributor Opportunities at Novexa News",
+  description: "Explore editorial, contributor, technology, SEO and media partnership opportunities with Novexa News as we build a modern digital publishing platform.",
   alternates: { canonical: absoluteUrl("/careers") }
 };
 

@@ -167,6 +167,24 @@ export default async function NewsArticlePage({ params }: Props) {
           </p>
         ) : <div className="mb-8" />}
         <ArticleContent content={article.content} />
+        {article.references?.length ? (
+          <section className="mt-8 border-t pt-5">
+            <h2 className="text-lg font-black">Source links</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {article.references.map((reference) => (
+                <a
+                  key={reference.url}
+                  href={reference.url}
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                  className="rounded-md border border-emerald-600/30 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                >
+                  {reference.name}
+                </a>
+              ))}
+            </div>
+          </section>
+        ) : null}
         {showReportingBasis && (article.originalSourceName || article.sourceName) ? (
           <aside className="mt-8 border-l-4 border-primary bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             Reporting basis: {article.originalSourceUrl || article.sourceUrl ? (

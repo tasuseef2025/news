@@ -3,8 +3,8 @@ import { StaticPage } from "@/components/static/static-page";
 import { absoluteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Author - Abdul Basit",
-  description: "Read about Abdul Basit, Founder and Editor of Novexa News.",
+  title: "Abdul Basit - Founder and Editor of Novexa News",
+  description: "Read about Abdul Basit, Founder and Editor of Novexa News, including his work in MERN development, DevOps, SEO and modern digital publishing.",
   alternates: { canonical: absoluteUrl("/author/abdul-basit") }
 };
 

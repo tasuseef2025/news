@@ -12,8 +12,18 @@ const GENERIC_FILLER = [
   "editorial review is recommended",
   "the available feed detail is limited",
   "readers following public affairs",
-  "what to watch next",
-  "this newsroom brief was automatically prepared"
+  "this newsroom brief was automatically prepared",
+  "this development is important for readers",
+  "the immediate takeaway is",
+  "the broader lesson is",
+  "for search visitors",
+  "this remains an important update",
+  "readers should keep an eye on",
+  "the development highlights the importance of",
+  "as the situation develops",
+  "this story continues to attract attention",
+  "the implications could be significant",
+  "it remains to be seen what happens next"
 ];
 
 export type QualityAssessment = {
@@ -25,6 +35,31 @@ export type QualityAssessment = {
   factualConfidence: number;
   duplicateRisk: number;
   wordCount: number;
+};
+
+export type PublishReadinessInput = {
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  content?: string;
+  author?: string;
+  category?: string;
+  image?: string;
+  imageAlt?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  canonicalUrl?: string;
+  ogImage?: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  originalSourceName?: string;
+  originalSourceUrl?: string;
+  references?: Array<{ name?: string; url?: string }>;
+  tags?: string[];
+  status?: string;
+  generationMode?: "manual" | "ai" | "feed";
+  duplicateRisk?: number;
+  reviewStatus?: string;
 };
 
 export function normalizeSourceUrl(value = "") {
@@ -80,6 +115,77 @@ function repeatedParagraphRatio(content = "") {
   return (paragraphs.length - unique.size) / paragraphs.length;
 }
 
+function normalizedSentences(value = "") {
+  return cleanText(value)
+    .split(/[.!?]\s+/)
+    .map(normalizedText)
+    .filter((sentence) => sentence.length > 25);
+}
+
+function sentenceRepeatRatio(content = "") {
+  const sentences = normalizedSentences(content);
+  if (sentences.length < 4) return 0;
+  const unique = new Set(sentences);
+  return (sentences.length - unique.size) / sentences.length;
+}
+
+function topKeywordDensity(input: PublishReadinessInput) {
+  const titleWords = significantWords(input.title || "");
+  const contentWords = significantWords(input.content || "");
+  if (!titleWords.length || !contentWords.length) return 0;
+  const titleTerms = [...new Set(titleWords)].filter((word) => word.length >= 4);
+  if (!titleTerms.length) return 0;
+  const hits = contentWords.filter((word) => titleTerms.includes(word)).length;
+  return hits / Math.max(1, contentWords.length);
+}
+
+export function genericFillerMatches(content = "") {
+  const normalizedContent = normalizedText(content);
+  return GENERIC_FILLER.filter((phrase) => normalizedContent.includes(phrase));
+}
+
+export function validatePublishReadiness(input: PublishReadinessInput) {
+  const reasons: string[] = [];
+  const status = input.status || "draft";
+  if (!["published", "scheduled"].includes(status)) return { approved: true, reasons };
+
+  const text = cleanText(input.content || "");
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const minimumWords = Math.max(300, Number(process.env.PUBLISH_MIN_WORDS || process.env.FEED_MIN_PUBLISH_WORDS || 500));
+  const metaTitleLength = cleanText(input.metaTitle || "").length;
+  const metaDescriptionLength = cleanText(input.metaDescription || "").length;
+  const repeatedRatio = Math.max(repeatedParagraphRatio(input.content || ""), sentenceRepeatRatio(input.content || ""));
+  const fillerMatches = genericFillerMatches(input.content || "");
+  const sources = [
+    input.sourceUrl,
+    input.originalSourceUrl,
+    ...(input.references || []).map((reference) => reference.url)
+  ].filter(Boolean);
+  const externallyBased = input.generationMode !== "manual" || Boolean(input.sourceName || input.sourceUrl || input.originalSourceName || input.originalSourceUrl);
+
+  if (words < minimumWords) reasons.push(`Article has ${words} words; minimum for publishing is ${minimumWords}`);
+  if (!cleanText(input.title || "") || cleanText(input.title || "").length < 8) reasons.push("Headline is missing or too short");
+  if (!cleanText(input.excerpt || "") || cleanText(input.excerpt || "").length < 80) reasons.push("Excerpt is missing or too thin");
+  if (!cleanText(input.author || "")) reasons.push("Author is missing");
+  if (!cleanText(input.category || "")) reasons.push("Category is missing");
+  if (!input.image) reasons.push("Article image is missing");
+  if (!cleanText(input.imageAlt || "") || cleanText(input.imageAlt || "").length < 20) reasons.push("Image alt text is missing or too thin");
+  if (metaTitleLength < 30 || metaTitleLength > 70) reasons.push("Meta title should be 30-70 characters");
+  if (metaDescriptionLength < 120 || metaDescriptionLength > 170) reasons.push("Meta description should be 120-170 characters");
+  if (!input.canonicalUrl || !String(input.canonicalUrl).includes("/news/")) reasons.push("Self-referencing article canonical URL is missing");
+  if (!input.ogImage) reasons.push("Open Graph image is missing");
+  if (externallyBased && sources.length === 0) reasons.push("Externally sourced articles need at least one source URL or reference");
+  if (repeatedRatio > 0.12) reasons.push("Article has repeated paragraphs or sentences");
+  if (fillerMatches.length) reasons.push("Article contains generic AI/editorial filler");
+  if (Number(input.duplicateRisk || 0) > Number(process.env.FEED_MAX_DUPLICATE_RISK || 72)) reasons.push("Duplicate-story risk is too high");
+  if (topKeywordDensity(input) > 0.12) reasons.push("Potential keyword stuffing detected");
+
+  return {
+    approved: reasons.length === 0,
+    reasons: [...new Set(reasons)]
+  };
+}
+
 export function assessArticleQuality(input: {
   title: string;
   content: string;
@@ -98,7 +204,7 @@ export function assessArticleQuality(input: {
   const titleContentScore = textSimilarity(input.title, input.content.slice(0, 1800));
   const sourceTitleSimilarity = textSimilarity(input.title, input.sourceTitle);
   const repeatedRatio = repeatedParagraphRatio(input.content);
-  const fillerMatches = GENERIC_FILLER.filter((phrase) => normalizedContent.includes(phrase));
+  const fillerMatches = genericFillerMatches(input.content);
   const duplicateRisk = Math.round(Math.max(input.duplicateSimilarity || 0, sourceTitleSimilarity * 0.45) * 100);
 
   if (!input.sourceUrl) reasons.push("Missing original source URL");

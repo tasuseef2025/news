@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessArticleQuality, normalizeSourceUrl, textSimilarity } from "../src/lib/article-quality";
+import { assessArticleQuality, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
 import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
 
 test("normalizes source URLs and removes tracking parameters", () => {
@@ -35,6 +35,38 @@ test("rejects repeated newsroom automation filler", () => {
   });
   assert.equal(result.approved, false);
   assert.ok(result.reasons.some((reason) => reason.includes("automation filler")));
+});
+
+test("blocks thin published articles at publish readiness gate", () => {
+  const result = validatePublishReadiness({
+    status: "published",
+    title: "Officials announce a new transport plan",
+    slug: "officials-announce-new-transport-plan",
+    excerpt: "Officials announced a new transport plan with updated service information for passengers.",
+    content: "Officials announced a new transport plan. More details are expected later.",
+    category: "Pakistan",
+    author: "Novexa News Desk",
+    image: "https://res.cloudinary.com/example/image/upload/news.png",
+    imageAlt: "Public transport vehicles at a city terminal",
+    metaTitle: "Officials Announce New Transport Plan",
+    metaDescription: "Officials announced a new transport plan with updated service information, route details and passenger guidance for affected areas.",
+    canonicalUrl: "https://www.novexa.news/news/officials-announce-new-transport-plan",
+    ogImage: "https://res.cloudinary.com/example/image/upload/news.png",
+    generationMode: "manual"
+  });
+
+  assert.equal(result.approved, false);
+  assert.ok(result.reasons.some((reason) => reason.includes("minimum")));
+});
+
+test("allows drafts to remain flexible before publishing", () => {
+  const result = validatePublishReadiness({
+    status: "draft",
+    title: "Working draft",
+    content: "Short notes"
+  });
+
+  assert.equal(result.approved, true);
 });
 
 test("prioritizes relevant trending feed candidates", () => {

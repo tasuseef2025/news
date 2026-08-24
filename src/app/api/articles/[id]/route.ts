@@ -10,6 +10,7 @@ import { normalizeArticleUpdate } from "@/lib/content-automation";
 import { publishArticleToX } from "@/lib/x-publishing";
 import { absoluteUrl } from "@/lib/utils";
 import { ArticleRevision } from "@/models/ArticleRevision";
+import { validatePublishReadiness } from "@/lib/article-quality";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -63,6 +64,18 @@ export async function PATCH(request: Request, { params }: Params) {
 
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid payload", errors: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const mergedForValidation = {
+    ...existing.toObject(),
+    ...parsed.data,
+    status: parsed.data.status || existing.status,
+    slug: existing.status === "published" ? existing.slug : parsed.data.slug || existing.slug,
+    canonicalUrl: existing.status === "published" ? absoluteUrl(`/news/${existing.slug}`) : parsed.data.canonicalUrl || existing.canonicalUrl
+  };
+  const readiness = validatePublishReadiness(mergedForValidation);
+  if (!readiness.approved) {
+    return NextResponse.json({ message: "Article failed publish quality checks", errors: readiness.reasons }, { status: 422 });
   }
 
   const update = {

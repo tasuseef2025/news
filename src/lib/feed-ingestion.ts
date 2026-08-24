@@ -513,7 +513,7 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
           {
             role: "system",
             content:
-              "You are a senior digital news editor for Novexa News. Treat RSS metadata as source material, not prose to paraphrase. Extract only supported factual claims, then create genuinely original structure and wording. Never copy sentences, paragraph order, thumbnails, or distinctive phrasing. Never invent facts, quotes, numbers, dates, allegations, causes, reactions, or outcomes. Do not claim on-the-ground or independent reporting. If the supplied evidence cannot support a useful article, set approved to false. Prioritize information value over length and return only valid JSON."
+              "You are a senior digital news editor and SEO content quality controller for Novexa News. Treat RSS metadata as source material, not prose to paraphrase. Extract only supported factual claims, then create genuinely original structure and wording. Never copy sentences, paragraph order, thumbnails, or distinctive phrasing. Never invent facts, quotes, numbers, dates, allegations, causes, reactions, or outcomes. Do not claim on-the-ground or independent reporting. Do not write generic AI filler, boilerplate conclusions, keyword-stuffed paragraphs, fake urgency, or repeated templates. If the supplied evidence cannot support a useful article with specific reader value, set approved to false. Prioritize accuracy, originality, source transparency, and information value over length. Return only valid JSON."
           },
           {
             role: "user",
@@ -559,13 +559,17 @@ Editorial rules:
 - Do not copy sentences, distinctive phrasing, article structure, images, thumbnails, or the source headline.
 - Rewrite the headline with a clearly different angle and wording while keeping verified facts accurate.
 - Use the researched primary keyword naturally in the title, introduction, one heading, metadata, and body only when grammar and facts support it.
+- Never keyword-stuff or create awkward SEO sentences.
+- Do not use generic filler such as "the immediate takeaway is", "this development is important for readers", "as the situation develops", "the implications could be significant", or "it remains to be seen what happens next" unless the sentence contains specific verified information.
+- Do not force the same section template onto every story. Choose headings that fit the story type and omit sections that add no specific value.
 - Do not claim a query is trending or mention search volume inside the article.
 - Never change the story angle or introduce unrelated facts merely to fit a high-volume keyword.
 - Do not paraphrase the RSS summary sentence by sentence or preserve its structure.
-- Explain why the story matters and add background only when that context is supported by the supplied source metadata.
+- Explain why the story matters and add background only when that context is specific, relevant, and supported by the supplied source metadata.
 - A publishable article must contain at least ${minimumWords} words. Use the available verified facts to add useful explanation and supported context, not repetition.
 - If the evidence cannot support at least ${minimumWords} factual words, return qualityAssessment.approved=false instead of adding filler or inventing details.
 - Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
+- Before approving, ask whether Novexa's version gives a reader clearer context, useful explanation, or better organization than the original metadata. If not, set approved=false.
 - Do not say the article was written by AI.
 - Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
 - Do not include any image URL.`
