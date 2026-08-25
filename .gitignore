@@ -38,3 +38,6 @@ backups/
 # local analysis/build artifacts
 .tmp-*/
 tsconfig.tsbuildinfo
+
+.vercel
+.env.local

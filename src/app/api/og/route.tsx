@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { siteConfig } from "@/lib/site";
 
 export const runtime = "edge";
+export const revalidate = 86400;
+export const maxDuration = 10;
 
 function clampText(value: string, max: number) {
   return value.length > max ? `${value.slice(0, max).replace(/\s+\S*$/, "")}...` : value;

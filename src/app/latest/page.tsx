@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleCard } from "@/features/articles/article-card";
 import { connectDB } from "@/lib/db";
-import { serializeArticle } from "@/lib/articles";
+import { articleCardFields, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 import { Article } from "@/models/Article";
@@ -14,6 +14,8 @@ type Props = {
 };
 
 const PAGE_SIZE = 24;
+
+export const revalidate = 300;
 
 function pageNumber(value?: string) {
   const page = Number.parseInt(value || "1", 10);
@@ -55,14 +57,16 @@ export default async function LatestNewsPage({ searchParams }: Props) {
   await connectDB();
 
   const filter = publicArticleFilter();
-  const [docs, total] = await Promise.all([
-    Article.find(filter).sort({ publishedAt: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
-    Article.countDocuments(filter)
-  ]);
+  const docs = await Article.find(filter)
+    .select(articleCardFields)
+    .sort({ publishedAt: -1 })
+    .skip((page - 1) * PAGE_SIZE)
+    .limit(PAGE_SIZE + 1)
+    .lean();
   if (page > 1 && !docs.length) notFound();
 
-  const articles = docs.map(serializeArticle);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasNextPage = docs.length > PAGE_SIZE;
+  const articles = docs.slice(0, PAGE_SIZE).map(serializeArticle);
   const canonical = absoluteUrl(`/latest${page > 1 ? `?page=${page}` : ""}`);
   const collectionJsonLd = {
     "@context": "https://schema.org",
@@ -106,11 +110,11 @@ export default async function LatestNewsPage({ searchParams }: Props) {
           </p>
         </section>
       )}
-      {totalPages > 1 ? (
+      {page > 1 || hasNextPage ? (
         <nav aria-label="Latest news pagination" className="mt-12 flex items-center justify-between border-t pt-5">
           {page > 1 ? <Link rel="prev" href={`/latest${page > 2 ? `?page=${page - 1}` : ""}`} className="font-bold hover:text-primary">Previous</Link> : <span />}
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          {page < totalPages ? <Link rel="next" href={`/latest?page=${page + 1}`} className="font-bold hover:text-primary">Next</Link> : <span />}
+          <span className="text-sm text-muted-foreground">Page {page}</span>
+          {hasNextPage ? <Link rel="next" href={`/latest?page=${page + 1}`} className="font-bold hover:text-primary">Next</Link> : <span />}
         </nav>
       ) : null}
     </main>

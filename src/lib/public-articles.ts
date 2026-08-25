@@ -23,20 +23,7 @@ export function publicArticleFilter() {
     status: "published",
     reviewStatus: "approved",
     generationMode: { $in: ["manual", "ai"] },
-    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } },
-    $expr: {
-      $gte: [
-        {
-          $size: {
-            $regexFindAll: {
-              input: { $ifNull: ["$content", ""] },
-              regex: /\S+/
-            }
-          }
-        },
-        minimumIndexWords
-      ]
-    }
+    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } }
   };
 }
 

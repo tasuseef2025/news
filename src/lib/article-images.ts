@@ -14,7 +14,8 @@ const lowRiskImageHosts = [
 ];
 
 export function generatedOgImagePath(title = "Novexa News", category = "News") {
-  return `/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}`;
+  const fallbackTitle = title === "Novexa News" ? title : `${category || "News"} News`;
+  return `/api/og?title=${encodeURIComponent(fallbackTitle)}&category=${encodeURIComponent(category)}`;
 }
 
 export function generatedOgImageUrl(title = "Novexa News", category = "News") {

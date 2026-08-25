@@ -1,4 +1,3 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { publishDueScheduledArticles, serializeArticle } from "@/lib/articles";
 import { Article as ArticleModel } from "@/models/Article";
@@ -7,6 +6,8 @@ import type { Advertisement, Article } from "@/types";
 import { categories, categorySlug, homepageCategories } from "@/lib/categories";
 import { safeArticleImage } from "@/lib/article-images";
 import { publicArticleFilter } from "@/lib/public-articles";
+
+const homepageArticleFields = "title slug excerpt category author image imageAlt tags publishedAt updatedAt views readingTime featured trending breakingNews";
 
 export type CategoryCard = {
   name: string;
@@ -51,6 +52,7 @@ async function findArticles(
   options?: { limit?: number; sort?: Record<string, 1 | -1> }
 ) {
   const docs = await ArticleModel.find({ ...publicArticleFilter(), ...query })
+    .select(homepageArticleFields)
     .sort(options?.sort ?? { publishedAt: -1 })
     .limit(options?.limit ?? 6)
     .lean();
@@ -59,8 +61,6 @@ async function findArticles(
 }
 
 export async function getHomepageData(): Promise<HomepageData> {
-  noStore();
-
   const emptySections = Object.fromEntries(homepageCategories.map((category) => [category, []]));
 
   try {
@@ -76,14 +76,14 @@ export async function getHomepageData(): Promise<HomepageData> {
       categoryStats,
       advertisements
     ] = await Promise.all([
-      findArticles({ $or: [{ category: /^Breaking News$/i }, { featured: true }] }, { limit: 5 }),
+      findArticles({ $or: [{ category: "Breaking News" }, { featured: true }] }, { limit: 5 }),
       findArticles({ trending: true }, { limit: 6, sort: { views: -1, publishedAt: -1 } }),
       findArticles({ featured: true }, { limit: 6 }),
       findArticles({}, { limit: 8 }),
       Promise.all(
         homepageCategories.map(async (category) => [
           category,
-          await findArticles({ category: new RegExp(`^${category}$`, "i") }, { limit: category === "Videos" ? 4 : 3 })
+          await findArticles({ category }, { limit: category === "Videos" ? 4 : 3 })
         ])
       ),
       ArticleModel.aggregate([

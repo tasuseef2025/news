@@ -14,6 +14,8 @@ import { getHomepageData } from "@/lib/homepage";
 import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
 import { InteractiveWidgetsPanel } from "@/features/widgets/interactive-widgets-panel";
 
+export const revalidate = 300;
+
 export default async function HomePage() {
   const data = await getHomepageData();
 

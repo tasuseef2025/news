@@ -1,9 +1,10 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Article as ArticleModel } from "@/models/Article";
 import type { Article } from "@/types";
 import { safeArticleImage, safeArticleOgImage } from "@/lib/article-images";
 import { publicArticleFilter } from "@/lib/public-articles";
+
+export const articleCardFields = "title slug excerpt category author image imageAlt tags publishedAt updatedAt views readingTime featured trending breakingNews";
 
 export async function publishDueScheduledArticles() {
   await ArticleModel.updateMany(
@@ -63,17 +64,16 @@ export async function getArticles(filters?: {
   trending?: boolean;
   sort?: "latest" | "popular";
 }) {
-  noStore();
-
   try {
     await connectDB();
     await publishDueScheduledArticles();
     const query: Record<string, unknown> = publicArticleFilter();
-    if (filters?.category) query.category = new RegExp(`^${filters.category}$`, "i");
+    if (filters?.category) query.category = filters.category;
     if (typeof filters?.featured === "boolean") query.featured = filters.featured;
     if (typeof filters?.trending === "boolean") query.trending = filters.trending;
 
     const docs = await ArticleModel.find(query)
+      .select(articleCardFields)
       .sort(filters?.sort === "popular" ? { views: -1, publishedAt: -1 } : { publishedAt: -1 })
       .limit(filters?.limit ?? 24)
       .lean();
@@ -85,8 +85,6 @@ export async function getArticles(filters?: {
 }
 
 export async function getArticleBySlug(slug: string) {
-  noStore();
-
   try {
     await connectDB();
     await publishDueScheduledArticles();

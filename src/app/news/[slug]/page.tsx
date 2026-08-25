@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { getArticleBySlug, serializeArticle } from "@/lib/articles";
+import { articleCardFields, getArticleBySlug, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 import { articleBreadcrumbs, generateStructuredData } from "@/lib/content-automation";
@@ -19,6 +19,8 @@ import { authorProfilePath } from "@/lib/authors";
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+export const revalidate = 300;
 
 function displayImage(value: string) {
   return value?.startsWith("/") ? absoluteUrl(value) : value;
@@ -92,14 +94,17 @@ export default async function NewsArticlePage({ params }: Props) {
   await connectDB();
   const [related, topStories, latest] = await Promise.all([
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug }, $or: [{ category: article.category }, { tags: { $in: article.tags || [] } }] })
+      .select(articleCardFields)
       .sort({ publishedAt: -1 })
       .limit(4)
       .lean(),
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
+      .select(articleCardFields)
       .sort({ trending: -1, views: -1, publishedAt: -1 })
       .limit(5)
       .lean(),
     Article.find({ ...publicArticleFilter(), slug: { $ne: article.slug } })
+      .select(articleCardFields)
       .sort({ publishedAt: -1 })
       .limit(8)
       .lean()

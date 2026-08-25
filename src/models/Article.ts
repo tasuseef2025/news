@@ -133,6 +133,9 @@ const articleSchema = new Schema<ArticleDocument>(
 );
 
 articleSchema.index({ title: "text", excerpt: "text", content: "text" });
+articleSchema.index({ status: 1, reviewStatus: 1, generationMode: 1, publishedAt: -1 });
+articleSchema.index({ status: 1, reviewStatus: 1, generationMode: 1, category: 1, publishedAt: -1 });
+articleSchema.index({ status: 1, reviewStatus: 1, generationMode: 1, trending: 1, views: -1, publishedAt: -1 });
 articleSchema.index({ sourceUrl: 1 }, { unique: true, sparse: true });
 articleSchema.index({ originalSourceUrl: 1 }, { unique: true, sparse: true });
 articleSchema.index({ sourceGuid: 1, rssFeedUrl: 1 }, { unique: true, partialFilterExpression: { sourceGuid: { $type: "string" }, rssFeedUrl: { $type: "string" } } });

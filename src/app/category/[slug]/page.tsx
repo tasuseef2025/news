@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleCard } from "@/features/articles/article-card";
 import { connectDB } from "@/lib/db";
-import { serializeArticle } from "@/lib/articles";
+import { articleCardFields, serializeArticle } from "@/lib/articles";
 import { categories, categorySlug } from "@/lib/categories";
 import { siteConfig } from "@/lib/site";
 import { absoluteUrl } from "@/lib/utils";
@@ -16,6 +16,13 @@ type Props = {
 };
 
 const PAGE_SIZE = 18;
+
+export const revalidate = 300;
+export const dynamicParams = true;
+
+export function generateStaticParams() {
+  return categories.map((category) => ({ slug: categorySlug(category) }));
+}
 
 function resolveCategory(slug: string) {
   return categories.find((category) => categorySlug(category) === slug);
@@ -30,34 +37,20 @@ function categoryDescription(category: string) {
   return `Read the latest ${category} news, verified updates, explainers and analysis from ${siteConfig.name}, with reviewed coverage organized for fast scanning and search.`;
 }
 
-async function categoryCount(category: string) {
-  try {
-    await connectDB();
-    return await Article.countDocuments({
-      ...publicArticleFilter(),
-      category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-    });
-  } catch {
-    return 0;
-  }
-}
-
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const category = resolveCategory(slug);
   if (!category) return { title: "Section not found", robots: { index: false, follow: false } };
 
   const page = pageNumber(query.page);
-  const count = await categoryCount(category);
   const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
   const description = categoryDescription(category);
-  const indexable = page === 1 || (count > 0 && (page - 1) * PAGE_SIZE < count);
 
   return {
     title: page > 1 ? `${category} News and Latest Updates - Page ${page}` : `${category} News and Latest Updates`,
     description,
     alternates: { canonical },
-    robots: { index: indexable, follow: true },
+    robots: { index: true, follow: true },
     openGraph: {
       title: `${category} News | ${siteConfig.name}`,
       description,
@@ -78,16 +71,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   await connectDB();
   const filter = {
     ...publicArticleFilter(),
-    category: new RegExp(`^${category.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+    category
   };
-  const [docs, total] = await Promise.all([
-    Article.find(filter).sort({ publishedAt: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
-    Article.countDocuments(filter)
-  ]);
+  const docs = await Article.find(filter)
+    .select(articleCardFields)
+    .sort({ publishedAt: -1 })
+    .skip((page - 1) * PAGE_SIZE)
+    .limit(PAGE_SIZE + 1)
+    .lean();
   if (page > 1 && !docs.length) notFound();
 
-  const articles = docs.map(serializeArticle);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasNextPage = docs.length > PAGE_SIZE;
+  const articles = docs.slice(0, PAGE_SIZE).map(serializeArticle);
   const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
   const collectionJsonLd = {
     "@context": "https://schema.org",
@@ -133,11 +128,11 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <Link href="/" className="mt-4 inline-block font-semibold text-primary">Return to the latest news</Link>
         </section>
       )}
-      {totalPages > 1 && (
+      {(page > 1 || hasNextPage) && (
         <nav aria-label="Category pagination" className="mt-10 flex items-center justify-between border-t pt-5">
           {page > 1 ? <Link rel="prev" href={`/category/${slug}${page > 2 ? `?page=${page - 1}` : ""}`}>Previous</Link> : <span />}
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          {page < totalPages ? <Link rel="next" href={`/category/${slug}?page=${page + 1}`}>Next</Link> : <span />}
+          <span className="text-sm text-muted-foreground">Page {page}</span>
+          {hasNextPage ? <Link rel="next" href={`/category/${slug}?page=${page + 1}`}>Next</Link> : <span />}
         </nav>
       )}
     </main>

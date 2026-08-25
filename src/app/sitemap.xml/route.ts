@@ -6,7 +6,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
 import { categories, categorySlug } from "@/lib/categories";
 import { safeArticleOgImage } from "@/lib/article-images";
-import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 type SitemapUrl = {
   loc: string;
@@ -18,11 +18,6 @@ type SitemapArticle = {
   slug: string;
   title: string;
   category: string;
-  content: string;
-  duplicateRisk?: number;
-  generationMode?: "manual" | "ai" | "feed";
-  reviewStatus?: "pending" | "approved" | "rejected" | "needs_review";
-  status?: string;
   image?: string | null;
   updatedAt?: Date;
   publishedAt?: Date;
@@ -53,10 +48,10 @@ export async function GET() {
   const publishedFilter = publicArticleFilter();
   const [articles, categoryCounts] = await Promise.all([
     Article.find(publishedFilter)
-    .select("slug title category content image updatedAt publishedAt duplicateRisk generationMode reviewStatus status")
-    .sort({ publishedAt: -1 })
-    .limit(5000)
-    .lean<SitemapArticle[]>(),
+      .select("slug title category image updatedAt publishedAt")
+      .sort({ publishedAt: -1 })
+      .limit(5000)
+      .lean<SitemapArticle[]>(),
     Article.aggregate<{ _id: string; count: number; lastmod?: Date }>([
       { $match: publishedFilter },
       { $group: { _id: "$category", count: { $sum: 1 }, lastmod: { $max: { $ifNull: ["$updatedAt", "$publishedAt"] } } } },
@@ -68,9 +63,8 @@ export async function GET() {
     .map((entry) => entry._id)
     .filter((category): category is string => typeof category === "string" && knownCategories.has(category.toLowerCase()));
 
-  const indexableArticles = articles.filter(isArticleIndexable);
   const urls: SitemapUrl[] = [
-    { loc: absoluteUrl("/"), lastmod: indexableArticles[0] ? new Date(indexableArticles[0].updatedAt || indexableArticles[0].publishedAt || new Date()).toISOString() : undefined },
+    { loc: absoluteUrl("/"), lastmod: articles[0] ? new Date(articles[0].updatedAt || articles[0].publishedAt || new Date()).toISOString() : undefined },
     ...staticRoutes.map((route) => ({ loc: absoluteUrl(route) })),
     ...indexableCategories.map((category) => {
       const stats = categoryCounts.find((entry) => entry._id === category);
@@ -79,7 +73,7 @@ export async function GET() {
         lastmod: stats?.lastmod ? new Date(stats.lastmod).toISOString() : undefined
       };
     }),
-    ...indexableArticles.map((article) => ({
+    ...articles.map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
       lastmod: new Date(article.updatedAt || article.publishedAt || new Date()).toISOString(),
       image: validImageUrl(safeArticleOgImage({ image: article.image || undefined, title: article.title, category: article.category }))
