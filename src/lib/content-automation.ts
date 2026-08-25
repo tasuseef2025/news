@@ -81,6 +81,12 @@ export function generateReadingTime(content = "") {
   return Math.max(1, Math.ceil(words / 220));
 }
 
+export function generateMetaTitle(title = "", max = 55) {
+  const clean = cleanText(title).replace(/\s+\|\s+Novexa News$/i, "").trim() || "Latest News";
+  if (clean.length <= max) return clean;
+  return clean.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "");
+}
+
 export function generateStructuredData(article: Required<Pick<ArticleLike, "title" | "slug">> & ArticleLike) {
   const canonicalUrl = absoluteUrl(`/news/${article.slug}`);
   const authorName = article.author || `${siteConfig.name} Desk`;
@@ -128,7 +134,7 @@ export function normalizeArticlePayload<T extends ArticleLike>(payload: T) {
   const title = payload.title?.trim() || "Untitled Article";
   const slug = payload.slug?.trim() ? generateSlug(payload.slug) : generateSlug(title);
   const excerpt = payload.excerpt?.trim() || generateExcerpt(payload.content || title, 220);
-  const metaTitle = payload.metaTitle?.trim() || title.slice(0, 70);
+  const metaTitle = payload.metaTitle?.trim() || generateMetaTitle(title);
   const metaDescription = payload.metaDescription?.trim() || generateExcerpt(excerpt || payload.content || title, 160);
   const canonicalUrl = absoluteUrl(`/news/${slug}`);
   const ogImage = payload.ogImage?.trim() || absoluteUrl(`/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent(payload.category || "News")}`);
@@ -166,7 +172,7 @@ export function normalizeArticleUpdate<T extends ArticleLike>(payload: T) {
     const title = payload.title?.trim();
     if (title) next.title = title;
     next.slug = payload.slug?.trim() ? generateSlug(payload.slug) : title ? generateSlug(title) : payload.slug;
-    if (title && !payload.metaTitle?.trim()) next.metaTitle = title.slice(0, 70);
+    if (title && !payload.metaTitle?.trim()) next.metaTitle = generateMetaTitle(title);
   }
   if (payload.content !== undefined && !payload.readingTime) {
     next.readingTime = generateReadingTime(payload.content || "");
