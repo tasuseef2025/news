@@ -1,3 +1,5 @@
+import { inspectArticleContent } from "@/lib/article-quality";
+
 type PublicArticleLike = {
   content?: string;
   duplicateRisk?: number;
@@ -6,7 +8,7 @@ type PublicArticleLike = {
   status?: string;
 };
 
-const minimumIndexWords = Math.max(300, Number(process.env.SEO_MIN_INDEX_WORDS || 500));
+const minimumIndexWords = Math.max(50, Number(process.env.SEO_ABSOLUTE_MIN_INDEX_WORDS || 100));
 const maximumDuplicateRisk = Math.min(100, Number(process.env.FEED_MAX_DUPLICATE_RISK || 72));
 
 const fallbackPhrases = [
@@ -18,24 +20,48 @@ const fallbackPhrases = [
   "this story continues to attract attention"
 ];
 
+const discoveryBlockPattern = new RegExp(
+  [
+    ...fallbackPhrases,
+    "keyword density",
+    "return only valid json",
+    "as an ai language model",
+    "for ranking purposes",
+    "to improve indexing",
+    "this page is optimized for",
+    "this article is optimized for"
+  ].join("|"),
+  "i"
+);
+
 export function publicArticleFilter() {
   return {
     status: "published",
     reviewStatus: "approved",
     generationMode: { $in: ["manual", "ai"] },
-    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } }
+    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } },
+    content: { $not: discoveryBlockPattern }
   };
 }
 
-export function isArticleIndexable(value: unknown) {
+export function articleIndexabilityIssues(value: unknown) {
   const article = value as PublicArticleLike;
-  if (article.status && article.status !== "published") return false;
-  if (!article.generationMode || !["manual", "ai"].includes(article.generationMode)) return false;
-  if (article.reviewStatus !== "approved") return false;
-  if (Number(article.duplicateRisk || 0) > maximumDuplicateRisk) return false;
+  const issues: string[] = [];
+  if (article.status && article.status !== "published") issues.push("Article is not published");
+  if (!article.generationMode || !["manual", "ai"].includes(article.generationMode)) issues.push("Generation mode is not approved for public discovery");
+  if (article.reviewStatus !== "approved") issues.push("Editorial review is not approved");
+  if (Number(article.duplicateRisk || 0) > maximumDuplicateRisk) issues.push("Duplicate-story risk exceeds the public threshold");
 
   const normalized = String(article.content || "").toLowerCase();
-  if (fallbackPhrases.some((phrase) => normalized.includes(phrase))) return false;
+  if (fallbackPhrases.some((phrase) => normalized.includes(phrase))) issues.push("Article contains legacy automation filler");
+  issues.push(...inspectArticleContent(article.content || "").map((issue) => issue.message));
 
-  return normalized.split(/\s+/).filter(Boolean).length >= minimumIndexWords;
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  if (wordCount < minimumIndexWords) issues.push(`Article body is extremely thin (${wordCount} words)`);
+
+  return [...new Set(issues)];
+}
+
+export function isArticleIndexable(value: unknown) {
+  return articleIndexabilityIssues(value).length === 0;
 }

@@ -17,6 +17,7 @@
                     "refresh:article-image":  "node node_modules/tsx/dist/cli.mjs server/scripts/refresh-article-image.ts",
                     "seo:quarantine-fallbacks":  "node node_modules/tsx/dist/cli.mjs server/scripts/quarantine-fallback-articles.ts",
                     "seo:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/seo-audit.ts",
+                    "sitemap:validate": "node node_modules/tsx/dist/cli.mjs server/scripts/validate-sitemaps.ts",
                     "content:audit": "node node_modules/tsx/dist/cli.mjs server/scripts/content-audit.ts",
                     "seo:migrate": "node node_modules/tsx/dist/cli.mjs server/scripts/backfill-seo-fields.ts",
                     "feeds:diagnose": "node node_modules/tsx/dist/cli.mjs server/scripts/feed-diagnostic.ts",

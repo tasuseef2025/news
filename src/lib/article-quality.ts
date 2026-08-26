@@ -26,6 +26,28 @@ const GENERIC_FILLER = [
   "it remains to be seen what happens next"
 ];
 
+const PROMPT_LEAKAGE_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "search-term instructions", pattern: /\b(?:natural|target|primary|secondary) search (?:term|terms|query|queries|keyword|keywords)\b/i },
+  { label: "search-engine instructions", pattern: /\b(?:this|the) (?:article|page|content|headline) (?:is|was|has been) optimized (?:for|to)\b/i },
+  { label: "ranking instructions", pattern: /\b(?:for|to improve) (?:ranking|rankings|indexing|search visibility|google visibility)\b/i },
+  { label: "keyword-density instructions", pattern: /\bkeyword density\b/i },
+  { label: "prompt instructions", pattern: /\b(?:system|developer|editorial|publishing|generation) instructions?\b/i },
+  { label: "model self-reference", pattern: /\bas an ai(?: language model)?\b/i },
+  { label: "token instructions", pattern: /\b(?:maximum|max|minimum|min) (?:output )?tokens?\b/i },
+  { label: "JSON response instructions", pattern: /\breturn only valid json\b/i }
+];
+
+const PLACEHOLDER_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "template variable", pattern: /\{\{[^{}]+\}\}|\$\{[^{}]+\}/ },
+  { label: "editorial placeholder", pattern: /\[(?:insert|add|replace|author|source|headline|title|date|location|quote|image)[^\]]*\]/i },
+  { label: "unfinished marker", pattern: /\b(?:TODO|TBD|FIXME|lorem ipsum)\b/i }
+];
+
+export type ContentQualityIssue = {
+  code: "prompt_leakage" | "placeholder" | "malformed_heading" | "raw_json" | "broken_markup" | "repetition" | "generic_filler";
+  message: string;
+};
+
 export type QualityAssessment = {
   approved: boolean;
   reason: string;
@@ -144,6 +166,36 @@ export function genericFillerMatches(content = "") {
   return GENERIC_FILLER.filter((phrase) => normalizedContent.includes(phrase));
 }
 
+export function inspectArticleContent(content = ""): ContentQualityIssue[] {
+  const issues: ContentQualityIssue[] = [];
+  const trimmed = content.trim();
+  const repeatedRatio = Math.max(repeatedParagraphRatio(content), sentenceRepeatRatio(content));
+
+  for (const item of PROMPT_LEAKAGE_PATTERNS) {
+    if (item.pattern.test(content)) issues.push({ code: "prompt_leakage", message: `Article contains ${item.label}` });
+  }
+  for (const item of PLACEHOLDER_PATTERNS) {
+    if (item.pattern.test(content)) issues.push({ code: "placeholder", message: `Article contains ${item.label}` });
+  }
+  if (/^(?:h[1-6]:|#{1,6})\s*(?:[a-z]|n\/a)?\s*$/im.test(content)) {
+    issues.push({ code: "malformed_heading", message: "Article contains an empty or malformed heading" });
+  }
+  if (/^\s*\{[\s\S]*"(?:title|slug|metaTitle|metaDescription|content)"\s*:/i.test(trimmed)) {
+    issues.push({ code: "raw_json", message: "Article body appears to contain a raw JSON package" });
+  }
+  if (/&(?:apos|quot|amp|lt|gt);|<\/?(?:html|head|body|script|style)\b/i.test(content)) {
+    issues.push({ code: "broken_markup", message: "Article contains escaped entities or document-level markup" });
+  }
+  if (repeatedRatio > 0.12) {
+    issues.push({ code: "repetition", message: "Article has repeated paragraphs or sentences" });
+  }
+  if (genericFillerMatches(content).length) {
+    issues.push({ code: "generic_filler", message: "Article contains generic AI/editorial filler" });
+  }
+
+  return issues.filter((issue, index, values) => values.findIndex((item) => item.code === issue.code && item.message === issue.message) === index);
+}
+
 export function validatePublishReadiness(input: PublishReadinessInput) {
   const reasons: string[] = [];
   const status = input.status || "draft";
@@ -151,11 +203,9 @@ export function validatePublishReadiness(input: PublishReadinessInput) {
 
   const text = cleanText(input.content || "");
   const words = text.split(/\s+/).filter(Boolean).length;
-  const minimumWords = Math.max(300, Number(process.env.PUBLISH_MIN_WORDS || process.env.FEED_MIN_PUBLISH_WORDS || 500));
   const metaTitleLength = cleanText(input.metaTitle || "").length;
   const metaDescriptionLength = cleanText(input.metaDescription || "").length;
-  const repeatedRatio = Math.max(repeatedParagraphRatio(input.content || ""), sentenceRepeatRatio(input.content || ""));
-  const fillerMatches = genericFillerMatches(input.content || "");
+  const contentIssues = inspectArticleContent(input.content || "");
   const sources = [
     input.sourceUrl,
     input.originalSourceUrl,
@@ -163,7 +213,7 @@ export function validatePublishReadiness(input: PublishReadinessInput) {
   ].filter(Boolean);
   const externallyBased = input.generationMode !== "manual" || Boolean(input.sourceName || input.sourceUrl || input.originalSourceName || input.originalSourceUrl);
 
-  if (words < minimumWords) reasons.push(`Article has ${words} words; minimum for publishing is ${minimumWords}`);
+  if (words < 100) reasons.push(`Article body is extremely thin (${words} words) and needs meaningful reporting or context`);
   if (!cleanText(input.title || "") || cleanText(input.title || "").length < 8) reasons.push("Headline is missing or too short");
   if (!cleanText(input.excerpt || "") || cleanText(input.excerpt || "").length < 80) reasons.push("Excerpt is missing or too thin");
   if (!cleanText(input.author || "")) reasons.push("Author is missing");
@@ -175,8 +225,10 @@ export function validatePublishReadiness(input: PublishReadinessInput) {
   if (!input.canonicalUrl || !String(input.canonicalUrl).includes("/news/")) reasons.push("Self-referencing article canonical URL is missing");
   if (!input.ogImage) reasons.push("Open Graph image is missing");
   if (externallyBased && sources.length === 0) reasons.push("Externally sourced articles need at least one source URL or reference");
-  if (repeatedRatio > 0.12) reasons.push("Article has repeated paragraphs or sentences");
-  if (fillerMatches.length) reasons.push("Article contains generic AI/editorial filler");
+  if (input.sourceName && normalizedText(input.author || "") === normalizedText(input.sourceName)) {
+    reasons.push("External publisher cannot be used as the Novexa article author");
+  }
+  reasons.push(...contentIssues.map((issue) => issue.message));
   if (Number(input.duplicateRisk || 0) > Number(process.env.FEED_MAX_DUPLICATE_RISK || 72)) reasons.push("Duplicate-story risk is too high");
   if (topKeywordDensity(input) > 0.12) reasons.push("Potential keyword stuffing detected");
 
@@ -204,7 +256,8 @@ export function assessArticleQuality(input: {
   const titleContentScore = textSimilarity(input.title, input.content.slice(0, 1800));
   const sourceTitleSimilarity = textSimilarity(input.title, input.sourceTitle);
   const repeatedRatio = repeatedParagraphRatio(input.content);
-  const fillerMatches = genericFillerMatches(input.content);
+  const contentIssues = inspectArticleContent(input.content);
+  const fillerMatches = contentIssues.filter((issue) => issue.code === "generic_filler");
   const duplicateRisk = Math.round(Math.max(input.duplicateSimilarity || 0, sourceTitleSimilarity * 0.45) * 100);
 
   if (!input.sourceUrl) reasons.push("Missing original source URL");
@@ -212,8 +265,7 @@ export function assessArticleQuality(input: {
   if (words.length < minimumWords) reasons.push(`Article has ${words.length} words; minimum is ${minimumWords}`);
   if (titleContentScore < 0.22) reasons.push("Headline does not sufficiently match the article");
   if (sourceTitleSimilarity >= 0.82) reasons.push("Headline is too similar to the source headline");
-  if (repeatedRatio > 0.12) reasons.push("Article repeats paragraphs");
-  if (fillerMatches.length) reasons.push("Article contains generic automation filler");
+  reasons.push(...contentIssues.map((issue) => issue.message));
   if (!input.metaDescription || cleanText(input.metaDescription).length < 120) reasons.push("Meta description is missing or too short");
   if (!input.updatingExisting && duplicateRisk >= Number(process.env.FEED_MAX_DUPLICATE_RISK || 72)) reasons.push("Duplicate-story risk is too high");
 

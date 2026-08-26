@@ -48,4 +48,5 @@ npm run build
 - [Vercel Cron Notes](docs/VERCEL_CRON.md)
 - [Live Scores](docs/LIVE_SCORES.md)
 - [Content Quality And SEO Operations](docs/CONTENT_QUALITY.md)
+- [SEO And Indexing Audit - 2026-08-26](docs/SEO_AUDIT_2026-08-26.md)
 - [Backlog Rebuild](docs/BACKLOG_REBUILD.md)

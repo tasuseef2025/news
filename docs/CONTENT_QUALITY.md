@@ -22,11 +22,12 @@ The quality thresholds are documented in `.env.example`. Start with the defaults
 ## Read-only audits
 
 ```powershell
-npm run seo:audit
+npm run seo:audit -- --output=exports/seo-audit.csv --format=csv
 npm run content:audit
+npm run sitemap:validate -- --limit=50 --output=exports/sitemap-validation.json
 ```
 
-These commands do not modify MongoDB. They return counts and bounded samples for canonical, metadata, thin-content, taxonomy and likely-duplicate findings.
+These commands do not modify MongoDB. The SEO audit classifies every published record as `KEEP`, `IMPROVE`, `REVIEW`, `CONSOLIDATE`, or `REMOVE` and reports metadata, content, byline, duplicate, canonical, image, markup, and review-state findings. The sitemap validator checks XML structure and a bounded sample of submitted URLs for redirects, error responses, `noindex`, and canonical mismatches. Omit `--limit` to request every sitemap URL.
 
 ## Legacy migration
 
@@ -61,3 +62,5 @@ Repeat the limited command after checking each batch. Omit `--limit` only when y
 - Thin category archives are `noindex,follow` and are omitted from the sitemap.
 - The Google News sitemap contains reviewed articles published in the last 48 hours.
 - Structured data uses `Organization` for Novexa News Desk and `Person` for named authors.
+- A short article is not automatically low quality. Public indexing uses a small absolute safety floor while the audit checks completeness, repetition, placeholders, prompt leakage, attribution, and metadata separately.
+- View counts and trending recalculation do not change an article's editorial `updatedAt` date.

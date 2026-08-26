@@ -64,7 +64,11 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 
-  const updated = (await Article.findByIdAndUpdate(body.articleId, { $inc: { views: 1 } }, { new: true }).select({ views: 1 }).lean()) as { views?: number } | null;
+  const updated = (await Article.findByIdAndUpdate(
+    body.articleId,
+    { $inc: { views: 1 } },
+    { new: true, timestamps: false }
+  ).select({ views: 1 }).lean()) as { views?: number } | null;
   const response = NextResponse.json({ counted: true, total: Number(updated?.views || article.views || 0) }, { status: 201 });
 
   if (!existingVisitor && !session?.user.id) {

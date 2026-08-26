@@ -9,7 +9,7 @@ export const articleCardFields = "title slug excerpt category author image image
 export async function publishDueScheduledArticles() {
   await ArticleModel.updateMany(
     { status: "scheduled", scheduledAt: { $lte: new Date() } },
-    { $set: { status: "published", publishedAt: new Date() } }
+    { $set: { status: "published", reviewStatus: "approved", rejectionReasons: [], publishedAt: new Date() } }
   );
 }
 

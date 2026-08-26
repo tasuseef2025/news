@@ -21,6 +21,7 @@ export default async function HomePage() {
 
   return (
     <main className="pb-10">
+      <h1 className="sr-only">Novexa News: Latest Pakistan and World News</h1>
       <section className="container py-6 md:py-8">
         <AdvertisementSlot advertisements={data.advertisements} placement="top" />
         <div className="mt-8 grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">

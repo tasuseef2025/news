@@ -16,6 +16,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().optional(),
   FEED_AI_MAX_OUTPUT_TOKENS: z.string().optional(),
+  SEO_ABSOLUTE_MIN_INDEX_WORDS: z.string().regex(/^\d+$/).optional(),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional()
 });

@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-08-26T12:19:08.921Z",
+  "mode": "read-only",
+  "baseUrl": "https://www.novexa.news",
+  "normalSitemap": {
+    "status": 200,
+    "urls": 1021,
+    "structuralErrors": []
+  },
+  "newsSitemap": {
+    "status": 200,
+    "urls": 15,
+    "structuralErrors": []
+  },
+  "checkedUrls": 25,
+  "findingsCount": 0,
+  "findings": []
+}

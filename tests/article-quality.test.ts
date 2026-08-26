@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessArticleQuality, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
+import { assessArticleQuality, inspectArticleContent, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
 import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
 import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
 
@@ -60,7 +60,7 @@ test("rejects repeated newsroom automation filler", () => {
     sourceUrl: "https://example.com/transport-update"
   });
   assert.equal(result.approved, false);
-  assert.ok(result.reasons.some((reason) => reason.includes("automation filler")));
+  assert.ok(result.reasons.some((reason) => reason.includes("generic AI/editorial filler")));
 });
 
 test("blocks thin published articles at publish readiness gate", () => {
@@ -82,7 +82,36 @@ test("blocks thin published articles at publish readiness gate", () => {
   });
 
   assert.equal(result.approved, false);
-  assert.ok(result.reasons.some((reason) => reason.includes("minimum")));
+  assert.ok(result.reasons.some((reason) => reason.includes("extremely thin")));
+});
+
+test("allows concise factual briefs when all publishing requirements are met", () => {
+  const content = Array.from({ length: 24 }, (_, index) => `The public notice includes service detail ${index + 1} for passengers using an affected route during the change.`).join(" ");
+  const result = validatePublishReadiness({
+    status: "published",
+    title: "Officials Confirm Revised Transport Timetable",
+    slug: "officials-confirm-revised-transport-timetable",
+    excerpt: "Officials confirmed a revised public transport timetable and provided implementation details for passengers using the affected routes.",
+    content,
+    category: "Pakistan",
+    author: "Abdul Basit",
+    image: "https://res.cloudinary.com/example/image/upload/news.png",
+    imageAlt: "Public buses waiting at an urban transport terminal",
+    metaTitle: "Officials Confirm Revised Transport Timetable",
+    metaDescription: "Officials confirmed a revised transport timetable and published implementation details for passengers travelling on the affected public routes.",
+    canonicalUrl: "https://www.novexa.news/news/officials-confirm-revised-transport-timetable",
+    ogImage: "https://res.cloudinary.com/example/image/upload/news.png",
+    generationMode: "manual"
+  });
+
+  assert.equal(result.approved, true);
+});
+
+test("detects prompt leakage, placeholders, malformed headings and raw JSON", () => {
+  assert.ok(inspectArticleContent("This page is optimized for ranking purposes and search visibility.").some((issue) => issue.code === "prompt_leakage"));
+  assert.ok(inspectArticleContent("[Insert verified quote here]").some((issue) => issue.code === "placeholder"));
+  assert.ok(inspectArticleContent("h2:A").some((issue) => issue.code === "malformed_heading"));
+  assert.ok(inspectArticleContent('{"title":"Draft","content":"Body"}').some((issue) => issue.code === "raw_json"));
 });
 
 test("allows drafts to remain flexible before publishing", () => {

@@ -117,11 +117,13 @@ export function VideoSection({ articles }: { articles: Article[] }) {
 }
 
 export function CategoryCards({ cards }: { cards: CategoryCard[] }) {
+  const establishedCards = cards.filter((card) => card.count >= 2);
+  if (!establishedCards.length) return null;
   return (
     <section>
       <SectionHeader title="Category Cards" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {cards.map((card) => (
+        {establishedCards.map((card) => (
           <Link
             key={card.slug}
             href={`/category/${card.slug}`}

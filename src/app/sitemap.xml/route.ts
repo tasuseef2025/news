@@ -6,7 +6,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
 import { categories, categorySlug } from "@/lib/categories";
 import { safeArticleOgImage } from "@/lib/article-images";
-import { publicArticleFilter } from "@/lib/public-articles";
+import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
 
 type SitemapUrl = {
   loc: string;
@@ -19,6 +19,11 @@ type SitemapArticle = {
   title: string;
   category: string;
   image?: string | null;
+  content: string;
+  generationMode?: "manual" | "ai" | "feed";
+  reviewStatus?: "pending" | "approved" | "rejected" | "needs_review";
+  duplicateRisk?: number;
+  status: string;
   updatedAt?: Date;
   publishedAt?: Date;
 };
@@ -46,28 +51,31 @@ function validImageUrl(value?: string | null) {
 export async function GET() {
   await connectDB();
   const publishedFilter = publicArticleFilter();
-  const [articles, categoryCounts] = await Promise.all([
-    Article.find(publishedFilter)
-      .select("slug title category image updatedAt publishedAt")
+  const candidates = await Article.find(publishedFilter)
+      .select("slug title category image content generationMode reviewStatus duplicateRisk status updatedAt publishedAt")
       .sort({ publishedAt: -1 })
       .limit(5000)
-      .lean<SitemapArticle[]>(),
-    Article.aggregate<{ _id: string; count: number; lastmod?: Date }>([
-      { $match: publishedFilter },
-      { $group: { _id: "$category", count: { $sum: 1 }, lastmod: { $max: { $ifNull: ["$updatedAt", "$publishedAt"] } } } },
-      { $match: { count: { $gte: 2 } } }
-    ])
-  ]);
+      .lean<SitemapArticle[]>();
+  const articles = candidates.filter(isArticleIndexable);
+  const categoryStats = new Map<string, { count: number; lastmod?: Date }>();
+  for (const article of articles) {
+    const current = categoryStats.get(article.category) || { count: 0, lastmod: undefined };
+    const modified = article.updatedAt || article.publishedAt;
+    categoryStats.set(article.category, {
+      count: current.count + 1,
+      lastmod: !current.lastmod || (modified && modified > current.lastmod) ? modified : current.lastmod
+    });
+  }
   const knownCategories = new Set(categories.map((category) => category.toLowerCase()));
-  const indexableCategories = categoryCounts
-    .map((entry) => entry._id)
-    .filter((category): category is string => typeof category === "string" && knownCategories.has(category.toLowerCase()));
+  const indexableCategories = [...categoryStats]
+    .filter(([category, stats]) => stats.count >= 2 && knownCategories.has(category.toLowerCase()))
+    .map(([category]) => category);
 
   const urls: SitemapUrl[] = [
     { loc: absoluteUrl("/"), lastmod: articles[0] ? new Date(articles[0].updatedAt || articles[0].publishedAt || new Date()).toISOString() : undefined },
     ...staticRoutes.map((route) => ({ loc: absoluteUrl(route) })),
     ...indexableCategories.map((category) => {
-      const stats = categoryCounts.find((entry) => entry._id === category);
+      const stats = categoryStats.get(category);
       return {
         loc: absoluteUrl(`/category/${categorySlug(category)}`),
         lastmod: stats?.lastmod ? new Date(stats.lastmod).toISOString() : undefined

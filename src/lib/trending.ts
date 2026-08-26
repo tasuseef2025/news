@@ -31,8 +31,8 @@ export async function updateTrendingPosts(limit = 10) {
 
   const ids = top.map((article) => article._id);
   await Promise.all([
-    Article.updateMany({ _id: { $in: ids } }, { $set: { trending: true } }),
-    Article.updateMany({ _id: { $nin: ids } }, { $set: { trending: false } })
+    Article.updateMany({ _id: { $in: ids } }, { $set: { trending: true } }, { timestamps: false }),
+    Article.updateMany({ _id: { $nin: ids } }, { $set: { trending: false } }, { timestamps: false })
   ]);
   return ids.length;
 }

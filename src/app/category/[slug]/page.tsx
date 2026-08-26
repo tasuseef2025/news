@@ -45,12 +45,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const page = pageNumber(query.page);
   const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
   const description = categoryDescription(category);
+  await connectDB();
+  const eligibleArticles = await Article.countDocuments({ ...publicArticleFilter(), category });
+  const indexable = eligibleArticles >= 2 && page <= Math.ceil(eligibleArticles / PAGE_SIZE);
 
   return {
     title: page > 1 ? `${category} News and Latest Updates - Page ${page}` : `${category} News and Latest Updates`,
     description,
     alternates: { canonical },
-    robots: { index: true, follow: true },
+    robots: { index: indexable, follow: true },
     openGraph: {
       title: `${category} News | ${siteConfig.name}`,
       description,
