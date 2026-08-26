@@ -8,6 +8,10 @@ import { safeArticleImage } from "@/lib/article-images";
 import { publicArticleFilter } from "@/lib/public-articles";
 
 const homepageArticleFields = "title slug excerpt category author image imageAlt tags publishedAt updatedAt views readingTime featured trending breakingNews";
+const pinnedEditorsPicks = [
+  "pims-nursery-fire-islamabad-14-newborns-killed",
+  "babar-azam-return-pakistan-lords-second-test"
+] as const;
 
 export type CategoryCard = {
   name: string;
@@ -60,6 +64,19 @@ async function findArticles(
   return docs.map(serializeArticle);
 }
 
+async function findEditorsPicks() {
+  const [pinned, featured] = await Promise.all([
+    findArticles({ slug: { $in: [...pinnedEditorsPicks] } }, { limit: pinnedEditorsPicks.length }),
+    findArticles({ featured: true, slug: { $nin: [...pinnedEditorsPicks] } }, { limit: 6 })
+  ]);
+  const pinnedBySlug = new Map(pinned.map((article) => [article.slug, article]));
+
+  return [
+    ...pinnedEditorsPicks.map((slug) => pinnedBySlug.get(slug)).filter((article): article is Article => Boolean(article)),
+    ...featured
+  ].slice(0, 6);
+}
+
 export async function getHomepageData(): Promise<HomepageData> {
   const emptySections = Object.fromEntries(homepageCategories.map((category) => [category, []]));
 
@@ -78,7 +95,7 @@ export async function getHomepageData(): Promise<HomepageData> {
     ] = await Promise.all([
       findArticles({ $or: [{ category: "Breaking News" }, { featured: true }] }, { limit: 5 }),
       findArticles({ trending: true }, { limit: 6, sort: { views: -1, publishedAt: -1 } }),
-      findArticles({ featured: true }, { limit: 6 }),
+      findEditorsPicks(),
       findArticles({}, { limit: 8 }),
       Promise.all(
         homepageCategories.map(async (category) => [

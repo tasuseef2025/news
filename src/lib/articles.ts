@@ -85,15 +85,11 @@ export async function getArticles(filters?: {
 }
 
 export async function getArticleBySlug(slug: string) {
-  try {
-    await connectDB();
-    await publishDueScheduledArticles();
-    const doc = await ArticleModel.findOne({ slug, status: "published", reviewStatus: { $ne: "rejected" } }).lean();
+  await connectDB();
+  await publishDueScheduledArticles();
+  const doc = await ArticleModel.findOne({ slug, status: "published", reviewStatus: { $ne: "rejected" } }).lean();
 
-    return doc ? serializeArticle(doc) : null;
-  } catch {
-    return null;
-  }
+  return doc ? serializeArticle(doc) : null;
 }
 
 export { serializeArticle };
