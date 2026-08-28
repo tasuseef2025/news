@@ -6,7 +6,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { Article } from "@/models/Article";
 import { categories, categorySlug } from "@/lib/categories";
 import { safeArticleOgImage } from "@/lib/article-images";
-import { isArticleIndexable, publicArticleFilter } from "@/lib/public-articles";
+import { publicArticleFilter } from "@/lib/public-articles";
 
 type SitemapUrl = {
   loc: string;
@@ -19,11 +19,6 @@ type SitemapArticle = {
   title: string;
   category: string;
   image?: string | null;
-  content: string;
-  generationMode?: "manual" | "ai" | "feed";
-  reviewStatus?: "pending" | "approved" | "rejected" | "needs_review";
-  duplicateRisk?: number;
-  status: string;
   updatedAt?: Date;
   publishedAt?: Date;
 };
@@ -51,12 +46,11 @@ function validImageUrl(value?: string | null) {
 export async function GET() {
   await connectDB();
   const publishedFilter = publicArticleFilter();
-  const candidates = await Article.find(publishedFilter)
-      .select("slug title category image content generationMode reviewStatus duplicateRisk status updatedAt publishedAt")
+  const articles = await Article.find(publishedFilter)
+      .select("slug title category image updatedAt publishedAt")
       .sort({ publishedAt: -1 })
       .limit(5000)
       .lean<SitemapArticle[]>();
-  const articles = candidates.filter(isArticleIndexable);
   const categoryStats = new Map<string, { count: number; lastmod?: Date }>();
   for (const article of articles) {
     const current = categoryStats.get(article.category) || { count: 0, lastmod: undefined };

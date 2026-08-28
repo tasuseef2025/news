@@ -20,27 +20,12 @@ const fallbackPhrases = [
   "this story continues to attract attention"
 ];
 
-const discoveryBlockPattern = new RegExp(
-  [
-    ...fallbackPhrases,
-    "keyword density",
-    "return only valid json",
-    "as an ai language model",
-    "for ranking purposes",
-    "to improve indexing",
-    "this page is optimized for",
-    "this article is optimized for"
-  ].join("|"),
-  "i"
-);
-
 export function publicArticleFilter() {
   return {
     status: "published",
     reviewStatus: "approved",
     generationMode: { $in: ["manual", "ai"] },
-    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } },
-    content: { $not: discoveryBlockPattern }
+    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } }
   };
 }
 
