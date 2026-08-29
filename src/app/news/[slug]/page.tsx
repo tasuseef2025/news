@@ -29,7 +29,9 @@ function displayImage(value: string) {
 function socialImage(value: string) {
   const image = displayImage(value);
   if (!image.includes("res.cloudinary.com") || !image.includes("/image/upload/")) return image;
-  return image.replace("/image/upload/", "/image/upload/c_fill,g_auto,w_1200,h_630,q_auto/");
+  return image
+    .replace("/image/upload/", "/image/upload/c_fill,g_auto,w_1200,h_630,q_auto,f_jpg/")
+    .replace(/\.[a-z0-9]+(?=\?|$)/i, ".jpg");
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -59,7 +61,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
-      images: [{ url: image, width: 1200, height: 630, alt: article.imageAlt || article.title }],
+      images: [{
+        url: image,
+        width: 1200,
+        height: 630,
+        alt: article.imageAlt || article.title,
+        ...(image.includes("res.cloudinary.com") ? { type: "image/jpeg" } : {})
+      }],
       type: "article",
       siteName: siteConfig.name,
       url: canonical,

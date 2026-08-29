@@ -15,13 +15,29 @@ const cached = globalForMongoose.mongooseCache ?? { conn: null, promise: null };
 globalForMongoose.mongooseCache = cached;
 
 export async function connectDB() {
-  if (cached.conn) return cached.conn;
+  if (cached.conn?.connection.readyState === 1) return cached.conn;
+
+  if (cached.conn) {
+    cached.conn = null;
+    cached.promise = null;
+  }
 
   cached.promise ??= mongoose.connect(MONGODB_URI, {
     bufferCommands: false,
-    dbName: "news_website"
+    dbName: "news_website",
+    maxPoolSize: 10,
+    minPoolSize: 0,
+    serverSelectionTimeoutMS: 10_000,
+    connectTimeoutMS: 10_000,
+    socketTimeoutMS: 45_000
   });
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error) {
+    cached.conn = null;
+    cached.promise = null;
+    throw error;
+  }
 }
