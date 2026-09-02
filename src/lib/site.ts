@@ -13,6 +13,15 @@ export const siteConfig = {
   iconPath: "/icon.svg"
 } as const;
 
+export const siteFeatures = {
+  /**
+   * Public per-article view counts. Off by default: a genuine but low number
+   * ("2 views") reads as an abandoned site and costs more trust than the
+   * social proof is worth. Views are still recorded server-side either way.
+   */
+  publicViewCounts: false
+} as const;
+
 export type SocialPlatform = "instagram" | "x" | "facebook" | "linkedin" | "youtube";
 
 /**

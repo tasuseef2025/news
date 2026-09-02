@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { siteFeatures } from "@/lib/site";
 
 const VIEW_WINDOW_MS = 30 * 60 * 1000;
 const VISITOR_KEY = "novexa:visitor";
@@ -44,6 +45,10 @@ export function ArticleViewCounter({ articleId, initialViews }: { articleId?: st
         sessionStorage.removeItem(storageKey);
       });
   }, [articleId]);
+
+  // The effect above still records the view. Rendering is gated separately so
+  // that hiding the count never costs us the analytics.
+  if (!siteFeatures.publicViewCounts) return null;
 
   return <span>{views.toLocaleString()} views</span>;
 }
