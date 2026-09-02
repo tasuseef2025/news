@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Terms and Conditions",
   description: "Read the terms and conditions for using Novexa News, including website access rules, content limits, intellectual property, disclaimers and contact information.",
-  alternates: { canonical: absoluteUrl("/terms") }
-};
+  path: "/terms",
+  ogImageTitle: "Novexa News Terms"
+});
 
 export default function TermsPage() {
   return (

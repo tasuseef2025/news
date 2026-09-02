@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Novexa News Cookie Policy and Tracking Choices",
   description: "Read how Novexa News may use cookies, analytics, advertising technologies and similar tools to support site functionality, audience measurement and user preferences.",
-  alternates: { canonical: absoluteUrl("/cookie-policy") }
-};
+  path: "/cookie-policy",
+  ogImageTitle: "Novexa News Cookie Policy"
+});
 
 export default function CookiePolicyPage() {
   return (

@@ -32,7 +32,7 @@ function escapeXml(value = "") {
   return value.replace(/[<>&'"]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[char] || char));
 }
 
-const staticRoutes = ["/latest", "/about", "/contact", "/privacy-policy", "/terms", "/editorial-policy", "/cookie-policy", "/advertise", "/careers", "/author/abdul-basit", "/author/syeda-manal-tirmizi", "/live-scores"] as const;
+const staticRoutes = ["/latest", "/about", "/contact", "/privacy-policy", "/terms", "/editorial-policy", "/cookie-policy", "/advertise", "/careers", "/media", "/author/abdul-basit", "/author/syeda-manal-tirmizi", "/live-scores"] as const;
 
 function validImageUrl(value?: string | null) {
   if (!value) return "";
@@ -50,6 +50,7 @@ function validImageUrl(value?: string | null) {
 
 export async function GET() {
   await connectDB();
+  const newsSitemapCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
   const publishedFilter = publicArticleFilter();
   const candidates = await Article.find(publishedFilter)
       .select("slug title category image updatedAt publishedAt content status reviewStatus generationMode duplicateRisk")
@@ -81,7 +82,7 @@ export async function GET() {
         lastmod: stats?.lastmod ? new Date(stats.lastmod).toISOString() : undefined
       };
     }),
-    ...articles.map((article) => ({
+    ...articles.filter((article) => new Date(article.publishedAt || 0) < newsSitemapCutoff).map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
       lastmod: new Date(article.updatedAt || article.publishedAt || new Date()).toISOString(),
       image: validImageUrl(safeArticleOgImage({ image: article.image || undefined, title: article.title, category: article.category }))

@@ -28,25 +28,26 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const canonical = absoluteUrl(`/latest${page > 1 ? `?page=${page}` : ""}`);
   const title = page > 1 ? `Latest News and Updated Stories - Page ${page}` : "Latest News and Updated Stories";
   const description = "Read the latest published stories from Novexa News, including recent Pakistan, world, business, technology, sports, entertainment, health and lifestyle updates.";
+  const image = absoluteUrl("/api/og?title=Latest%20News&category=News");
 
   return {
     title,
     description,
     alternates: { canonical },
-    robots: { index: true, follow: true },
+    robots: { index: page === 1, follow: true },
     openGraph: {
       title: `${title} | ${siteConfig.name}`,
       description,
       type: "website",
       siteName: siteConfig.name,
       url: canonical,
-      images: [{ url: absoluteUrl("/api/og?title=Latest%20News&category=News"), width: 1200, height: 630, alt: "Latest News" }]
+      images: [{ url: image, width: 1200, height: 630, alt: "Latest News" }]
     },
     twitter: {
       card: "summary_large_image",
       title: `${title} | ${siteConfig.name}`,
       description,
-      images: [absoluteUrl("/api/og?title=Latest%20News&category=News")]
+      images: [image]
     }
   };
 }

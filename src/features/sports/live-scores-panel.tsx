@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { Activity, CalendarClock, Clock, ChevronRight, RefreshCw, Trophy } from "lucide-react";
+import { Activity, CalendarClock, Clock, RefreshCw, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -72,12 +71,11 @@ function MatchCard({ match }: { match: LiveScoreMatch }) {
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{match.note || match.venue || matchTime(match.startsAt) || match.provider}</span>
-        {match.slug ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
       </div>
     </article>
   );
 
-  return match.slug ? <Link href={`/live-scores/${match.sport}/${match.slug}`} className="block h-full">{content}</Link> : content;
+  return content;
 }
 
 export function LiveScoresPanel({ compact = false, initialData }: { compact?: boolean; initialData?: LiveScoresResponse }) {

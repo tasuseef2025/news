@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Novexa News Privacy Policy and Data Practices",
   description: "Read the Novexa News privacy policy covering visitor data, analytics, cookies, advertising technologies, communications, service providers and contact options.",
-  alternates: { canonical: absoluteUrl("/privacy-policy") }
-};
+  path: "/privacy-policy",
+  ogImageTitle: "Novexa News Privacy Policy"
+});
 
 export default function PrivacyPolicyPage() {
   return (

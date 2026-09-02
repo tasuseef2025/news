@@ -45,9 +45,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const page = pageNumber(query.page);
   const canonical = absoluteUrl(`/category/${slug}${page > 1 ? `?page=${page}` : ""}`);
   const description = categoryDescription(category);
+  const image = absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`);
   await connectDB();
   const eligibleArticles = await Article.countDocuments({ ...publicArticleFilter(), category });
-  const indexable = eligibleArticles >= 2 && page <= Math.ceil(eligibleArticles / PAGE_SIZE);
+  const indexable = page === 1 && eligibleArticles >= 2;
 
   return {
     title: page > 1 ? `${category} News and Latest Updates - Page ${page}` : `${category} News and Latest Updates`,
@@ -59,9 +60,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       description,
       url: canonical,
       siteName: siteConfig.name,
-      type: "website"
+      type: "website",
+      images: [{ url: image, width: 1200, height: 630, alt: `${category} News` }]
     },
-    twitter: { card: "summary_large_image", title: `${category} News | ${siteConfig.name}`, description }
+    twitter: { card: "summary_large_image", title: `${category} News | ${siteConfig.name}`, description, images: [image] }
   };
 }
 

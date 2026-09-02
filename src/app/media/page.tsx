@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Images, PlayCircle } from "lucide-react";
 import { getArticles } from "@/lib/articles";
-import { absoluteUrl } from "@/lib/utils";
 import { ArticleImage } from "@/components/media/article-image";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Media",
   description: "Browse the latest video, photography and visual reporting from Novexa News.",
-  alternates: { canonical: absoluteUrl("/media") }
-};
+  path: "/media",
+  ogImageTitle: "Novexa News Media",
+  ogCategory: "Media"
+});
 
 export default async function MediaPage() {
   const articles = await getArticles({ limit: 30 });

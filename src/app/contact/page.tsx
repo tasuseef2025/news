@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { ContactLink, StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Contact Novexa News Editorial and Business Teams",
   description: "Contact Novexa News for editorial queries, correction requests, advertising proposals, business partnerships, media questions and general feedback.",
-  alternates: { canonical: absoluteUrl("/contact") }
-};
+  path: "/contact",
+  ogImageTitle: "Contact Novexa News"
+});
 
 export default function ContactPage() {
   return (

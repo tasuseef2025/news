@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Careers and Contributor Opportunities at Novexa News",
   description: "Explore editorial, contributor, technology, SEO and media partnership opportunities with Novexa News as we build a modern digital publishing platform.",
-  alternates: { canonical: absoluteUrl("/careers") }
-};
+  path: "/careers",
+  ogImageTitle: "Novexa News Careers"
+});
 
 export default function CareersPage() {
   return (
