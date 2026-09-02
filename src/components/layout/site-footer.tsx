@@ -1,5 +1,7 @@
 ﻿import Link from "next/link";
-import { Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
+import { activeSocialProfiles, type SocialPlatform } from "@/lib/site";
 import { connectDB } from "@/lib/db";
 import { categorySlug, primaryNavigationCategories } from "@/lib/categories";
 import { publicArticleFilter } from "@/lib/public-articles";
@@ -19,13 +21,22 @@ const companyLinks = [
   ["Careers", "/careers"]
 ] as const;
 
-const socialLinks = [
-  ["Facebook", "https://facebook.com", Facebook],
-  ["Instagram", "https://instagram.com", Instagram],
-  ["LinkedIn", "https://linkedin.com", Linkedin],
-  ["YouTube", "https://youtube.com", Youtube],
-  ["Twitter", "https://twitter.com", Twitter]
-] as const;
+/** lucide ships no X brand mark, and its `X` export is the close icon. */
+function XLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+const socialIcons: Record<SocialPlatform, LucideIcon | typeof XLogo> = {
+  instagram: Instagram,
+  x: XLogo,
+  facebook: Facebook,
+  linkedin: Linkedin,
+  youtube: Youtube
+};
 
 type FooterArticle = {
   title: string;
@@ -69,6 +80,7 @@ async function getFooterData() {
 export async function SiteFooter() {
   const year = new Date().getFullYear();
   const { latestArticles, popularTags } = await getFooterData();
+  const socialProfiles = activeSocialProfiles();
 
   return (
     <footer className="mt-16 border-t bg-card">
@@ -83,23 +95,28 @@ export async function SiteFooter() {
               politics, lifestyle, and culture.
             </p>
           </div>
-          <div>
-            <h2 className="mb-3 text-sm font-black uppercase text-foreground">Social Media</h2>
-            <div className="flex flex-wrap gap-2">
-              {socialLinks.map(([label, href, Icon]) => (
-                <Link
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={label}
-                  className="grid h-10 w-10 place-items-center rounded-md border bg-background transition hover:bg-muted hover:text-primary"
-                >
-                  <Icon className="h-4 w-4" />
-                </Link>
-              ))}
+          {socialProfiles.length ? (
+            <div>
+              <h2 className="mb-3 text-sm font-black uppercase text-foreground">Social Media</h2>
+              <div className="flex flex-wrap gap-2">
+                {socialProfiles.map((profile) => {
+                  const Icon = socialIcons[profile.platform];
+                  return (
+                    <a
+                      key={profile.platform}
+                      href={profile.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={profile.ariaLabel}
+                      className="grid h-10 w-10 place-items-center rounded-md border bg-background transition hover:bg-muted hover:text-primary"
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
         </section>
 
         <section>
