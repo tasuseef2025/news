@@ -26,9 +26,9 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
       <section className="grid min-h-[400px] place-items-center border-y bg-card p-8 text-center">
         <div>
           <p className="text-sm font-black uppercase text-primary">Breaking News</p>
-          <h1 className="mt-2 text-3xl font-black">No published breaking stories found</h1>
+          <h2 className="mt-2 text-3xl font-black">Top stories are on the way</h2>
           <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-            Publish featured articles or articles in the Breaking News category from MongoDB to populate this hero.
+            Our top stories will appear here as soon as they are published.
           </p>
         </div>
       </section>

@@ -46,7 +46,7 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">No latest articles found in MongoDB yet.</div>
+            <div className="text-sm text-muted-foreground">No stories here yet — check back soon.</div>
           )}
         </div>
       </section>

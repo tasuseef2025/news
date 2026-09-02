@@ -24,7 +24,7 @@ export function SectionHeader({ title, href }: { title: string; href?: string })
 export function EmptySection({ label }: { label: string }) {
   return (
     <div className="border-y bg-card py-6 text-sm leading-6 text-muted-foreground">
-      No published {label} articles found in MongoDB yet.
+      No {label} stories yet — check back soon.
     </div>
   );
 }
