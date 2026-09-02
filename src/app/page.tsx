@@ -23,8 +23,7 @@ export default async function HomePage() {
     <main className="pb-10">
       <h1 className="sr-only">Novexa News: Latest Pakistan and World News</h1>
       <section className="container py-6 md:py-8">
-        <AdvertisementSlot advertisements={data.advertisements} placement="top" />
-        <div className="mt-8 grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">
           <div className="grid content-start gap-10">
             <HeroBreakingSlider articles={data.hero} />
             <ArticleGrid title="Editor's Picks" articles={data.editorsPicks} />
@@ -33,7 +32,6 @@ export default async function HomePage() {
           <aside className="grid content-start gap-8">
             <RankedList title="Trending News" articles={data.trending} icon="trend" />
             <CompactArticleList title="Most Read" articles={data.popular.slice(0, 4)} />
-            <AdvertisementSlot advertisements={data.advertisements} placement="sidebar" className="min-h-40" />
           </aside>
         </div>
       </section>
@@ -85,7 +83,6 @@ export default async function HomePage() {
         </div>
 
         <Newsletter />
-        <AdvertisementSlot advertisements={data.advertisements} placement="footer" />
       </section>
     </main>
   );
