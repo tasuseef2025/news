@@ -1,5 +1,5 @@
 import { absoluteUrl } from "@/lib/utils";
-import { siteConfig } from "@/lib/site";
+import { siteConfig, socialSameAs } from "@/lib/site";
 import { authorProfilePath } from "@/lib/authors";
 
 type ArticleLike = {
@@ -114,7 +114,8 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
-      logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) }
+      logo: { "@type": "ImageObject", url: absoluteUrl(siteConfig.iconPath) },
+      sameAs: socialSameAs()
     },
     articleSection: article.category,
     inLanguage: "en",

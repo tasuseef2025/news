@@ -5,7 +5,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { absoluteUrl } from "@/lib/utils";
-import { siteConfig } from "@/lib/site";
+import { siteConfig, socialSameAs } from "@/lib/site";
 import { WebVitals } from "@/components/analytics/web-vitals";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { GoogleAdsense } from "@/components/ads/google-adsense";
@@ -32,7 +32,7 @@ const organizationSchema = {
   ownershipFundingInfo: absoluteUrl("/about"),
   areaServed: ["Pakistan", "Global"],
   knowsAbout: ["Pakistan news", "world news", "business", "technology", "finance", "sports", "health", "entertainment", "lifestyle", "education"],
-  sameAs: []
+  sameAs: socialSameAs()
 };
 
 const websiteSchema = {
