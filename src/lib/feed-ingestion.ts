@@ -6,7 +6,7 @@ import { publishArticleToX } from "@/lib/x-publishing";
 import { FeedSource } from "@/models/FeedSource";
 import { findStockImage, isTrackingOrPlaceholderImage, stockImageIdentity, type StockImageResult } from "@/lib/stock-images";
 import { researchKeywords, type KeywordResearch } from "@/lib/trending-keywords";
-import { assessArticleQuality, contentHash, normalizeSourceUrl, textSimilarity, type QualityAssessment } from "@/lib/article-quality";
+import { assessArticleQuality, contentHash, normalizeSourceUrl, textSimilarity, validatePublishReadiness, type QualityAssessment } from "@/lib/article-quality";
 import { ArticleRevision } from "@/models/ArticleRevision";
 
 export type FeedEntry = {
@@ -836,11 +836,26 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
       };
     }
 
-    const approved = editorial.generationMode === "ai" && assessment.approved;
+    // Final gate before anything can go live: the same readiness check the
+    // manual editor API uses, so pipeline boilerplate, literal heading markers
+    // and truncated headlines can never reach a published page from automation.
+    const readiness = validatePublishReadiness({
+      status: "published",
+      title: editorial.title,
+      excerpt: editorial.excerpt,
+      content: editorial.content,
+      metaTitle: editorial.metaTitle,
+      metaDescription: editorial.metaDescription,
+      generationMode: editorial.generationMode,
+      duplicateRisk: assessment.duplicateRisk,
+      sourceName: source.name,
+      sourceUrl: normalizedUrl
+    });
+    const approved = editorial.generationMode === "ai" && assessment.approved && readiness.approved;
     const shouldPublish = source.autoPublish && approved && publishedToday < dailyPublishLimit;
     const rejectionReasons = approved
       ? []
-      : [...new Set([...(editorial.aiFailureReason ? [editorial.aiFailureReason] : []), ...assessment.reasons, ...(assessment.reasons.length ? [] : ["AI generation was not available"])])];
+      : [...new Set([...(editorial.aiFailureReason ? [editorial.aiFailureReason] : []), ...assessment.reasons, ...readiness.reasons, ...(assessment.reasons.length || readiness.reasons.length ? [] : ["AI generation was not available"])])];
     const sourceFields = {
       sourceName: source.name,
       sourceUrl: normalizedUrl,

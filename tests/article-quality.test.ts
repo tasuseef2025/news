@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessArticleQuality, inspectArticleContent, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
+import { assessArticleQuality, hasTruncatedHeadline, inspectArticleContent, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
+import { normalizeHeadingMarkers } from "../src/lib/content-automation";
 import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
 import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
 
@@ -147,4 +148,90 @@ test("prioritizes relevant trending feed candidates", () => {
   });
 
   assert.ok(trending > fallback + 50);
+});
+
+test("rejects leaked publishing-pipeline boilerplate", () => {
+  const phrases = [
+    "This story is one of the latest items found in the active RSS feeds today.",
+    "This story came through the monitored RSS feeds and needs more detail.",
+    "It deserves a fuller, human-readable article rather than a bare headline.",
+    "No published video articles found in MongoDB yet."
+  ];
+
+  for (const phrase of phrases) {
+    const issues = inspectArticleContent(phrase);
+    assert.ok(
+      issues.some((issue) => issue.code === "pipeline_boilerplate"),
+      `expected pipeline_boilerplate for: ${phrase}`
+    );
+  }
+});
+
+test("does not flag legitimate reporting that mentions MongoDB the company", () => {
+  const issues = inspectArticleContent(
+    "MongoDB reported quarterly revenue above analyst expectations, and its shares rose in after-hours trading."
+  );
+  assert.equal(issues.some((issue) => issue.code === "pipeline_boilerplate"), false);
+});
+
+test("flags a literal heading marker left inside a paragraph", () => {
+  const issues = inspectArticleContent("The minister spoke on Tuesday. h2: What happens next");
+  assert.ok(issues.some((issue) => issue.code === "inline_heading_marker"));
+});
+
+test("converts H2 markers into real headings before saving", () => {
+  const normalized = normalizeHeadingMarkers("H2: What happened\nThe minister spoke.\nh3: Reaction");
+  assert.equal(normalized, "## What happened\nThe minister spoke.\n### Reaction");
+});
+
+test("detects truncated headlines", () => {
+  const truncated = [
+    "As China Hunts for Scientific Talent, the US Makes It",
+    "China Wants Its Data to Power the World's",
+    "Burnham exchanged messages with person posing as Trump's chief of",
+    "World update: Jude Bellingham scored extra-time winner England came from"
+  ];
+  for (const title of truncated) {
+    assert.ok(hasTruncatedHeadline(title), `expected truncated: ${title}`);
+  }
+});
+
+test("does not flag complete headlines as truncated", () => {
+  const complete = [
+    "Officials Confirm Revised Transport Timetable",
+    "Brenda Fricker: Oscar-winning Irish Actress Dies at 81",
+    "Trump, Bieber and Shakira - a World Cup final like never before",
+    "America Caught World Cup Fever. His Job Is to Capitalize on It."
+  ];
+  for (const title of complete) {
+    assert.equal(hasTruncatedHeadline(title), false, `expected complete: ${title}`);
+  }
+});
+
+test("publish gate blocks boilerplate and truncated headlines together", () => {
+  const body = Array.from(
+    { length: 30 },
+    (_, index) => `The notice sets out service detail ${index + 1} for passengers on the affected route.`
+  ).join(" ");
+
+  const result = validatePublishReadiness({
+    status: "published",
+    title: "Officials publish a revised timetable and the",
+    slug: "officials-publish-revised-timetable",
+    excerpt: "Officials published a revised public transport timetable with implementation details for passengers on the affected routes.",
+    content: `${body} This story came through the monitored RSS feeds.`,
+    category: "Pakistan",
+    author: "Abdul Basit",
+    image: "https://res.cloudinary.com/example/image/upload/news.png",
+    imageAlt: "Public buses waiting at an urban transport terminal",
+    metaTitle: "Officials Publish A Revised Transport Timetable",
+    metaDescription: "Officials published a revised transport timetable and set out implementation details for passengers travelling on the affected public routes.",
+    canonicalUrl: "https://www.novexa.news/news/officials-publish-revised-timetable",
+    ogImage: "https://res.cloudinary.com/example/image/upload/news.png",
+    generationMode: "manual"
+  });
+
+  assert.equal(result.approved, false);
+  assert.ok(result.reasons.some((reason) => reason.includes("truncated")));
+  assert.ok(result.reasons.some((reason) => reason.includes("publishing pipeline")));
 });

@@ -70,6 +70,21 @@ export function stripHtml(value = "") {
   return cleanText(value);
 }
 
+/**
+ * Converts the generator's "H2: Heading" convention into canonical markdown, so
+ * a literal marker can never reach a rendered page. Applied on every save via
+ * normalizeArticlePayload. Markers appearing mid-paragraph are deliberately left
+ * alone: those signal a malformed body and are rejected by the publish gate
+ * rather than silently patched here.
+ */
+export function normalizeHeadingMarkers(content = "") {
+  return content
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/^\s*h([1-6]):\s*/i, (_match, level: string) => `${"#".repeat(Number(level))} `))
+    .join("\n");
+}
+
 export function generateExcerpt(content = "", max = 155) {
   const text = stripHtml(content);
   if (text.length <= max) return text;
@@ -134,14 +149,16 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
 export function normalizeArticlePayload<T extends ArticleLike>(payload: T) {
   const title = payload.title?.trim() || "Untitled Article";
   const slug = payload.slug?.trim() ? generateSlug(payload.slug) : generateSlug(title);
-  const excerpt = payload.excerpt?.trim() || generateExcerpt(payload.content || title, 220);
+  const content = payload.content === undefined ? payload.content : normalizeHeadingMarkers(payload.content);
+  const excerpt = payload.excerpt?.trim() || generateExcerpt(content || title, 220);
   const metaTitle = payload.metaTitle?.trim() || generateMetaTitle(title);
-  const metaDescription = payload.metaDescription?.trim() || generateExcerpt(excerpt || payload.content || title, 160);
+  const metaDescription = payload.metaDescription?.trim() || generateExcerpt(excerpt || content || title, 160);
   const canonicalUrl = absoluteUrl(`/news/${slug}`);
   const ogImage = payload.ogImage?.trim() || absoluteUrl(`/api/og?title=${encodeURIComponent(title)}&category=${encodeURIComponent(payload.category || "News")}`);
-  const readingTime = payload.readingTime || generateReadingTime(payload.content || "");
+  const readingTime = payload.readingTime || generateReadingTime(content || "");
   const schemaMarkup = payload.schemaMarkup?.trim() || generateStructuredData({
     ...payload,
+    content,
     title,
     slug,
     excerpt,
@@ -156,6 +173,7 @@ export function normalizeArticlePayload<T extends ArticleLike>(payload: T) {
     ...payload,
     title,
     slug,
+    content,
     excerpt,
     metaTitle,
     metaDescription,
@@ -169,6 +187,7 @@ export function normalizeArticlePayload<T extends ArticleLike>(payload: T) {
 
 export function normalizeArticleUpdate<T extends ArticleLike>(payload: T) {
   const next = { ...payload };
+  if (payload.content !== undefined) next.content = normalizeHeadingMarkers(payload.content);
   if (payload.title !== undefined || payload.slug !== undefined) {
     const title = payload.title?.trim();
     if (title) next.title = title;

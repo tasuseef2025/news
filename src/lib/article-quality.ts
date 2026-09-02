@@ -26,6 +26,22 @@ const GENERIC_FILLER = [
   "it remains to be seen what happens next"
 ];
 
+/**
+ * Phrases that describe the publishing pipeline itself. These reached live copy
+ * once (see docs/SEO_TRUST_CLEANUP.md) and must never be publishable again.
+ * "MongoDB" is matched only in its leaked phrasings, so a genuine story about
+ * MongoDB the company is not blocked.
+ */
+const PIPELINE_BOILERPLATE: Array<{ label: string; pattern: RegExp }> = [
+  { label: "RSS pipeline description", pattern: /\b(?:active|monitored)\s+RSS\s+feeds?\b/i },
+  { label: "pipeline self-description", pattern: /\bhuman-readable article\b/i },
+  { label: "pipeline self-description", pattern: /\bbare headline\b/i },
+  { label: "pipeline self-description", pattern: /\bclipped rewrite\b/i },
+  { label: "pipeline self-description", pattern: /\bcame through the monitored\b/i },
+  { label: "pipeline self-description", pattern: /\bis (?:one|among) (?:of )?the latest (?:items|updates|top updates) (?:found|picked up)\b/i },
+  { label: "database reference", pattern: /\bfound in MongoDB\b|\bin MongoDB yet\b|\bMongoDB (?:collection|database|query|document)s?\b/i }
+];
+
 const PROMPT_LEAKAGE_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "search-term instructions", pattern: /\b(?:natural|target|primary|secondary) search (?:term|terms|query|queries|keyword|keywords)\b/i },
   { label: "search-engine instructions", pattern: /\b(?:this|the) (?:article|page|content|headline) (?:is|was|has been) optimized (?:for|to)\b/i },
@@ -44,9 +60,68 @@ const PLACEHOLDER_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
 ];
 
 export type ContentQualityIssue = {
-  code: "prompt_leakage" | "placeholder" | "malformed_heading" | "raw_json" | "broken_markup" | "repetition" | "generic_filler";
+  code:
+    | "prompt_leakage"
+    | "placeholder"
+    | "malformed_heading"
+    | "raw_json"
+    | "broken_markup"
+    | "repetition"
+    | "generic_filler"
+    | "pipeline_boilerplate"
+    | "inline_heading_marker";
   message: string;
 };
+
+/**
+ * Words a finished headline effectively never ends on.
+ *
+ * Deliberately excludes prepositions that idiomatically close a complete
+ * headline — "before" ("like never before"), "on" ("74 years on"), "for"
+ * ("still unaccounted for"), plus over/out/up/down/through/back. Including
+ * them caught a handful more real cuts at the cost of flagging good headlines,
+ * which is a bad trade for a check that gates publishing.
+ */
+const TRAILING_TRUNCATION_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "nor", "yet",
+  "of", "to", "at", "by", "with", "from", "into", "onto",
+  "during", "about", "against", "between",
+  "is", "are", "was", "were", "be", "been", "has", "have", "had", "will", "would",
+  "that", "this", "these", "those", "it", "its", "their", "his", "her", "as", "than",
+  "makes", "make", "said", "says"
+]);
+
+/**
+ * Heuristic, and deliberately biased toward catching cuts: a flagged headline is
+ * routed to manual review, never auto-deleted. Legitimate endings such as
+ * "still unaccounted for" will be flagged; that is the intended trade.
+ */
+export function hasTruncatedHeadline(title = "") {
+  const raw = cleanText(title).trim();
+  if (!raw) return false;
+  // Terminal punctuation means the writer finished the thought.
+  if (/[.!?"'’”)\]]$/.test(raw)) return false;
+
+  const clean = raw.replace(/[\s,;:–—-]+$/, "").trim();
+  const words = clean.split(/\s+/);
+  // A one- or two-word "headline" is a length problem, caught separately.
+  if (words.length < 3) return false;
+
+  const lastWord = words[words.length - 1] || "";
+  // A trailing possessive has lost the noun it belonged to.
+  if (/['’]s$/i.test(lastWord)) return true;
+
+  const last = lastWord.toLowerCase().replace(/[^a-z]/g, "");
+  return last ? TRAILING_TRUNCATION_WORDS.has(last) : false;
+}
+
+/** A heading marker that is not at the start of a line renders as literal text. */
+function inlineHeadingMarkers(content = "") {
+  return content
+    .split(/\n/)
+    .filter((line) => /\S+\s+h[1-6]:\s/i.test(line))
+    .length;
+}
 
 export type QualityAssessment = {
   approved: boolean;
@@ -192,6 +267,14 @@ export function inspectArticleContent(content = ""): ContentQualityIssue[] {
   if (genericFillerMatches(content).length) {
     issues.push({ code: "generic_filler", message: "Article contains generic AI/editorial filler" });
   }
+  for (const item of PIPELINE_BOILERPLATE) {
+    if (item.pattern.test(content)) {
+      issues.push({ code: "pipeline_boilerplate", message: `Article describes the publishing pipeline (${item.label})` });
+    }
+  }
+  if (inlineHeadingMarkers(content)) {
+    issues.push({ code: "inline_heading_marker", message: "Article contains a literal h2:/h3: marker inside a paragraph" });
+  }
 
   return issues.filter((issue, index, values) => values.findIndex((item) => item.code === issue.code && item.message === issue.message) === index);
 }
@@ -215,6 +298,7 @@ export function validatePublishReadiness(input: PublishReadinessInput) {
 
   if (words < 100) reasons.push(`Article body is extremely thin (${words} words) and needs meaningful reporting or context`);
   if (!cleanText(input.title || "") || cleanText(input.title || "").length < 8) reasons.push("Headline is missing or too short");
+  if (hasTruncatedHeadline(input.title || "")) reasons.push("Headline appears truncated and needs a manual rewrite");
   if (!cleanText(input.excerpt || "") || cleanText(input.excerpt || "").length < 80) reasons.push("Excerpt is missing or too thin");
   if (!cleanText(input.author || "")) reasons.push("Author is missing");
   if (!cleanText(input.category || "")) reasons.push("Category is missing");
