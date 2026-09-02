@@ -236,6 +236,18 @@ function topKeywordDensity(input: PublishReadinessInput) {
   return hits / Math.max(1, contentWords.length);
 }
 
+/**
+ * Shared by the publish gate and the quarantine script so both agree on exactly
+ * what counts as leaked pipeline text.
+ */
+export function pipelineBoilerplateMatches(text = "") {
+  return PIPELINE_BOILERPLATE.filter((item) => item.pattern.test(text)).map((item) => item.label);
+}
+
+export function pipelineBoilerplatePatterns() {
+  return PIPELINE_BOILERPLATE.map((item) => item.pattern.source);
+}
+
 export function genericFillerMatches(content = "") {
   const normalizedContent = normalizedText(content);
   return GENERIC_FILLER.filter((phrase) => normalizedContent.includes(phrase));
