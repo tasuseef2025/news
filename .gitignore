@@ -30,6 +30,8 @@ gitignore.git
 
 # database recovery exports
 backups/
+# generated audit and repair reports (full article before/after dumps)
+exports/
 .dev-*.log
 .prod-*.log
 .vercel
