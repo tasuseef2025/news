@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import mongoose from "mongoose";
 import { pipelineBoilerplateMatches } from "../../src/lib/article-quality";
-import { publicArticleFilter } from "../../src/lib/public-articles";
+import { isArticleIndexable } from "../../src/lib/public-articles";
 
 /**
  * Removes leaked publishing-pipeline language from live articles, in place.
@@ -81,6 +81,27 @@ function applyRewrites(text: string) {
   return restoreSentenceCase(out);
 }
 
+/**
+ * Sentences that talk to the search engine instead of the reader. These are
+ * listed explicitly rather than reusing the broad prompt-leakage detector,
+ * because that detector is tuned to flag an article for review and would also
+ * match ordinary copy ("the matches still matter for rankings"). Deleting a
+ * sentence needs a stricter test than flagging one.
+ */
+const SEO_SELF_TALK = [
+  /\bsuitable for indexing\b/i,
+  /\bthe natural search terms are\b/i,
+  /\bthe search (?:logic|intent|path|angle) (?:is|here)\b/i,
+  /\bfor search visitors\b/i,
+  /\bkeyword density\b/i,
+  /\bas an ai\s+language\s+model\b|\bas an ai\s*,/i,
+  /\bwill keep this article\b/i
+];
+
+function isSeoSelfTalk(sentence: string) {
+  return SEO_SELF_TALK.some((pattern) => pattern.test(sentence));
+}
+
 // The boilerplate here doubles as the lede; removing it needs a real rewrite.
 const UNSAFE = /\bis (?:one|among) (?:of )?the latest (?:items|updates|top updates) (?:found|picked up)/i;
 
@@ -94,6 +115,10 @@ type Doc = {
   content?: string;
   excerpt?: string;
   metaDescription?: string;
+  status?: string;
+  reviewStatus?: string;
+  generationMode?: string;
+  duplicateRisk?: number;
 };
 
 const flag = (name: string) => process.argv.includes(`--${name}`);
@@ -114,7 +139,8 @@ function repairText(original: string) {
 
   const paragraphs = text.split(/\n{2,}/).map((paragraph) => {
     const kept = splitSentences(paragraph).filter((sentence) => {
-      if (!pipelineBoilerplateMatches(sentence).length) return true;
+      const leaks = pipelineBoilerplateMatches(sentence).length > 0 || isSeoSelfTalk(sentence);
+      if (!leaks) return true;
       if (UNSAFE.test(sentence)) {
         unsafe = true;
         return true; // leave it; this one needs a human
@@ -135,18 +161,33 @@ async function run() {
   await mongoose.connect(process.env.MONGODB_URI, { dbName: "news_website", bufferCommands: false });
   const col = mongoose.connection.db.collection<Doc>("articles");
 
+  // Everything that is published and editorially ours: articles already public,
+  // plus those held back only because reviewStatus was never set to approved.
+  // Legacy rows with no generationMode are deliberately excluded - that archive
+  // is feed-derived and is not being brought into the index.
   const docs = await col
-    .find({ ...publicArticleFilter() })
-    .project<Doc>({ slug: 1, title: 1, content: 1, excerpt: 1, metaDescription: 1 })
+    .find({
+      status: "published",
+      generationMode: { $in: ["manual", "ai"] },
+      duplicateRisk: { $not: { $gt: Number(process.env.FEED_MAX_DUPLICATE_RISK || 72) } }
+    })
+    .project<Doc>({ slug: 1, title: 1, content: 1, excerpt: 1, metaDescription: 1, reviewStatus: 1, generationMode: 1, status: 1, duplicateRisk: 1 })
     .toArray();
 
-  const repaired: Array<{ doc: Doc; update: Record<string, string>; removed: string[]; rewritten: boolean }> = [];
+  const repaired: Array<{ doc: Doc; update: Record<string, string>; removed: string[]; rewritten: boolean; approve: boolean }> = [];
   const needsHuman: Array<{ doc: Doc; reason: string }> = [];
+  const approveOnly: Doc[] = [];
   let untouched = 0;
 
+  const isHeldBack = (doc: Doc) => doc.reviewStatus !== "approved";
+
   for (const doc of docs) {
-    if (!FIELDS.some((field) => pipelineBoilerplateMatches(String(doc[field] || "")).length > 0)) {
-      untouched++;
+    const dirty = FIELDS.some((field) => pipelineBoilerplateMatches(String(doc[field] || "")).length > 0 || isSeoSelfTalk(String(doc[field] || "")));
+    if (!dirty) {
+      // Already clean. If it is held back only by reviewStatus and passes every
+      // content check, it is safe to approve without touching a word.
+      if (isHeldBack(doc) && isArticleIndexable({ ...doc, reviewStatus: "approved" })) approveOnly.push(doc);
+      else untouched++;
       continue;
     }
 
@@ -157,7 +198,9 @@ async function run() {
 
     for (const field of FIELDS) {
       const original = String(doc[field] || "");
-      if (!pipelineBoilerplateMatches(original).length) continue;
+      // Must match the `dirty` test above, or a field whose only problem is SEO
+      // self-talk is skipped and the article is counted as already clean.
+      if (!pipelineBoilerplateMatches(original).length && !isSeoSelfTalk(original)) continue;
       const result = repairText(original);
       unsafe = unsafe || result.unsafe;
       rewritten = rewritten || result.rewritten;
@@ -191,16 +234,21 @@ async function run() {
       continue;
     }
 
-    repaired.push({ doc, update, removed, rewritten });
+    const approve = isHeldBack(doc) && isArticleIndexable({ ...merged, reviewStatus: "approved" });
+    repaired.push({ doc, update, removed, rewritten, approve });
   }
 
   console.log("=".repeat(76));
   console.log(apply ? "MODE: APPLY (writes to MongoDB)" : "MODE: DRY RUN (no writes)");
   console.log("=".repeat(76));
-  console.log(`public articles scanned : ${docs.length}`);
-  console.log(`already clean           : ${untouched}`);
+  console.log(`articles scanned        : ${docs.length}`);
+  console.log(`already clean & public  : ${untouched}`);
   console.log(`repairable cleanly      : ${repaired.length}`);
   console.log(`need a human rewrite    : ${needsHuman.length}`);
+  console.log("");
+  console.log(`held back, clean, to APPROVE as-is      : ${approveOnly.length}`);
+  console.log(`held back, to APPROVE after repair      : ${repaired.filter((item) => item.approve).length}`);
+  console.log(`held back, still NOT approvable         : ${needsHuman.filter((item) => item.doc.reviewStatus !== "approved").length}`);
   console.log(`attributions rewritten  : ${repaired.filter((item) => item.rewritten).length}`);
   console.log(`sentences deleted       : ${repaired.reduce((total, item) => total + item.removed.length, 0)}`);
 
@@ -239,7 +287,9 @@ async function run() {
       before: Object.fromEntries(Object.keys(item.update).map((field) => [field, String((item.doc as unknown as Record<string, string>)[field] || "")])),
       after: item.update
     })),
-    needsHumanRewrite: needsHuman.map((item) => ({ id: String(item.doc._id), slug: item.doc.slug, title: item.doc.title, reason: item.reason }))
+    approvedAsIs: approveOnly.map((doc) => ({ id: String(doc._id), slug: doc.slug, title: doc.title })),
+    approvedAfterRepair: repaired.filter((item) => item.approve).map((item) => ({ id: String(item.doc._id), slug: item.doc.slug, title: item.doc.title })),
+    needsHumanRewrite: needsHuman.map((item) => ({ id: String(item.doc._id), slug: item.doc.slug, title: item.doc.title, reason: item.reason, heldBack: item.doc.reviewStatus !== "approved" }))
   }, null, 2));
   console.log(`\nfull before/after report: ${reportPath}`);
 
@@ -253,11 +303,24 @@ async function run() {
   for (const item of repaired) {
     // contentUpdatedAt is set explicitly: this genuinely changes reader-visible
     // copy, and a bulk update cannot trigger the model's pre-save hook.
-    const result = await col.updateOne({ _id: item.doc._id }, { $set: { ...item.update, contentUpdatedAt: new Date() } });
+    const set: Record<string, unknown> = { ...item.update, contentUpdatedAt: new Date() };
+    if (item.approve) set.reviewStatus = "approved";
+    const result = await col.updateOne({ _id: item.doc._id }, { $set: set });
     modified += result.modifiedCount;
   }
 
+  let approved = repaired.filter((item) => item.approve).length;
+  if (approveOnly.length) {
+    // Clean already; held back only because reviewStatus was never set.
+    const result = await col.updateMany(
+      { _id: { $in: approveOnly.map((doc) => doc._id) } },
+      { $set: { reviewStatus: "approved" } }
+    );
+    approved += result.modifiedCount;
+  }
+
   console.log(`\nrepaired ${modified} articles in place.`);
+  console.log(`approved ${approved} previously held-back articles for public discovery.`);
   console.log(`${needsHuman.length} articles still contain boilerplate; they are listed in the report as needing a rewrite.`);
 
   await mongoose.disconnect();

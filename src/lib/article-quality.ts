@@ -55,10 +55,17 @@ const PIPELINE_BOILERPLATE: Array<{ label: string; pattern: RegExp }> = [
 const PROMPT_LEAKAGE_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "search-term instructions", pattern: /\b(?:natural|target|primary|secondary) search (?:term|terms|query|queries|keyword|keywords)\b/i },
   { label: "search-engine instructions", pattern: /\b(?:this|the) (?:article|page|content|headline) (?:is|was|has been) optimized (?:for|to)\b/i },
-  { label: "ranking instructions", pattern: /\b(?:for|to improve) (?:ranking|rankings|indexing|search visibility|google visibility)\b/i },
+  // Must describe the page's own SEO intent. A bare "for rankings" also appears
+  // in ordinary copy ("the matches still matter for rankings, form and
+  // selection"), which this deliberately no longer flags.
+  { label: "ranking instructions", pattern: /\b(?:suitable|optimi[sz]ed|written|structured|designed|tuned)\s+for\s+(?:ranking|rankings|indexing|search visibility|google visibility)\b/i },
+  { label: "ranking instructions", pattern: /\bto improve (?:ranking|rankings|indexing|search visibility|google visibility)\b/i },
   { label: "keyword-density instructions", pattern: /\bkeyword density\b/i },
   { label: "prompt instructions", pattern: /\b(?:system|developer|editorial|publishing|generation) instructions?\b/i },
-  { label: "model self-reference", pattern: /\bas an ai(?: language model)?\b/i },
+  // Requires the assistant-voice construction. A bare "as an AI" also appears
+  // in ordinary copy ("as an AI-friendly president", "as an AI layoff
+  // announcement"), which this no longer flags.
+  { label: "model self-reference", pattern: /\bas an ai\s+language\s+model\b|\bas an ai\s*,/i },
   { label: "token instructions", pattern: /\b(?:maximum|max|minimum|min) (?:output )?tokens?\b/i },
   { label: "JSON response instructions", pattern: /\breturn only valid json\b/i }
 ];
