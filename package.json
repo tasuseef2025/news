@@ -6,7 +6,7 @@
                     "dev":  "node node_modules/next/dist/bin/next dev",
                     "build":  "node node_modules/next/dist/bin/next build",
                     "start":  "node node_modules/next/dist/bin/next start",
-                    "typecheck":  "node node_modules/typescript/bin/tsc --noEmit",
+                    "typecheck":  "node node_modules/typescript/lib/tsc.js --noEmit",
                     "test:quality": "node --import tsx --test --experimental-test-isolation=none tests/article-quality.test.ts",
                     "server":  "node node_modules/tsx/dist/cli.mjs server/index.ts",
                     "seed:admin":  "node node_modules/tsx/dist/cli.mjs server/seed-admin.ts",

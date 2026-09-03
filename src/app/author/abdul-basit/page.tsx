@@ -2,12 +2,15 @@
 import { StaticPage } from "@/components/static/static-page";
 import { AuthorArticles } from "@/components/static/author-articles";
 import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Abdul Basit - Founder and Editor of Novexa News",
   description: "Read about Abdul Basit, Founder and Editor of Novexa News, including his work in MERN development, DevOps, SEO and modern digital publishing.",
-  alternates: { canonical: absoluteUrl("/author/abdul-basit") }
-};
+  path: "/author/abdul-basit",
+  ogImageTitle: "Abdul Basit",
+  ogCategory: "Author"
+});
 
 export const revalidate = 300;
 

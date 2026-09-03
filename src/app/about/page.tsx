@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "About Novexa News and Our Editorial Mission",
   description: "Learn about Novexa News, our founder, editorial team, publishing mission and commitment to reliable digital journalism across Pakistan, world, business, technology, sports and lifestyle coverage.",
-  alternates: { canonical: absoluteUrl("/about") }
-};
+  path: "/about",
+  ogImageTitle: "About Novexa News"
+});
 
 export default function AboutPage() {
   return (

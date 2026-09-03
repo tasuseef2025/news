@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Advertise With Novexa News Audiences",
   description: "Advertise with Novexa News through display placements, sponsored campaigns and partnerships reaching readers across news, technology, business, finance, sports, entertainment and lifestyle.",
-  alternates: { canonical: absoluteUrl("/advertise") }
-};
+  path: "/advertise",
+  ogImageTitle: "Advertise With Novexa News"
+});
 
 export default function AdvertisePage() {
   return (

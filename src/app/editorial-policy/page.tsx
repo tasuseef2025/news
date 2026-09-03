@@ -1,13 +1,14 @@
 ﻿import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { siteConfig } from "@/lib/site";
-import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Editorial Policy",
   description: "Learn about Novexa News editorial standards for accuracy, attribution, corrections, authorship, source transparency and independence.",
-  alternates: { canonical: absoluteUrl("/editorial-policy") }
-};
+  path: "/editorial-policy",
+  ogImageTitle: "Editorial Policy"
+});
 
 export default function EditorialPolicyPage() {
   return (

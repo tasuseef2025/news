@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { StaticPage } from "@/components/static/static-page";
 import { AuthorArticles } from "@/components/static/author-articles";
 import { absoluteUrl } from "@/lib/utils";
+import { staticPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = staticPageMetadata({
   title: "Syeda Manal Tirmizi - Editor and Researcher",
   description: "Read about Syeda Manal Tirmizi, an editor, political science educator and international relations researcher at Novexa News.",
-  alternates: { canonical: absoluteUrl("/author/syeda-manal-tirmizi") }
-};
+  path: "/author/syeda-manal-tirmizi",
+  ogImageTitle: "Syeda Manal Tirmizi",
+  ogCategory: "Author"
+});
 
 export const revalidate = 300;
 
