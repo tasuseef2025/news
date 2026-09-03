@@ -33,7 +33,17 @@ const GENERIC_FILLER = [
  * MongoDB the company is not blocked.
  */
 const PIPELINE_BOILERPLATE: Array<{ label: string; pattern: RegExp }> = [
-  { label: "RSS pipeline description", pattern: /\b(?:active|monitored)\s+RSS\s+feeds?\b/i },
+  // Reader-facing copy has no reason to mention the ingestion transport. Match
+  // RSS only in pipeline constructions so a genuine story about RSS the format
+  // still publishes.
+  { label: "RSS pipeline description", pattern: /\bRSS\s+(?:feeds?|updates?|alerts?|reviews?|monitoring|metadata|items?|snippets?)\b/i },
+  { label: "RSS pipeline description", pattern: /\b(?:active|monitored|latest)\s+RSS\b/i },
+  { label: "pipeline self-description", pattern: /\b(?:story|update|item) came through the\b/i },
+  { label: "pipeline self-description", pattern: /\bneeds? a human version\b/i },
+  { label: "pipeline self-description", pattern: /\bneeds? a fuller treatment\b/i },
+  { label: "pipeline self-description", pattern: /\bshort feed headline\b/i },
+  { label: "pipeline self-description", pattern: /\bfeed summary\b/i },
+  { label: "pipeline self-description", pattern: /\bnot independently verified additional details\b/i },
   { label: "pipeline self-description", pattern: /\bhuman-readable article\b/i },
   { label: "pipeline self-description", pattern: /\bbare headline\b/i },
   { label: "pipeline self-description", pattern: /\bclipped rewrite\b/i },

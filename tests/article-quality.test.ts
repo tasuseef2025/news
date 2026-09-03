@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessArticleQuality, hasTruncatedHeadline, inspectArticleContent, normalizeSourceUrl, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
+import { assessArticleQuality, hasTruncatedHeadline, inspectArticleContent, normalizeSourceUrl, pipelineBoilerplateMatches, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
 import { normalizeHeadingMarkers } from "../src/lib/content-automation";
 import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
 import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
@@ -234,4 +234,25 @@ test("publish gate blocks boilerplate and truncated headlines together", () => {
   assert.equal(result.approved, false);
   assert.ok(result.reasons.some((reason) => reason.includes("truncated")));
   assert.ok(result.reasons.some((reason) => reason.includes("publishing pipeline")));
+});
+
+test("flags RSS pipeline phrasing that reached live copy", () => {
+  const leaks = [
+    "A fresh RSS update gives the first reliable signal for readers.",
+    "Early RSS alerts identify the direction of a development.",
+    "The story came through the latest RSS review, but it needs a human version.",
+    "This update came through the latest RSS monitoring and needs a fuller treatment.",
+    "Novexa News has not independently verified additional details beyond the RSS metadata provided.",
+    "According to Dawn's RSS feed, talks are continuing.",
+    "the short feed headline only gives readers a partial picture",
+    "Details were not included in the feed summary."
+  ];
+  for (const text of leaks) {
+    assert.ok(pipelineBoilerplateMatches(text).length > 0, `should flag: ${text}`);
+  }
+});
+
+test("does not flag a genuine story that mentions RSS as a format", () => {
+  const legitimate = "Google Reader's shutdown pushed many readers toward other RSS clients, and the open format still underpins podcast distribution today.";
+  assert.equal(pipelineBoilerplateMatches(legitimate).length, 0);
 });

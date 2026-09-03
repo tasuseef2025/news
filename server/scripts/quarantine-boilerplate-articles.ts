@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import mongoose from "mongoose";
 import { pipelineBoilerplateMatches } from "../../src/lib/article-quality";
+import { publicArticleFilter } from "../../src/lib/public-articles";
 
 /**
  * Unpublishes articles whose copy leaked publishing-pipeline boilerplate.
@@ -13,6 +14,8 @@ import { pipelineBoilerplateMatches } from "../../src/lib/article-quality";
  *
  * Dry run by default. Pass --apply to write.
  */
+
+const COARSE = "RSS|human-readable article|bare headline|clipped rewrite|MongoDB|came through the|human version|fuller treatment|feed summary|feed headline|independently verified additional";
 
 const FIELDS = ["title", "excerpt", "content", "metaDescription", "metaTitle"] as const;
 
@@ -43,11 +46,14 @@ async function run() {
   // with the exact shared patterns so the script and the publish gate agree.
   const coarse = await col
     .find({
-      status: "published",
+      // Only articles that are actually public. Legacy feed articles are already
+      // noindex and absent from every listing, so unpublishing them would be
+      // churn without an SEO or trust benefit.
+      ...publicArticleFilter(),
       $or: [
-        { content: { $regex: "RSS feeds|human-readable article|bare headline|clipped rewrite|MongoDB", $options: "i" } },
-        { excerpt: { $regex: "RSS feeds|human-readable article|bare headline|clipped rewrite|MongoDB", $options: "i" } },
-        { metaDescription: { $regex: "RSS feeds|human-readable article|bare headline|clipped rewrite|MongoDB", $options: "i" } }
+        { content: { $regex: COARSE, $options: "i" } },
+        { excerpt: { $regex: COARSE, $options: "i" } },
+        { metaDescription: { $regex: COARSE, $options: "i" } }
       ]
     })
     .project<Doc>({ slug: 1, title: 1, status: 1, reviewStatus: 1, title_: 1, excerpt: 1, content: 1, metaDescription: 1, metaTitle: 1 })
@@ -67,7 +73,16 @@ async function run() {
   console.log("=".repeat(76));
   console.log(apply ? "MODE: APPLY (writes to MongoDB)" : "MODE: DRY RUN (no writes)");
   console.log("=".repeat(76));
-  console.log(`coarse database matches : ${coarse.length}`);
+  const allPublished = await col.countDocuments({
+    status: "published",
+    $or: [
+      { content: { $regex: COARSE, $options: "i" } },
+      { excerpt: { $regex: COARSE, $options: "i" } },
+      { metaDescription: { $regex: COARSE, $options: "i" } }
+    ]
+  });
+  console.log(`matches across all published : ${allPublished}  (includes noindex legacy feed articles, left alone)`);
+  console.log(`coarse matches in public set : ${coarse.length}`);
   console.log(`confirmed affected      : ${affected.length}`);
   console.log("");
   console.log("fields affected:");
