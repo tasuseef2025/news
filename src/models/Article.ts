@@ -63,6 +63,8 @@ export type ArticleDocument = {
   scheduledAt?: Date;
   views: number;
   publishedAt: Date;
+  /** Set only when reader-visible copy actually changed; drives dateModified. */
+  contentUpdatedAt?: Date;
 };
 
 const articleSchema = new Schema<ArticleDocument>(
@@ -127,10 +129,23 @@ const articleSchema = new Schema<ArticleDocument>(
     readingTime: { type: Number, default: 1 },
     scheduledAt: Date,
     views: { type: Number, default: 0 },
-    publishedAt: { type: Date, default: Date.now }
+    publishedAt: { type: Date, default: Date.now },
+    // Distinct from updatedAt, which any bulk script bumps. Only a real change
+    // to the reader-visible body moves this, so schema.org dateModified stays
+    // honest.
+    contentUpdatedAt: Date
   },
   { timestamps: true }
 );
+
+const CONTENT_FIELDS = ["title", "excerpt", "content"] as const;
+
+articleSchema.pre("save", function setContentUpdatedAt(next) {
+  if (!this.isNew && CONTENT_FIELDS.some((field) => this.isModified(field))) {
+    this.set("contentUpdatedAt", new Date());
+  }
+  next();
+});
 
 articleSchema.index({ title: "text", excerpt: "text", content: "text" });
 articleSchema.index({ status: 1, reviewStatus: 1, generationMode: 1, publishedAt: -1 });

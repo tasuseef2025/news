@@ -302,10 +302,26 @@ function isCopiedSourceTitle(title: string, sourceTitle: string) {
   return titleText === sourceText || titleText.includes(sourceText) || sourceText.includes(titleText) || titleSimilarity(title, sourceTitle) >= 0.72;
 }
 
-function alternativeHeadline(entry: FeedEntry, category: string) {
+/**
+ * Used when the proposed headline is too close to the source's own. The old
+ * version emitted "<Category> update: <first eight long words>", which reads as
+ * machine output ("World update: ...") and, when the summary was thin, as the
+ * placeholder "latest verified details".
+ *
+ * Now it builds a headline from the summary's opening clause. If there is not
+ * enough to work with it returns an empty string, which fails the headline check
+ * in validatePublishReadiness and routes the story to manual review rather than
+ * publishing a generated stand-in.
+ */
+function alternativeHeadline(entry: FeedEntry) {
   const summary = cleanText(entry.description || entry.title);
-  const words = summary.split(/\s+/).filter((word) => word.length > 3).slice(0, 8).join(" ");
-  return cleanText(`${category} update: ${words || "latest verified details"}`).slice(0, 90).replace(/[\s.,;:!?-]+$/, "");
+  const firstClause = summary.split(/(?<=[.!?])\s|\s[-–—]\s/)[0] || "";
+  const candidate = cleanText(firstClause).replace(/[\s.,;:!?-]+$/, "");
+  if (candidate.split(/\s+/).filter(Boolean).length < 5) return "";
+  const trimmed = candidate.length > 90
+    ? candidate.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "")
+    : candidate;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 function compactText(value = "", max = 1800) {
@@ -351,7 +367,7 @@ function minimumPublishWords() {
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
   if (!input?.title || !input.content) return null;
   const proposedTitle = cleanText(input.title).slice(0, 95).replace(/[\s.,;:!?-]+$/, "");
-  const title = isCopiedSourceTitle(proposedTitle, entry.title) ? alternativeHeadline(entry, category) : proposedTitle;
+  const title = isCopiedSourceTitle(proposedTitle, entry.title) ? alternativeHeadline(entry) : proposedTitle;
   const content = cleanArticleContent(input.content);
   if (!title || content.split(/\s+/).filter(Boolean).length < minimumPublishWords()) return null;
 
@@ -621,7 +637,11 @@ function fallbackEditorialPackage(entry: FeedEntry, sourceName: string, category
   const summary = humanSummary(entry);
   const cleanTitle = cleanText(entry.title);
   const baseTitle = cleanTitle.length > 90 ? cleanTitle.slice(0, 90).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "") : cleanTitle;
-  const title = isCopiedSourceTitle(baseTitle, entry.title) ? alternativeHeadline(entry, category) : baseTitle;
+  // Never emit an empty title here: normalizeArticlePayload would turn it into
+  // "Untitled Article" and a colliding slug. If no distinct headline can be
+  // built, keep the source-derived one and let the headline-similarity check in
+  // assessArticleQuality route the story to review.
+  const title = isCopiedSourceTitle(baseTitle, entry.title) ? alternativeHeadline(entry) || baseTitle : baseTitle;
 
   return {
     title,

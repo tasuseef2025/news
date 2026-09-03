@@ -34,6 +34,7 @@ type ArticleLike = {
   imageCreditUrl?: string;
   publishedAt?: string | Date;
   updatedAt?: string | Date;
+  contentUpdatedAt?: string | Date;
 };
 
 export function generateSlug(value = "") {
@@ -135,7 +136,9 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
     articleSection: article.category,
     inLanguage: "en",
     datePublished: article.publishedAt,
-    dateModified: article.updatedAt || article.publishedAt,
+    // Deliberately not updatedAt: bulk maintenance scripts bump that without
+    // changing a word readers see, which inflates freshness signals.
+    dateModified: article.contentUpdatedAt || article.publishedAt,
     copyrightHolder: { "@type": "Organization", name: siteConfig.name },
     isBasedOn: article.originalSourceUrl || article.sourceUrl,
     citation: citations.length ? citations : undefined,

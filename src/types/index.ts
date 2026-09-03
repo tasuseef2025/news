@@ -74,6 +74,8 @@ export type Article = {
   publishedAt: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Set only when reader-visible copy actually changed; drives dateModified. */
+  contentUpdatedAt?: string;
 };
 
 export type Advertisement = {

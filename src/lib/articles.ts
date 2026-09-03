@@ -20,6 +20,7 @@ function serializeArticle(article: unknown): Article {
     scheduledAt?: Date;
     createdAt?: Date;
     updatedAt?: Date;
+    contentUpdatedAt?: Date;
   };
 
   const image = safeArticleImage({ image: doc.image, title: doc.title, category: doc.category });
@@ -43,6 +44,7 @@ function serializeArticle(article: unknown): Article {
     scheduledAt: doc.scheduledAt ? new Date(doc.scheduledAt).toISOString() : undefined,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : undefined,
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined,
+    contentUpdatedAt: doc.contentUpdatedAt ? new Date(doc.contentUpdatedAt).toISOString() : undefined,
     sourcePublishedAt: raw.sourcePublishedAt ? new Date(raw.sourcePublishedAt).toISOString() : undefined,
     importedAt: raw.importedAt ? new Date(raw.importedAt).toISOString() : undefined,
     aiGeneratedAt: raw.aiGeneratedAt ? new Date(raw.aiGeneratedAt).toISOString() : undefined,
