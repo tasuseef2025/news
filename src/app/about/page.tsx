@@ -13,9 +13,9 @@ export default function AboutPage() {
   return (
     <StaticPage title="About Novexa News" description="Novexa News is a modern digital news platform built to make reliable information accessible across technology, business, finance, world news, sports, entertainment, health and lifestyle.">
       <h2>Our Mission</h2>
-      <p>{siteConfig.name} delivers timely, accessible and clearly presented news for readers who want fast updates without losing editorial responsibility. The platform combines modern publishing technology, automation and human review standards to support consistent coverage.</p>
+      <p>{siteConfig.name} delivers timely, accessible and clearly presented news for readers who want fast updates without losing editorial responsibility. Our stories are written by our editorial team, supported by modern publishing technology and consistent review standards.</p>
       <h2>Founder And Editor</h2>
-      <p>Abdul Basit is the Founder and Editor of <strong>Novexa News</strong>, a modern digital news platform dedicated to delivering timely and reliable news from around the world. As a Full Stack MERN Developer and DevOps Engineer, he designed and developed the platform using modern web technologies and AI-powered automation to publish news efficiently while maintaining high standards of quality.</p>
+      <p>Abdul Basit is the Founder and Editor of <strong>Novexa News</strong>, a modern digital news platform dedicated to delivering timely and reliable news from around the world. As a Full Stack MERN Developer and DevOps Engineer, he designed and developed the platform using modern web technologies to publish news efficiently while maintaining high standards of quality.</p>
       <p>With a strong background in React.js, Node.js, Express.js, MongoDB, cloud infrastructure, and SEO, Abdul focuses on creating fast, scalable, and user-friendly digital experiences. His vision for Novexa News is to make trustworthy information easily accessible, covering topics such as technology, business, finance, cryptocurrency, world news, sports, entertainment, health, and lifestyle.</p>
       <p>When he is not developing new features or optimizing the platform, Abdul enjoys exploring emerging technologies, artificial intelligence, and innovative ways to improve online publishing.</p>
       <h2>Editorial Team</h2>

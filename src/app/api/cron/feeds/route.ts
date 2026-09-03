@@ -21,6 +21,17 @@ export async function GET(request: Request) {
   const authError = verifyCronRequest(request);
   if (authError) return authError;
 
+  // Automated feed publishing was retired on 19 August 2026; the editorial
+  // policy now states that every article is written by a person. This route
+  // stays in the codebase but refuses to run unless it is deliberately switched
+  // back on, so starting the cron worker cannot quietly contradict the policy.
+  if (process.env.ENABLE_FEED_AUTOPUBLISH !== "true") {
+    return NextResponse.json(
+      { ok: false, skipped: "Automated feed publishing is disabled. Set ENABLE_FEED_AUTOPUBLISH=true to re-enable it." },
+      { status: 503 }
+    );
+  }
+
   await connectDB();
   const sources = await FeedSource.find({ active: true }).select("_id name").lean<{ _id: { toString: () => string }; name: string }[]>();
   const preparedResults = await Promise.allSettled(sources.map((source) => prepareFeedSource(source._id.toString())));

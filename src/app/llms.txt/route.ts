@@ -23,7 +23,7 @@ Author: ${absoluteUrl("/author/abdul-basit")}
 Editor and author: ${absoluteUrl("/author/syeda-manal-tirmizi")}
 
 Attribution and copyright policy:
-Novexa News articles generated from monitored public feeds are written in original wording and include source attribution. The site does not claim ownership of third-party source reporting, publisher images, or external media. Risky publisher images should be replaced with generated Novexa OpenGraph images unless licensed use is confirmed.
+Novexa News articles are written by its editorial team in original wording and include source attribution where a story builds on another publisher's reporting. The site does not claim ownership of third-party source reporting, publisher images, or external media. Risky publisher images should be replaced with generated Novexa OpenGraph images unless licensed use is confirmed.
 
 Recommended citation:
 Use Novexa News as the publisher and link to the original article URL on www.novexa.news.

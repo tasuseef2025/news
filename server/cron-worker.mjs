@@ -6,11 +6,20 @@ if (!secret) {
   process.exit(1);
 }
 
+// Feed import is opt-in. Automated feed publishing was retired on 19 August
+// 2026 and the editorial policy now states that a person writes every article,
+// so this job is only scheduled when it is deliberately switched back on.
 const jobs = [
-  { name: "Import feeds", path: "/api/cron/feeds", intervalMs: 10 * 60 * 1000, runImmediately: true },
+  ...(process.env.ENABLE_FEED_AUTOPUBLISH === "true"
+    ? [{ name: "Import feeds", path: "/api/cron/feeds", intervalMs: 10 * 60 * 1000, runImmediately: true }]
+    : []),
   { name: "Update trending posts", path: "/api/cron/trending", intervalMs: 30 * 60 * 1000, runImmediately: true },
   { name: "Refresh SEO routes", path: "/api/cron/refresh", intervalMs: 60 * 60 * 1000, runImmediately: false }
 ];
+
+if (process.env.ENABLE_FEED_AUTOPUBLISH !== "true") {
+  console.log("[cron] Feed import is disabled (ENABLE_FEED_AUTOPUBLISH is not \"true\").");
+}
 
 async function runJob(job) {
   const startedAt = new Date();
