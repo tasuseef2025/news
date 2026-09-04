@@ -3,6 +3,7 @@
   ArticleGrid,
   CategoryCards,
   CompactArticleList,
+  LatestTicker,
   Newsletter,
   RankedList,
   SectionHeader,
@@ -22,6 +23,7 @@ export default async function HomePage() {
   return (
     <main className="pb-10">
       <h1 className="sr-only">Novexa News: Latest Pakistan and World News</h1>
+      <LatestTicker articles={data.ticker} />
       <section className="container py-6 md:py-8">
         <div className="grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">
           <div className="grid content-start gap-10">

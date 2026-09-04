@@ -22,6 +22,7 @@ export type CategoryCard = {
 
 export type HomepageData = {
   hero: Article[];
+  ticker: Article[];
   trending: Article[];
   editorsPicks: Article[];
   latest: Article[];
@@ -64,6 +65,29 @@ async function findArticles(
   return docs.map(serializeArticle);
 }
 
+async function findHeroArticles() {
+  const [priority, fallback] = await Promise.all([
+    findArticles({ $or: [{ category: "Breaking News" }, { featured: true }, { breakingNews: true }] }, { limit: 5 }),
+    findArticles({}, { limit: 5 })
+  ]);
+
+  const seen = new Set<string>();
+  const combined: Article[] = [];
+  for (const article of [...priority, ...fallback]) {
+    if (seen.has(article.slug)) continue;
+    seen.add(article.slug);
+    combined.push(article);
+  }
+
+  return combined
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, 5);
+}
+
+async function findTicker() {
+  return findArticles({}, { limit: 10 });
+}
+
 async function findEditorsPicks() {
   const [pinned, featured] = await Promise.all([
     findArticles({ slug: { $in: [...pinnedEditorsPicks] } }, { limit: pinnedEditorsPicks.length }),
@@ -86,6 +110,7 @@ export async function getHomepageData(): Promise<HomepageData> {
 
     const [
       hero,
+      ticker,
       trending,
       editorsPicks,
       latest,
@@ -93,7 +118,8 @@ export async function getHomepageData(): Promise<HomepageData> {
       categoryStats,
       advertisements
     ] = await Promise.all([
-      findArticles({ $or: [{ category: "Breaking News" }, { featured: true }] }, { limit: 5 }),
+      findHeroArticles(),
+      findTicker(),
       findArticles({ trending: true }, { limit: 6, sort: { views: -1, publishedAt: -1 } }),
       findEditorsPicks(),
       findArticles({}, { limit: 8 }),
@@ -142,6 +168,7 @@ export async function getHomepageData(): Promise<HomepageData> {
 
     return {
       hero,
+      ticker,
       trending,
       editorsPicks,
       latest,
@@ -154,6 +181,7 @@ export async function getHomepageData(): Promise<HomepageData> {
   } catch {
     return {
       hero: [],
+      ticker: [],
       trending: [],
       editorsPicks: [],
       latest: [],
