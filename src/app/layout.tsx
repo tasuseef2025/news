@@ -9,6 +9,7 @@ import { siteConfig, socialSameAs } from "@/lib/site";
 import { WebVitals } from "@/components/analytics/web-vitals";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { GoogleAdsense } from "@/components/ads/google-adsense";
+import { getNavigableCategories } from "@/lib/category-nav";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -111,7 +112,9 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const navigableCategories = await getNavigableCategories().catch(() => []);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -123,7 +126,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AppProviders>
           <GoogleAnalytics />
           <WebVitals />
-          <SiteHeader />
+          <SiteHeader navigableCategories={navigableCategories} />
           {children}
           <SiteFooter />
         </AppProviders>

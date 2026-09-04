@@ -2,6 +2,7 @@ import { inspectArticleContent } from "@/lib/article-quality";
 
 type PublicArticleLike = {
   content?: string;
+  title?: string;
   duplicateRisk?: number;
   generationMode?: "manual" | "ai" | "feed";
   reviewStatus?: "pending" | "approved" | "rejected" | "needs_review";
@@ -20,12 +21,16 @@ const fallbackPhrases = [
   "this story continues to attract attention"
 ];
 
+const garbledTitlePattern = /^(Pakistan|World|Technology|Business|Sports|Politics|Health|Entertainment|Science)\s+update:/i;
+
 export function publicArticleFilter() {
   return {
     status: "published",
     reviewStatus: "approved",
     generationMode: { $in: ["manual", "ai"] },
-    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } }
+    duplicateRisk: { $not: { $gt: maximumDuplicateRisk } },
+    title: { $not: garbledTitlePattern },
+    $nor: fallbackPhrases.map((phrase) => ({ content: { $regex: phrase, $options: "i" } }))
   };
 }
 
@@ -36,6 +41,7 @@ export function articleIndexabilityIssues(value: unknown) {
   if (!article.generationMode || !["manual", "ai"].includes(article.generationMode)) issues.push("Generation mode is not approved for public discovery");
   if (article.reviewStatus !== "approved") issues.push("Editorial review is not approved");
   if (Number(article.duplicateRisk || 0) > maximumDuplicateRisk) issues.push("Duplicate-story risk exceeds the public threshold");
+  if (garbledTitlePattern.test(article.title || "")) issues.push("Title matches a legacy auto-generated pattern");
 
   const normalized = String(article.content || "").toLowerCase();
   if (fallbackPhrases.some((phrase) => normalized.includes(phrase))) issues.push("Article contains legacy automation filler");
