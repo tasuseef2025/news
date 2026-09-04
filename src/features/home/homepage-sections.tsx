@@ -207,7 +207,7 @@ export function Newsletter() {
           </div>
           <h2 className="font-editorial text-3xl font-bold">Get the morning edition in your inbox</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Subscribe for editor-selected headlines, analysis, and the biggest stories across every section.
+            Subscribe for the day&apos;s biggest headlines, analysis, and top stories across every section.
           </p>
         </div>
         <form className="flex flex-col gap-3 sm:flex-row">
