@@ -18,7 +18,14 @@ const fallbackPhrases = [
   "this development is important for readers",
   "the immediate takeaway is",
   "for search visitors",
-  "this story continues to attract attention"
+  "this story continues to attract attention",
+  "is now a fuller",
+  "left readers with only the basic outline",
+  "the main takeaway is that",
+  "without relying on a bare rss summary",
+  "has rewritten the article in a clearer editorial style",
+  "the story becomes a short-lived item or a continuing news thread",
+  "readers who want plain language rather than a thin summary"
 ];
 
 const garbledTitlePattern = /^(Pakistan|World|Technology|Business|Sports|Politics|Health|Entertainment|Science)\s+update:/i;
