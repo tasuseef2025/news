@@ -72,7 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: siteConfig.name,
       url: canonical,
       publishedTime: article.publishedAt,
-      modifiedTime: article.updatedAt,
+      modifiedTime: article.contentUpdatedAt || article.publishedAt,
       authors: [article.author || "Novexa News Desk"],
       section: article.category,
       tags: article.tags
@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     other: {
       news_keywords: article.tags?.join(", ") || article.category,
       "article:published_time": article.publishedAt,
-      "article:modified_time": article.updatedAt || article.publishedAt
+      "article:modified_time": article.contentUpdatedAt || article.publishedAt
     }
   };
 }
@@ -157,8 +157,8 @@ export default async function NewsArticlePage({ params }: Props) {
               {article.author || "Novexa News Desk"}
             </Link>
             <span>Published {format(new Date(article.publishedAt), "PPP p")}</span>
-            {article.updatedAt && new Date(article.updatedAt).getTime() > new Date(article.publishedAt).getTime() + 60_000 ? (
-              <span>Updated {format(new Date(article.updatedAt), "PPP p")}</span>
+            {article.contentUpdatedAt && new Date(article.contentUpdatedAt).getTime() > new Date(article.publishedAt).getTime() + 60_000 ? (
+              <span>Updated {format(new Date(article.contentUpdatedAt), "PPP p")}</span>
             ) : null}
             <ArticleViewCounter articleId={article._id} initialViews={article.views} />
             <span>{article.readingTime ?? 1} min read</span>

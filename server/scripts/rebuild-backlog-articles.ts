@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import mongoose from "mongoose";
 import type { Collection, Document } from "mongodb";
@@ -20,6 +20,10 @@ type Options = {
   concurrency: number;
   hostDelayMs: number;
   retryFailed: boolean;
+  seoQuarantined: boolean;
+  preserveSlug: boolean;
+  slugsFile?: string;
+  listOnly: boolean;
 };
 
 type Outcome = {
@@ -49,7 +53,11 @@ function options(): Options {
     category: value("category"),
     concurrency: Math.max(1, Math.min(6, Number(value("concurrency") || 3))),
     hostDelayMs: Math.max(0, Number(value("host-delay") || 1500)),
-    retryFailed: flag("retry-failed")
+    retryFailed: flag("retry-failed"),
+    seoQuarantined: flag("seo-quarantined"),
+    preserveSlug: flag("preserve-slug") || flag("seo-quarantined") || Boolean(value("slugs-file")),
+    slugsFile: value("slugs-file"),
+    listOnly: flag("list-only")
   };
 }
 
@@ -95,9 +103,21 @@ async function run() {
 
   const query: Record<string, unknown> = {
     status: "draft",
-    reviewStatus: "needs_review",
     sourceUrl: { $exists: true, $nin: ["", null] }
   };
+  if (config.seoQuarantined) query.seoQuarantinedAt = { $exists: true };
+  else query.reviewStatus = "needs_review";
+  if (config.slugsFile) {
+    const rows = readFileSync(resolve(process.cwd(), config.slugsFile), "utf8").split(/\r?\n/).slice(1);
+    const slugs = rows
+      .map((row) => row.split(",")[0]?.trim())
+      .map((url) => {
+        try { return new URL(url).pathname.match(/^\/news\/(.+)$/)?.[1] || ""; }
+        catch { return ""; }
+      })
+      .filter(Boolean);
+    query.slug = { $in: slugs };
+  }
   if (!config.retryFailed) query.rebuildAttemptedAt = { $exists: false };
   if (config.category) query.category = config.category;
   if (config.hosts.length) {
@@ -111,9 +131,23 @@ async function run() {
       originalSourceUrl: 1, originalSourceName: 1, image: 1, imageCredit: 1, imageCreditUrl: 1,
       publishedAt: 1, sourcePublishedAt: 1, createdAt: 1, tags: 1, references: 1
     })
-    .sort({ createdAt: -1 })
+    .sort(config.seoQuarantined ? { publishedAt: -1 } : { createdAt: -1 })
     .limit(config.limit)
     .toArray();
+
+  if (config.listOnly) {
+    console.log(JSON.stringify(candidates.map((doc) => ({
+      id: String(doc._id),
+      title: doc.title,
+      slug: doc.slug,
+      category: doc.category,
+      sourceName: doc.originalSourceName || doc.sourceName,
+      sourceUrl: doc.originalSourceUrl || doc.sourceUrl,
+      publishedAt: doc.publishedAt,
+      words: words(String(doc.content || ""))
+    })), null, 2));
+    return;
+  }
 
   const recent = await collection
     .find({ image: { $type: "string" }, status: "published" })
@@ -186,7 +220,9 @@ async function run() {
         });
         if (stock?.url) usedImages.push(stock.url);
 
-        const slug = config.apply
+        const slug = config.preserveSlug
+          ? String(doc.slug)
+          : config.apply
           ? await uniqueSlug(collection, rebuilt.slug || rebuilt.title, id)
           : generateSlug(rebuilt.slug || rebuilt.title);
 
@@ -225,7 +261,9 @@ async function run() {
             content: doc.content,
             sourceName: doc.sourceName,
             sourceUrl: doc.sourceUrl,
-            reason: "backlog-rebuild: replaced thin needs_review draft with sourced 600+ word article",
+            reason: config.seoQuarantined
+              ? "indexed-page-recovery: replaced quarantined template copy with sourced 600+ word article"
+              : "backlog-rebuild: replaced thin needs_review draft with sourced 600+ word article",
             createdAt: new Date()
           });
 
@@ -246,6 +284,7 @@ async function run() {
               rebuiltAt: new Date(),
               rebuildFailureReason: "",
               lastUpdatedAt: new Date(),
+              contentUpdatedAt: new Date(),
               publishedAt: publicationDate
             }
           });

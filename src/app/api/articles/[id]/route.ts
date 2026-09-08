@@ -103,7 +103,11 @@ export async function PATCH(request: Request, { params }: Params) {
       reason: "manual-editor-update"
     });
   }
-  const article = await Article.findByIdAndUpdate(id, update, { new: true });
+  const article = await Article.findByIdAndUpdate(id, {
+    ...update,
+    // Query updates do not execute Article's pre-save content timestamp hook.
+    ...(materiallyChanged ? { contentUpdatedAt: new Date() } : {})
+  }, { new: true });
 
   if (!article) {
     return NextResponse.json({ message: "Article not found" }, { status: 404 });

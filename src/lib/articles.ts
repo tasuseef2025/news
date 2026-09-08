@@ -82,7 +82,7 @@ export async function getArticles(filters?: {
 
     return docs.map(serializeArticle);
   } catch {
-    return [];
+    throw new Error("Article listings are temporarily unavailable");
   }
 }
 

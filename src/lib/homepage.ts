@@ -152,21 +152,8 @@ export async function getHomepageData(): Promise<HomepageData> {
       advertisements: advertisements.map(serializeAdvertisement)
     };
   } catch {
-    return {
-      hero: [],
-      trending: [],
-      editorsPicks: [],
-      latest: [],
-      popular: [],
-      recent: [],
-      sections: emptySections as Record<string, Article[]>,
-      categoryCards: categories.map((category) => ({
-        name: category,
-        slug: slugify(category),
-        count: 0
-      })),
-      advertisements: []
-    };
+    // Let Next.js retain the last successful ISR page instead of caching an empty edition.
+    throw new Error("Homepage content is temporarily unavailable");
   }
 }
 

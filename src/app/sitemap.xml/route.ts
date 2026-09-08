@@ -19,7 +19,7 @@ type SitemapArticle = {
   title: string;
   category: string;
   image?: string | null;
-  updatedAt?: Date;
+  contentUpdatedAt?: Date;
   publishedAt?: Date;
   content?: string;
   status?: string;
@@ -50,10 +50,9 @@ function validImageUrl(value?: string | null) {
 
 export async function GET() {
   await connectDB();
-  const newsSitemapCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
   const publishedFilter = publicArticleFilter();
   const candidates = await Article.find(publishedFilter)
-      .select("slug title category image updatedAt publishedAt content status reviewStatus generationMode duplicateRisk")
+      .select("slug title category image contentUpdatedAt publishedAt content status reviewStatus generationMode duplicateRisk")
       .sort({ publishedAt: -1 })
       .limit(5000)
       .lean<SitemapArticle[]>();
@@ -61,7 +60,7 @@ export async function GET() {
   const categoryStats = new Map<string, { count: number; lastmod?: Date }>();
   for (const article of articles) {
     const current = categoryStats.get(article.category) || { count: 0, lastmod: undefined };
-    const modified = article.updatedAt || article.publishedAt;
+    const modified = article.contentUpdatedAt || article.publishedAt;
     categoryStats.set(article.category, {
       count: current.count + 1,
       lastmod: !current.lastmod || (modified && modified > current.lastmod) ? modified : current.lastmod
@@ -73,7 +72,7 @@ export async function GET() {
     .map(([category]) => category);
 
   const urls: SitemapUrl[] = [
-    { loc: absoluteUrl("/"), lastmod: articles[0] ? new Date(articles[0].updatedAt || articles[0].publishedAt || new Date()).toISOString() : undefined },
+    { loc: absoluteUrl("/"), lastmod: articles[0] ? new Date(articles[0].contentUpdatedAt || articles[0].publishedAt || new Date()).toISOString() : undefined },
     ...staticRoutes.map((route) => ({ loc: absoluteUrl(route) })),
     ...indexableCategories.map((category) => {
       const stats = categoryStats.get(category);
@@ -82,9 +81,10 @@ export async function GET() {
         lastmod: stats?.lastmod ? new Date(stats.lastmod).toISOString() : undefined
       };
     }),
-    ...articles.filter((article) => new Date(article.publishedAt || 0) < newsSitemapCutoff).map((article) => ({
+    // The News sitemap supplements this complete list; recent stories belong in both.
+    ...articles.map((article) => ({
       loc: absoluteUrl(`/news/${article.slug}`),
-      lastmod: new Date(article.updatedAt || article.publishedAt || new Date()).toISOString(),
+      lastmod: new Date(article.contentUpdatedAt || article.publishedAt || new Date()).toISOString(),
       image: validImageUrl(safeArticleOgImage({ image: article.image || undefined, title: article.title, category: article.category }))
     }))
   ];

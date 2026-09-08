@@ -162,5 +162,17 @@
   {
     "source": "/news/yemen-s-houthis-declare-naval-blockade-of-saudi-arabia-what-to-know",
     "destination": "/news/yemen-s-houthis-declare-maritime-blockade-of-saudi-arabia"
+  },
+  {
+    "source": "/news/nearly-400-sq-km-of-punjab-under-water-ravi-chenab-flood-levels-likely-to-reach-medium",
+    "destination": "/news/ravi-chenab-flood-levels-likely-to-reach-medium-to-high-levels-today"
+  },
+  {
+    "source": "/news/tiktok-faces-ofcom-investigation-over-child-age-checks-784c56d7",
+    "destination": "/news/tiktok-facing-uk-investigation-amid-fears-over-age-checks-and-harm-to-children"
+  },
+  {
+    "source": "/news/who-is-the-frontrunner-to-be-the-uk-s-next-chancellor-45e129d0",
+    "destination": "/news/who-is-the-frontrunner-to-be-the-uk-s-next-chancellor"
   }
 ]
