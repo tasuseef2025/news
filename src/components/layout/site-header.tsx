@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
 import { canAccessAdmin, hasPermission } from "@/lib/permissions";
-import { categories, categorySlug, primaryNavigationCategories } from "@/lib/categories";
+import { categorySlug, primaryNavigationCategories } from "@/lib/categories";
 
 const mainNav = [
   { label: "Home", href: "/" },
@@ -24,7 +24,7 @@ const mainNav = [
 
 const tickerLinks = primaryNavigationCategories.filter((category) => category !== "Breaking News");
 
-export function SiteHeader() {
+export function SiteHeader({ navigableCategories }: { navigableCategories: string[] }) {
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -86,7 +86,7 @@ export function SiteHeader() {
               Categories
               <ChevronDown className={cn("h-4 w-4 transition", categoriesOpen && "rotate-180")} />
             </button>
-            <AnimatePresence>{categoriesOpen ? <CategoriesDropdown /> : null}</AnimatePresence>
+            <AnimatePresence>{categoriesOpen ? <CategoriesDropdown categories={navigableCategories} /> : null}</AnimatePresence>
           </div>
           {mainNav.slice(3).map((item) => (
             <NavLink key={item.href} href={item.href}>{item.label}</NavLink>
@@ -172,7 +172,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return <Link href={href} className="flex h-11 items-center transition hover:text-primary">{children}</Link>;
 }
 
-function CategoriesDropdown() {
+function CategoriesDropdown({ categories }: { categories: string[] }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

@@ -8,6 +8,33 @@ import { cn } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 import { ArticleImage } from "@/components/media/article-image";
 
+export function LatestTicker({ articles }: { articles: Article[] }) {
+  if (!articles.length) return null;
+  const items = [...articles, ...articles];
+
+  return (
+    <div className="flex items-stretch overflow-hidden border-y-2 border-foreground bg-foreground text-background">
+      <span className="flex shrink-0 items-center gap-2 bg-primary px-4 py-2 text-xs font-black uppercase text-primary-foreground">
+        Latest
+      </span>
+      <div className="group relative flex-1 overflow-hidden">
+        <div className="flex w-max animate-[ticker_38s_linear_infinite] items-center gap-10 py-2 group-hover:[animation-play-state:paused]">
+          {items.map((article, index) => (
+            <Link
+              key={`${article.slug}-${index}`}
+              href={`/news/${article.slug}`}
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap px-2 text-sm font-bold hover:text-primary"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              {article.title}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SectionHeader({ title, href }: { title: string; href?: string }) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4 border-t-2 border-foreground pt-3">
@@ -207,7 +234,7 @@ export function Newsletter() {
           </div>
           <h2 className="font-editorial text-3xl font-bold">Get the morning edition in your inbox</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Subscribe for editor-selected headlines, analysis, and the biggest stories across every section.
+            Subscribe for the day&apos;s biggest headlines, analysis, and top stories across every section.
           </p>
         </div>
         <form className="flex flex-col gap-3 sm:flex-row">

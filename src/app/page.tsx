@@ -3,12 +3,13 @@
   ArticleGrid,
   CategoryCards,
   CompactArticleList,
+  LatestTicker,
   Newsletter,
   RankedList,
   SectionHeader,
   VideoSection
 } from "@/features/home/homepage-sections";
-import { HeroBreakingSlider } from "@/features/home/hero-breaking-slider";
+import { HeroSection } from "@/features/home/hero-breaking-slider";
 import { ArticleCard } from "@/features/articles/article-card";
 import { getHomepageData } from "@/lib/homepage";
 import { LiveScoresPanel } from "@/features/sports/live-scores-panel";
@@ -22,11 +23,12 @@ export default async function HomePage() {
   return (
     <main className="pb-10">
       <h1 className="sr-only">Novexa News: Latest Pakistan and World News</h1>
+      <LatestTicker articles={data.ticker} />
       <section className="container py-6 md:py-8">
         <div className="grid gap-8 border-b pb-10 xl:grid-cols-[minmax(0,1fr)_330px]">
           <div className="grid content-start gap-10">
-            <HeroBreakingSlider articles={data.hero} />
-            <ArticleGrid title="Editor's Picks" articles={data.editorsPicks} />
+            <HeroSection articles={data.hero} />
+            <ArticleGrid title="Top Stories" articles={data.editorsPicks} />
           </div>
 
           <aside className="grid content-start gap-8">

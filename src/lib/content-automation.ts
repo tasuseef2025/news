@@ -89,7 +89,7 @@ export function normalizeHeadingMarkers(content = "") {
 export function generateExcerpt(content = "", max = 155) {
   const text = stripHtml(content);
   if (text.length <= max) return text;
-  return text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "");
+  return `${text.slice(0, max).replace(/\s+\S*$/, "").replace(/[\s.,;:!?-]+$/, "")}…`;
 }
 
 export function generateReadingTime(content = "") {

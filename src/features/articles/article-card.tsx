@@ -20,10 +20,14 @@ export function ArticleCard({ article, priority, large }: { article: Article; pr
         />
       </Link>
       <div className="grid content-start gap-2">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase text-primary">
-          <span>{article.category}</span>
-          <span className="h-1 w-1 rounded-full bg-muted-foreground" />
-          <time className="text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs">
+          <Link
+            href={`/category/${article.category.toLowerCase().replaceAll(" ", "-")}`}
+            className="rounded-sm bg-primary/10 px-2 py-0.5 font-black uppercase text-primary hover:bg-primary hover:text-primary-foreground"
+          >
+            {article.category}
+          </Link>
+          <time className="font-semibold text-muted-foreground">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}
           </time>
         </div>

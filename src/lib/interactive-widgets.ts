@@ -80,19 +80,34 @@ async function getCurrencies(): Promise<CurrencyRate[]> {
   return Object.entries(data.rates || {}).map(([symbol, rate]) => ({ pair: `${base}/${symbol}`, rate: Number(rate) }));
 }
 
+async function getMarketQuote(symbol: string): Promise<MarketQuote | null> {
+  const data = await fetchJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
+  const meta = data.chart?.result?.[0]?.meta;
+  if (!meta || asNumber(meta.regularMarketPrice) === undefined) return null;
+
+  const price = asNumber(meta.regularMarketPrice);
+  const previousClose = asNumber(meta.chartPreviousClose ?? meta.previousClose);
+  const change = asNumber(meta.fulldayChange) ?? (price !== undefined && previousClose !== undefined ? price - previousClose : undefined);
+  const changePercent = asNumber(meta.fulldayChangePercent ?? meta.regularMarketChangePercent);
+
+  return {
+    symbol: String(meta.symbol || symbol),
+    name: String(meta.shortName || meta.longName || symbol),
+    price,
+    change,
+    changePercent,
+    currency: typeof meta.currency === "string" ? meta.currency : undefined
+  };
+}
+
 async function getMarkets(): Promise<MarketQuote[]> {
   const symbols = (process.env.WIDGET_MARKET_SYMBOLS || "AAPL,MSFT,GOOGL,BTC-USD,ETH-USD").split(",").map((item) => item.trim()).filter(Boolean);
   if (!symbols.length) return [];
 
-  const data = await fetchJson(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`);
-  return (data.quoteResponse?.result || []).map((item: Record<string, unknown>) => ({
-    symbol: String(item.symbol || ""),
-    name: String(item.shortName || item.longName || item.symbol || "Market"),
-    price: asNumber(item.regularMarketPrice),
-    change: asNumber(item.regularMarketChange),
-    changePercent: asNumber(item.regularMarketChangePercent),
-    currency: typeof item.currency === "string" ? item.currency : undefined
-  })).filter((item: MarketQuote) => item.symbol);
+  const quotes = await Promise.all(
+    symbols.map((symbol) => getMarketQuote(symbol).catch(() => null))
+  );
+  return quotes.filter((quote): quote is MarketQuote => Boolean(quote?.symbol));
 }
 
 export async function getWidgets(options: { location?: string } = {}): Promise<WidgetsResponse> {

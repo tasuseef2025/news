@@ -1,27 +1,17 @@
-"use client";
-
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
 import { ArticleImage } from "@/components/media/article-image";
+import { authorProfilePath } from "@/lib/authors";
 import type { Article } from "@/types";
 
-export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
-  const [active, setActive] = useState(0);
-  const article = articles[active];
-  const hasMultiple = articles.length > 1;
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "NN";
+  return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+}
 
-  const controls = useMemo(
-    () => ({
-      previous: () => setActive((index) => (index === 0 ? articles.length - 1 : index - 1)),
-      next: () => setActive((index) => (index === articles.length - 1 ? 0 : index + 1))
-    }),
-    [articles.length]
-  );
-
-  if (!article) {
+export function HeroSection({ articles }: { articles: Article[] }) {
+  if (!articles.length) {
     return (
       <section className="grid min-h-[400px] place-items-center border-y bg-card p-8 text-center">
         <div>
@@ -35,56 +25,82 @@ export function HeroBreakingSlider({ articles }: { articles: Article[] }) {
     );
   }
 
+  const [lead, ...rest] = articles;
+  const sideStories = rest.slice(0, 4);
+
   return (
-    <section className="relative min-h-[420px] overflow-hidden bg-black text-white md:min-h-[520px]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={article.slug}
-          initial={{ opacity: 0, scale: 1.02 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.45 }}
-          className="absolute inset-0"
-        >
-          <ArticleImage src={article.image} alt={article.imageAlt || article.title} title={article.title} category={article.category} fill priority className="object-cover opacity-70" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/5" />
-        </motion.div>
-      </AnimatePresence>
+    <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr] lg:items-stretch">
+      <div className="group relative min-h-[340px] overflow-hidden bg-black text-white md:min-h-[460px]">
+        <Link href={`/news/${lead.slug}`} className="absolute inset-0" aria-label={lead.title}>
+          <ArticleImage
+            src={lead.image}
+            alt={lead.imageAlt || lead.title}
+            title={lead.title}
+            category={lead.category}
+            fill
+            priority
+            className="object-cover opacity-75 transition duration-500 group-hover:scale-[1.03] group-hover:opacity-85"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
+        </Link>
 
-      <div className="relative z-10 flex min-h-[420px] flex-col justify-end p-5 md:min-h-[520px] md:p-8">
-        <div className="max-w-3xl">
-          <div className="mb-4 flex w-fit items-center gap-2 rounded-sm bg-primary px-3 py-1 text-xs font-black uppercase text-primary-foreground">
-            Hero Breaking News
+        <div className="pointer-events-none relative z-10 flex h-full min-h-[340px] flex-col justify-end p-5 md:min-h-[460px] md:p-8">
+          <div className="pointer-events-auto flex w-fit items-center gap-2 rounded-sm bg-primary px-3 py-1 text-xs font-black uppercase text-primary-foreground">
+            {lead.breakingNews ? "Breaking News" : lead.category}
           </div>
-          <Link href={`/news/${article.slug}`} className="font-editorial text-4xl font-bold leading-[1.04] hover:text-primary md:text-6xl">
-            {article.title}
+          <Link href={`/news/${lead.slug}`} className="pointer-events-auto mt-4 block">
+            <h2 className="font-editorial text-3xl font-bold leading-[1.05] hover:text-primary md:text-5xl">
+              {lead.title}
+            </h2>
           </Link>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/85 md:text-lg">{article.excerpt}</p>
-        </div>
-
-        {hasMultiple ? (
-          <div className="mt-8 flex items-center justify-between gap-4">
-            <div className="flex gap-2">
-              {articles.map((item, index) => (
-                <button
-                  key={item.slug}
-                  type="button"
-                  aria-label={`Show slide ${index + 1}`}
-                  onClick={() => setActive(index)}
-                  className={`h-1.5 rounded-full transition-all ${active === index ? "w-10 bg-primary" : "w-5 bg-white/45"}`}
-                />
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="icon" aria-label="Previous breaking news" onClick={controls.previous}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <Button variant="secondary" size="icon" aria-label="Next breaking news" onClick={controls.next}>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
+          <p className="pointer-events-auto mt-4 max-w-2xl text-base leading-7 text-white/85 md:text-lg">{lead.excerpt}</p>
+          <div className="pointer-events-auto mt-4 flex items-center gap-2.5">
+            <Link
+              href={authorProfilePath(lead.author)}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-black text-primary-foreground hover:opacity-90"
+            >
+              {initials(lead.author || "Novexa News")}
+            </Link>
+            <Link href={authorProfilePath(lead.author)} className="text-sm font-bold text-white hover:text-primary">
+              {lead.author || "Novexa News Desk"}
+            </Link>
+            <span className="text-white/50">&middot;</span>
+            <time className="text-xs font-bold uppercase tracking-wide text-white/70">
+              {formatDistanceToNow(new Date(lead.publishedAt), { addSuffix: true })}
+            </time>
           </div>
-        ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-col divide-y border md:border-l-0">
+        {sideStories.map((article) => (
+          <Link
+            key={article.slug}
+            href={`/news/${article.slug}`}
+            className="group grid grid-cols-[104px_1fr] gap-3 p-3 transition hover:bg-muted/60 md:p-4"
+          >
+            <ArticleImage
+              src={article.image}
+              alt={article.imageAlt || article.title}
+              title={article.title}
+              category={article.category}
+              width={208}
+              height={144}
+              className="aspect-[4/3] w-full object-cover"
+            />
+            <div className="flex min-w-0 flex-col justify-center gap-1.5">
+              <span className="w-fit rounded-sm bg-primary/10 px-1.5 py-0.5 text-[11px] font-black uppercase tracking-wide text-primary">
+                {article.category}
+              </span>
+              <span className="font-editorial text-[15px] font-bold leading-[1.2] group-hover:text-primary md:text-base">
+                {article.title}
+              </span>
+              <time className="text-[11px] font-semibold text-muted-foreground">
+                {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}
+              </time>
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );
