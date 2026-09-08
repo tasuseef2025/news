@@ -173,6 +173,51 @@
   },
   {
     "source": "/news/who-is-the-frontrunner-to-be-the-uk-s-next-chancellor-45e129d0",
-    "destination": "/latest"
+    "destination": "/news/who-is-the-frontrunner-to-be-the-uk-s-next-chancellor"
+  },
+  {
+    "source": "/news/ajk-elections-pml-n-grabs-9-out-of-13-seats-across-mirpur-division-unofficial-results",
+    "destination": "/news/pml-n-grabs-9-out-of-13-seats-across-ajk-s-mirpur-division-unofficial-results-show"
+  },
+  {
+    "source": "/news/argentina-minus-messi-return-home-after-world-cup-final-heartbreak",
+    "destination": "/news/thousands-welcome-home-argentina-squad-without-messi-despite-world-cup-loss"
+  },
+  {
+    "source": "/news/berlin-police-search-for-suspect-in-fatal-attack-on-pride-parade",
+    "destination": "/news/suspect-in-berlin-pride-attack-shot-dead-by-police"
+  },
+  {
+    "source": "/news/britain-s-kerr-breaks-27-year-mile-world-record-in-london",
+    "destination": "/news/unbelievable-gb-s-kerr-breaks-mile-world-record"
+  },
+  {
+    "source": "/news/french-parliament-passes-social-media-ban-for-under-15s",
+    "destination": "/news/french-parliament-backs-social-media-ban-for-under-15s"
+  },
+  {
+    "source": "/news/in-reply-to-nawaz-bilawal-says-people-of-ajk-not-ready-to-bargain-away-their-rights-in",
+    "destination": "/news/in-reply-to-nawaz-bilawal-says-people-of-ajk-not-ready-to-bargain-away-their-rights"
+  },
+  {
+    "source": "/news/josh-kerr-of-britain-breaks-27-year-old-world-record-in-the-mile",
+    "destination": "/news/unbelievable-gb-s-kerr-breaks-mile-world-record"
+  },
+  {
+    "source": "/news/ravi-chenab-flood-levels-likely-to-reach-medium-to-high-today",
+    "destination": "/news/ravi-chenab-flood-levels-likely-to-reach-medium-to-high-levels-today"
+  },
+  {
+    "source": "/news/tiktok-faces-ofcom-investigation-over-child-age-checks",
+    "destination": "/news/tiktok-facing-uk-investigation-amid-fears-over-age-checks-and-harm-to-children"
+  },
+  {
+    "source": "/news/trump-imposes-50-tariffs-on-canadian-goods",
+    "destination": "/news/donald-trump-to-impose-50-tariff-on-most-canadian-goods-white-house-says"
+  },
+  {
+    "source": "/news/white-house-defends-argentina-team-over-falklands-banner",
+    "destination": "/news/white-house-backs-argentina-players-over-falklands-banner-in-world-cup-semi-final"
+  }
   }
 ]
