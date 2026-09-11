@@ -107,7 +107,7 @@ export function generateStructuredData(article: Required<Pick<ArticleLike, "titl
   const canonicalUrl = absoluteUrl(`/news/${article.slug}`);
   const authorName = article.author || `${siteConfig.name} Desk`;
   const author = authorName === `${siteConfig.name} Desk` || authorName === "Novexa News Desk"
-    ? { "@type": "Organization", name: authorName, url: absoluteUrl("/about") }
+    ? { "@type": "Organization", name: authorName, url: absoluteUrl("/author/novexa-news-desk") }
     : {
         "@type": "Person",
         name: authorName,

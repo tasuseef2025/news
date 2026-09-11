@@ -5,7 +5,8 @@ const authorProfiles: Record<string, string> = {
   "syeda manal tirmizi": "/author/syeda-manal-tirmizi",
   "syada manal tirmizi": "/author/syeda-manal-tirmizi",
   "manal tirmizi": "/author/syeda-manal-tirmizi",
-  "manal": "/author/syeda-manal-tirmizi"
+  "manal": "/author/syeda-manal-tirmizi",
+  "novexa news desk": "/author/novexa-news-desk"
 };
 
 export function authorProfilePath(name?: string | null) {
