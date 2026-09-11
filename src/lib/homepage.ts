@@ -144,12 +144,14 @@ export async function getHomepageData(): Promise<HomepageData> {
       AdvertisementModel.find({ active: true }).sort({ createdAt: -1 }).limit(8).lean()
     ]);
 
+    const heroIds = hero.map((article) => article._id).filter(Boolean);
     const trendingIds = trending.map((article) => article._id).filter(Boolean);
     const latestIds = latest.map((article) => article._id).filter(Boolean);
+    const excludeFromPopular = [...new Set([...heroIds, ...trendingIds, ...latestIds])];
 
     const [popular, recent] = await Promise.all([
       findArticles(
-        { _id: { $nin: trendingIds } },
+        { _id: { $nin: excludeFromPopular } },
         { limit: 6, sort: { views: -1, publishedAt: -1 } }
       ),
       findArticles({ _id: { $nin: latestIds } }, { limit: 5 })
