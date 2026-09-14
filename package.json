@@ -26,7 +26,8 @@
                     "backlog:probe": "node node_modules/tsx/dist/cli.mjs server/scripts/source-fetch-probe.ts",
                     "backlog:rebuild": "node node_modules/tsx/dist/cli.mjs server/scripts/rebuild-backlog-articles.ts",
                     "backlog:verify": "node node_modules/tsx/dist/cli.mjs server/scripts/verify-rebuilt-articles.ts",
-                    "news:latest": "node node_modules/tsx/dist/cli.mjs server/scripts/publish-latest-news.ts"
+                    "news:latest": "node node_modules/tsx/dist/cli.mjs server/scripts/publish-latest-news.ts",
+                    "news:fix-404s": "node node_modules/tsx/dist/cli.mjs server/scripts/fix-and-publish-404-articles.ts"
                 },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.2.2",
