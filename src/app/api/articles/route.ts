@@ -76,6 +76,10 @@ export async function POST(request: Request) {
   revalidatePath("/news-sitemap.xml");
   revalidatePath("/rss.xml");
 
+  if (data.status === "published") {
+    fetch("https://www.google.com/ping?sitemap=https://www.novexa.news/news-sitemap.xml").catch(() => {});
+  }
+
   return NextResponse.json({ article, social }, { status: 201 });
 }
 

@@ -24,6 +24,7 @@ type Options = {
   preserveSlug: boolean;
   slugsFile?: string;
   listOnly: boolean;
+  provider: "openai" | "gemini-mistral";
 };
 
 type Outcome = {
@@ -46,6 +47,20 @@ function value(name: string) {
 }
 
 function options(): Options {
+  const rawProvider = value("provider");
+  // Detect whether Gemini or Mistral keys are configured and prefer them over
+  // OpenAI (whose credits may be exhausted) when no explicit flag is supplied.
+  const hasGeminiOrMistral = Boolean(
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.Gamni_api_key?.trim() ||
+    process.env.Gemini_api_key?.trim() ||
+    process.env.MISTRAL_API_KEY?.trim() ||
+    process.env.Mistral_api_key?.trim()
+  );
+  const provider: "openai" | "gemini-mistral" =
+    rawProvider === "openai" ? "openai" :
+    rawProvider === "gemini-mistral" ? "gemini-mistral" :
+    hasGeminiOrMistral ? "gemini-mistral" : "openai";
   return {
     limit: Number(value("limit") || 25),
     apply: flag("apply"),
@@ -57,7 +72,8 @@ function options(): Options {
     seoQuarantined: flag("seo-quarantined"),
     preserveSlug: flag("preserve-slug") || flag("seo-quarantined") || Boolean(value("slugs-file")),
     slugsFile: value("slugs-file"),
-    listOnly: flag("list-only")
+    listOnly: flag("list-only"),
+    provider
   };
 }
 
@@ -185,7 +201,7 @@ async function run() {
           sourceUrl,
           sourceExcerpt: String(doc.excerpt || ""),
           extracted
-        });
+        }, { provider: config.provider });
 
         if (!result.ok) {
           outcomes.push({ id: String(id), slug: String(doc.slug), host, status: "held", reason: result.reason, wordsBefore: before });

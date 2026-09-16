@@ -1,6 +1,8 @@
 import { categorySlug } from "@/lib/categories";
 import { assessArticleQuality, type QualityAssessment } from "@/lib/article-quality";
 import type { ExtractedArticle } from "@/lib/source-extraction";
+import { requestRecoveryModel } from "@/lib/recovery-model";
+import { z } from "zod";
 
 export type RebuildInput = {
   title: string;
@@ -9,6 +11,7 @@ export type RebuildInput = {
   sourceUrl: string;
   sourceExcerpt: string;
   extracted: ExtractedArticle;
+  publishedAt?: string;
 };
 
 export type RebuiltArticle = {
@@ -24,6 +27,8 @@ export type RebuiltArticle = {
   factualClaims: string[];
   wordCount: number;
   assessment: QualityAssessment;
+  provider?: string;
+  model?: string;
 };
 
 export type RebuildResult =
@@ -130,32 +135,38 @@ type ModelPackage = {
 };
 
 function parseJson(value: string): ModelPackage | null {
+  const schema = z.object({
+    sufficientEvidence: z.boolean(), evidenceNote: z.string(),
+    title: z.string(), slug: z.string(), excerpt: z.string(), content: z.string(),
+    metaTitle: z.string(), metaDescription: z.string(), imageAlt: z.string(),
+    tags: z.array(z.string()), factualClaims: z.array(z.string())
+  });
   try {
-    return JSON.parse(value) as ModelPackage;
+    const parsed = schema.safeParse(JSON.parse(value));
+    return parsed.success ? parsed.data : null;
   } catch {
     const match = value.match(/\{[\s\S]*\}/);
     if (!match) return null;
     try {
-      return JSON.parse(match[0]) as ModelPackage;
+      const parsed = schema.safeParse(JSON.parse(match[0]));
+      return parsed.success ? parsed.data : null;
     } catch {
       return null;
     }
   }
 }
 
-async function requestRebuild(input: RebuildInput, allowlist: Array<{ url: string; label: string }>) {
+async function requestRebuild(input: RebuildInput, allowlist: Array<{ url: string; label: string }>, provider: "openai" | "gemini-mistral") {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { pkg: null, reason: "OPENAI_API_KEY is not configured" };
+  if (provider === "openai" && !apiKey) return { pkg: null, reason: "OPENAI_API_KEY is not configured" };
 
   const minimumWords = minimumRebuildWords();
+  const targetWords = provider === "gemini-mistral" ? Math.max(900, minimumWords) : minimumWords;
   const linkMenu = allowlist
     .map((entry, index) => `${index + 1}. ${entry.url}  (describes: ${entry.label})`)
     .join("\n");
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const request = {
       model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
       max_output_tokens: Math.max(3000, Number(process.env.REBUILD_MAX_OUTPUT_TOKENS || 4000)),
       reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
@@ -195,11 +206,12 @@ async function requestRebuild(input: RebuildInput, allowlist: Array<{ url: strin
         },
         {
           role: "user",
-          content: `Rewrite this into an original Novexa News article of at least ${minimumWords} words.
+          content: `Rewrite this into an original Novexa News article of at least ${targetWords} body words. Headings and metadata do not count toward the body length.
 
 Existing draft headline: ${input.title}
 Category: ${input.category}
 Source outlet: ${input.sourceName}
+${input.publishedAt ? `Original publication date: ${input.publishedAt}. This is an archival recovery: do not present historical events as happening today.` : ""}
 
 FULL SOURCE TEXT (the only permitted factual basis):
 """
@@ -210,9 +222,10 @@ APPROVED LINK TARGETS — you may cite only these exact URLs:
 ${linkMenu || "(none available)"}
 
 Requirements:
-- ${minimumWords}-950 words of substantive reporting. Depth must come from the facts, context and explanation present in the source text, never from repetition or filler.
+- ${targetWords}-950 words of substantive reporting. Depth must come from the facts, context and explanation present in the source text, never from repetition or filler.
 - Original headline with a different angle and wording from the draft headline above. Do not reuse the source headline.
 - Structure with "H2: " heading lines (3 to 5 of them) covering what happened, key details, why it matters, and what comes next where the source supports it.
+${provider === "gemini-mistral" ? "- In the content JSON string, separate paragraphs and every heading with newline characters. Encode paragraph breaks as \\n\\n, not as double-escaped backslash text. Each H2: heading must occupy its own line, never appear within a paragraph." : ""}
 - You MUST place at least one contextual link to the original source report (${input.sourceUrl}) inside the body, using markdown syntax [anchor text](url), where you attribute the reporting. Add up to 3 more links from the approved list where they genuinely support a specific claim.
 - Use ONLY URLs from the approved list above, each at most once. Anchor text must be natural descriptive phrasing that describes the destination, never "click here", "source", or a bare URL. Any link to a URL outside the approved list will be discarded.
 - Attribute reporting to the outlet by name, the way a newsroom does: "the BBC reported", "according to figures released by the ministry", "Reuters put the figure at". NEVER refer to your brief as "the source", "the source report", "the source text", "the provided material", "the report says", or "according to the source". A reader must never be able to tell you were working from a supplied document. This is the single most important rule about voice.
@@ -232,7 +245,25 @@ VOICE - this is what separates the article from filler:
 - Do not state that the article was AI generated, and do not claim independent or on-the-ground reporting by Novexa News.`
         }
       ]
-    })
+    };
+
+  if (provider === "gemini-mistral") {
+    const result = await requestRecoveryModel({
+      system: request.input[0].content,
+      prompt: request.input[1].content,
+      schema: request.text.format.schema,
+      maxOutputTokens: request.max_output_tokens
+    });
+    if (!result.ok) return { pkg: null, reason: result.reason };
+    const pkg = parseJson(result.text);
+    return { pkg, reason: pkg ? "" : `${result.provider} response was not valid article JSON`, provider: result.provider, model: result.model };
+  }
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+    signal: AbortSignal.timeout(90000)
   });
 
   if (!response.ok) {
@@ -257,13 +288,13 @@ VOICE - this is what separates the article from filler:
   return { pkg, reason: "" };
 }
 
-export async function rebuildArticle(input: RebuildInput): Promise<RebuildResult> {
+export async function rebuildArticle(input: RebuildInput, options: { provider?: "openai" | "gemini-mistral" } = {}): Promise<RebuildResult> {
   if (!input.extracted.ok) {
     return { ok: false, reason: `Source text unavailable (${input.extracted.reason || "unknown"})` };
   }
 
   const allowlist = buildAllowlist(input);
-  const { pkg, reason } = await requestRebuild(input, allowlist);
+  const { pkg, reason, provider, model } = await requestRebuild(input, allowlist, options.provider || "openai");
   if (!pkg) return { ok: false, reason };
   if (pkg.sufficientEvidence === false) {
     return { ok: false, reason: `Insufficient source evidence: ${cleanRebuiltText(pkg.evidenceNote || "model declined")}`.slice(0, 300) };
@@ -324,7 +355,9 @@ export async function rebuildArticle(input: RebuildInput): Promise<RebuildResult
         .filter(Boolean)
         .slice(0, 12),
       wordCount,
-      assessment
+      assessment,
+      provider,
+      model
     }
   };
 }
