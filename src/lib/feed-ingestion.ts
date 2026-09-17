@@ -361,7 +361,7 @@ function cleanTags(tags: unknown[], category: string, feedTag?: string) {
 }
 
 function minimumPublishWords() {
-  return Math.max(300, Number(process.env.FEED_MIN_PUBLISH_WORDS || 500));
+  return Math.max(500, Number(process.env.FEED_MIN_PUBLISH_WORDS || 500));
 }
 
 function validateEditorialPackage(input: Partial<EditorialPackage> | null, entry: FeedEntry, sourceName: string, category: string): EditorialPackage | null {
@@ -760,40 +760,7 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
     }
 
     if (storyMatch?.kind === "similar") {
-      const reason = `Possible developing-story match (${Math.round(storyMatch.similarity * 100)}% title similarity); editorial merge review required`;
-      const draftTitle = cleanText(entry.title).slice(0, 95);
-      const draftPayload = normalizeArticlePayload({
-        title: draftTitle,
-        excerpt: humanSummary(entry),
-        content: humanSummary(entry),
-        category,
-        author: "Novexa News Desk",
-        sourceName: source.name,
-        sourceUrl: normalizedUrl,
-        originalSourceName: source.name,
-        originalSourceUrl: normalizedUrl,
-        rssFeedUrl: source.url,
-        sourceGuid: entry.guid || undefined,
-        sourceItemId: entry.itemId || normalizedUrl,
-        sourcePublishedAt: entry.publishedAt,
-        importedAt: new Date(),
-        references: [{ name: source.name, url: normalizedUrl, publishedAt: entry.publishedAt }],
-        sourceContentHash: incomingSourceHash,
-        contentHash: contentHash(humanSummary(entry)),
-        generationMode: "feed",
-        reviewStatus: "needs_review",
-        rejectionReasons: [reason],
-        duplicateRisk: Math.round(storyMatch.similarity * 100),
-        isDevelopingStory: true,
-        parentStoryId: storyMatch.article._id,
-        image: generatedOgPath(draftTitle, category),
-        imageAlt: `${draftTitle} news image`,
-        status: "draft",
-        tags: cleanTags([], category, entry.category)
-      });
-      const slug = await uniqueArticleSlug(draftPayload.slug, normalizedUrl);
-      const draft = await Article.create({ ...draftPayload, slug, publishedAt: undefined });
-      created.push(draft);
+      const reason = `Possible developing-story match (${Math.round(storyMatch.similarity * 100)}% title similarity); skipped unapproved draft creation`;
       rejected.push({ sourceUrl: normalizedUrl, reason, parentStoryId: String(storyMatch.article._id) });
       continue;
     }
@@ -992,9 +959,12 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
       continue;
     }
 
-    const imageResult = shouldPublish
-      ? await feedImage(entry, editorial.title, category)
-      : { image: generatedOgPath(editorial.title, category), stockImage: null };
+    if (!shouldPublish) {
+      rejected.push({ sourceUrl: normalizedUrl, reason: rejectionReasons.join("; ") || assessment.reason || "Held for editorial review" });
+      continue;
+    }
+
+    const imageResult = await feedImage(entry, editorial.title, category);
 
     const initialPayload = normalizeArticlePayload({
       title: editorial.title,
@@ -1011,7 +981,7 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
       slug: editorial.slug,
       metaTitle: editorial.metaTitle,
       metaDescription: editorial.metaDescription,
-      status: shouldPublish ? "published" : "draft",
+      status: "published",
       tags: editorial.tags,
       publishedAt: entry.publishedAt?.toISOString()
     });
@@ -1020,14 +990,10 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
 
     const article = await Article.create({
       ...articlePayload,
-      publishedAt: shouldPublish ? entry.publishedAt || new Date() : undefined
+      publishedAt: entry.publishedAt || new Date()
     });
-    if (shouldPublish) {
-      await publishArticleToX(article);
-      publishedToday += 1;
-    } else {
-      rejected.push({ sourceUrl: normalizedUrl, reason: rejectionReasons.join("; ") || assessment.reason || "Held for editorial review" });
-    }
+    await publishArticleToX(article);
+    publishedToday += 1;
     created.push(article);
   }
 
