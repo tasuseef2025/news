@@ -405,7 +405,7 @@ function aiCategories() {
 }
 
 function shouldUseAiForEntry(entry: FeedEntry, category: string) {
-  if (process.env.FEED_AI_ENABLED === "false") return false;
+  if (process.env.FEED_AI_ENABLED?.trim() === "false") return false;
   const minSummaryChars = Number(process.env.FEED_MIN_SOURCE_CHARS || process.env.FEED_AI_MIN_SUMMARY_CHARS || 180);
   if (feedSummaryLength(entry) < minSummaryChars) return false;
   const allowedCategories = aiCategories();
@@ -440,7 +440,7 @@ export async function createPacedFeedAiBudget(): Promise<FeedAiBudget> {
   startOfDay.setUTCHours(0, 0, 0, 0);
   const usedToday = await Article.countDocuments({ aiAttemptedAt: { $gte: startOfDay } });
   const elapsedFraction = Math.min(1, Math.max(0, (now.getTime() - startOfDay.getTime()) / 86_400_000));
-  const pacingEnabled = process.env.FEED_AI_PACE_DAILY_LIMIT !== "false";
+  const pacingEnabled = process.env.FEED_AI_PACE_DAILY_LIMIT?.trim() !== "false";
   const pacedAllowance = pacingEnabled
     ? Math.min(dailyLimit, Math.max(1, Math.floor(elapsedFraction * dailyLimit) + 1))
     : dailyLimit;
@@ -472,7 +472,7 @@ async function editorialPackage(entry: FeedEntry, sourceName: string, category: 
 }
 
 export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return { editorial: null, failureReason: "OPENAI_API_KEY is not configured" };
   const minimumWords = minimumPublishWords();
   const preferredMaximumWords = Math.max(minimumWords + 200, 700);
@@ -485,9 +485,9 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
         max_output_tokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
-        reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
+        reasoning: { effort: (process.env.OPENAI_REASONING_EFFORT?.trim() || "none") as "none" | "low" | "medium" | "high" },
         text: {
           format: {
             type: "json_schema",
@@ -670,7 +670,7 @@ async function feedImage(entry: FeedEntry, title: string, category: string): Pro
     && !usedImageIds.has(stockImageIdentity(sourceImage));
 
   if (sourceImageIsUsable && isLowRiskAutoImageUrl(sourceImage)) return { image: sourceImage, stockImage: null };
-  if (sourceImageIsUsable && process.env.FEED_USE_SOURCE_IMAGES === "true") return { image: sourceImage, stockImage: null };
+  if (sourceImageIsUsable && process.env.FEED_USE_SOURCE_IMAGES?.trim() === "true") return { image: sourceImage, stockImage: null };
 
   const stockImage = await findStockImage({ title, category, excludeUrls: recentImages });
   if (stockImage?.url) return { image: stockImage.url, stockImage };
