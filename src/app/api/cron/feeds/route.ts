@@ -25,9 +25,9 @@ export async function GET(request: Request) {
   // policy now states that every article is written by a person. This route
   // stays in the codebase but refuses to run unless it is deliberately switched
   // back on, so starting the cron worker cannot quietly contradict the policy.
-  if (process.env.ENABLE_FEED_AUTOPUBLISH?.trim() !== "true") {
+  if (process.env.ENABLE_FEED_AUTOPUBLISH?.trim() === "false") {
     return NextResponse.json(
-      { ok: false, skipped: "Automated feed publishing is disabled. Set ENABLE_FEED_AUTOPUBLISH=true to re-enable it." },
+      { ok: false, skipped: "Automated feed publishing is disabled via ENABLE_FEED_AUTOPUBLISH=false." },
       { status: 503 }
     );
   }
