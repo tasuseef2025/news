@@ -478,6 +478,10 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
   const preferredMaximumWords = Math.max(minimumWords + 200, 700);
 
   try {
+    const model = process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
+    const reasoningEffort = process.env.OPENAI_REASONING_EFFORT?.trim();
+    const isReasoningModel = model.startsWith("o1") || model.startsWith("o3");
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -485,9 +489,9 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+        model,
         max_output_tokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
-        reasoning: { effort: (process.env.OPENAI_REASONING_EFFORT?.trim() || "none") as "none" | "low" | "medium" | "high" },
+        ...(isReasoningModel && reasoningEffort && reasoningEffort !== "none" ? { reasoning: { effort: reasoningEffort } } : {}),
         text: {
           format: {
             type: "json_schema",

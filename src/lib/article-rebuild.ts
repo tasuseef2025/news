@@ -166,10 +166,14 @@ async function requestRebuild(input: RebuildInput, allowlist: Array<{ url: strin
     .map((entry, index) => `${index + 1}. ${entry.url}  (describes: ${entry.label})`)
     .join("\n");
 
+  const model = process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
+  const reasoningEffort = process.env.OPENAI_REASONING_EFFORT?.trim();
+  const isReasoningModel = model.startsWith("o1") || model.startsWith("o3");
+
   const request = {
-      model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+      model,
       max_output_tokens: Math.max(3000, Number(process.env.REBUILD_MAX_OUTPUT_TOKENS || 4000)),
-      reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
+      ...(isReasoningModel && reasoningEffort && reasoningEffort !== "none" ? { reasoning: { effort: reasoningEffort } } : {}),
       text: {
         format: {
           type: "json_schema",
