@@ -186,97 +186,117 @@ function isSensitiveStory(title: string, category: string) {
   return sensitiveTerms.some((term) => text.includes(term));
 }
 
-function stockQuery(title: string, category: string) {
-  if (isSensitiveStory(title, category)) return "";
-  const topic = topicQueries.find((item) => item.terms.test(title))?.query;
-  if (topic) return `${topic}${/pakistan/i.test(title) || category === "Pakistan" ? " Pakistan" : ""}`;
+function stockQueries(title: string, category: string): string[] {
+  const queries: string[] = [];
 
+  // 1. Matched topic query (e.g., "cricket stadium", "petrol fuel station")
+  const topic = topicQueries.find((item) => item.terms.test(title))?.query;
+  if (topic) {
+    queries.push(topic);
+  }
+
+  // 2. Focused title keywords (1-2 main subject words)
   const keywords = titleKeywords(title);
-  const categoryQuery = categoryQueries[category] || `${category} news`;
-  return keywords ? `${keywords} ${categoryQuery}` : categoryQuery;
+  if (keywords) {
+    queries.push(keywords);
+    if (category) queries.push(`${keywords} ${category}`);
+  }
+
+  // 3. Fallback category query
+  const categoryQuery = categoryQueries[category] || category;
+  if (categoryQuery) {
+    queries.push(categoryQuery);
+  }
+
+  return [...new Set(queries.filter(Boolean))];
 }
 
 function pexelsUrl(photo: PexelsPhoto) {
   return photo.src?.large2x || photo.src?.large || photo.src?.original || "";
 }
 
-async function pexelsImage(query: string, title: string, excluded: Set<string>): Promise<StockImageResult | null> {
+async function pexelsImage(queries: string[], title: string, excluded: Set<string>): Promise<StockImageResult | null> {
   const apiKey = process.env.PEXELS_API_KEY;
   if (!apiKey) return null;
 
-  try {
-    const url = new URL("https://api.pexels.com/v1/search");
-    url.searchParams.set("query", query);
-    url.searchParams.set("orientation", "landscape");
-    url.searchParams.set("per_page", "40");
-    url.searchParams.set("size", "large");
+  for (const query of queries) {
+    try {
+      const url = new URL("https://api.pexels.com/v1/search");
+      url.searchParams.set("query", query);
+      url.searchParams.set("orientation", "landscape");
+      url.searchParams.set("per_page", "20");
+      url.searchParams.set("size", "large");
 
-    const response = await fetch(url, {
-      headers: { Authorization: apiKey },
-      signal: AbortSignal.timeout(6000)
-    });
-    if (!response.ok) return null;
+      const response = await fetch(url, {
+        headers: { Authorization: apiKey },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok) continue;
 
-    const data = await response.json();
-    const photos = Array.isArray(data.photos)
-      ? (data.photos as PexelsPhoto[]).filter((photo) => pexelsUrl(photo) && !excluded.has(stockImageIdentity(pexelsUrl(photo))))
-      : [];
-    const photo = pickDeterministic(photos, title);
-    const imageUrl = photo ? pexelsUrl(photo) : "";
-    if (!photo || !imageUrl) return null;
-
-    return {
-      url: imageUrl,
-      alt: photo.alt || title,
-      credit: "Photo by " + (photo.photographer || "Pexels contributor") + " on Pexels",
-      provider: "Pexels",
-      pageUrl: photo.url
-    };
-  } catch {
-    return null;
+      const data = await response.json();
+      const photos = Array.isArray(data.photos)
+        ? (data.photos as PexelsPhoto[]).filter((photo) => pexelsUrl(photo) && !excluded.has(stockImageIdentity(pexelsUrl(photo))))
+        : [];
+      const photo = pickDeterministic(photos, title);
+      const imageUrl = photo ? pexelsUrl(photo) : "";
+      if (photo && imageUrl) {
+        return {
+          url: imageUrl,
+          alt: photo.alt || title,
+          credit: "Photo by " + (photo.photographer || "Pexels contributor") + " on Pexels",
+          provider: "Pexels",
+          pageUrl: photo.url
+        };
+      }
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 function pixabayUrl(image: PixabayHit) {
   return image.largeImageURL || image.webformatURL || "";
 }
 
-async function pixabayImage(query: string, title: string, excluded: Set<string>): Promise<StockImageResult | null> {
+async function pixabayImage(queries: string[], title: string, excluded: Set<string>): Promise<StockImageResult | null> {
   const apiKey = process.env.PIXABAY_API_KEY;
   if (!apiKey) return null;
 
-  try {
-    const url = new URL("https://pixabay.com/api/");
-    url.searchParams.set("key", apiKey);
-    url.searchParams.set("q", query);
-    url.searchParams.set("image_type", "photo");
-    url.searchParams.set("orientation", "horizontal");
-    url.searchParams.set("safesearch", "true");
-    url.searchParams.set("per_page", "40");
-    url.searchParams.set("min_width", "1200");
-    url.searchParams.set("min_height", "630");
+  for (const query of queries) {
+    try {
+      const url = new URL("https://pixabay.com/api/");
+      url.searchParams.set("key", apiKey);
+      url.searchParams.set("q", query);
+      url.searchParams.set("image_type", "photo");
+      url.searchParams.set("orientation", "horizontal");
+      url.searchParams.set("safesearch", "true");
+      url.searchParams.set("per_page", "20");
+      url.searchParams.set("min_width", "1000");
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!response.ok) return null;
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) continue;
 
-    const data = await response.json();
-    const images = Array.isArray(data.hits)
-      ? (data.hits as PixabayHit[]).filter((image) => pixabayUrl(image) && !excluded.has(stockImageIdentity(pixabayUrl(image))))
-      : [];
-    const selected = pickDeterministic(images, title);
-    const imageUrl = selected ? pixabayUrl(selected) : "";
-    if (!selected || !imageUrl) return null;
-
-    return {
-      url: imageUrl,
-      alt: selected.tags || title,
-      credit: "Image from Pixabay",
-      provider: "Pixabay",
-      pageUrl: selected.pageURL
-    };
-  } catch {
-    return null;
+      const data = await response.json();
+      const images = Array.isArray(data.hits)
+        ? (data.hits as PixabayHit[]).filter((image) => pixabayUrl(image) && !excluded.has(stockImageIdentity(pixabayUrl(image))))
+        : [];
+      const selected = pickDeterministic(images, title);
+      const imageUrl = selected ? pixabayUrl(selected) : "";
+      if (selected && imageUrl) {
+        return {
+          url: imageUrl,
+          alt: selected.tags || title,
+          credit: "Image from Pixabay",
+          provider: "Pixabay",
+          pageUrl: selected.pageURL
+        };
+      }
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 export async function findStockImage({
@@ -289,9 +309,9 @@ export async function findStockImage({
   excludeUrls?: string[];
 }) {
   if (process.env.FEED_USE_STOCK_IMAGES === "false") return null;
-  const query = stockQuery(title, category);
-  if (!query) return null;
+  const queries = stockQueries(title, category);
+  if (!queries.length) return null;
 
   const excluded = new Set(excludeUrls.map(stockImageIdentity));
-  return (await pexelsImage(query, title, excluded)) || (await pixabayImage(query, title, excluded));
+  return (await pexelsImage(queries, title, excluded)) || (await pixabayImage(queries, title, excluded));
 }
