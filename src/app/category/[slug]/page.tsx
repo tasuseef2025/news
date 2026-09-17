@@ -48,7 +48,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const image = absoluteUrl(`/api/og?title=${encodeURIComponent(`${category} News`)}&category=${encodeURIComponent(category)}`);
   await connectDB();
   const eligibleArticles = await Article.countDocuments({ ...publicArticleFilter(), category });
-  const indexable = page === 1 && eligibleArticles >= 2;
+  const indexable = page === 1 && eligibleArticles >= 1;
 
   return {
     title: page > 1 ? `${category} News and Latest Updates - Page ${page}` : `${category} News and Latest Updates`,
