@@ -485,7 +485,7 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         max_output_tokens: Math.max(1800, Number(process.env.FEED_AI_MAX_OUTPUT_TOKENS || 1800)),
         reasoning: { effort: process.env.OPENAI_REASONING_EFFORT || "none" },
         text: {
@@ -529,11 +529,11 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
           {
             role: "system",
             content:
-              "You are a senior digital news editor and SEO content quality controller for Novexa News. Treat RSS metadata as source material, not prose to paraphrase. Extract only supported factual claims, then create genuinely original structure and wording. Never copy sentences, paragraph order, thumbnails, or distinctive phrasing. Never invent facts, quotes, numbers, dates, allegations, causes, reactions, or outcomes. Do not claim on-the-ground or independent reporting. Do not write generic AI filler, boilerplate conclusions, keyword-stuffed paragraphs, fake urgency, or repeated templates. If the supplied evidence cannot support a useful article with specific reader value, set approved to false. Prioritize accuracy, originality, source transparency, and information value over length. Return only valid JSON."
+              "You are a master SEO news editor for Novexa News. Write engaging, authoritative, search-engine-optimized journalism that ranks high on Google Search and Google News. Extract core verified facts from source metadata, then structure a completely original, well-formatted article. Rewrite the headline to be catchy, informative, and 50-60 characters long. Integrate the target primary keyword naturally within the first 100 words, meta title, meta description, and at least one H2 section. Break long text into readable paragraphs with clear '## H2' subheadings. Never use generic filler, AI clichés ('in conclusion', 'it remains to be seen', 'important update'), or duplicate phrasing. Prioritize reader value, clarity, and factual accuracy. Return only valid JSON."
           },
           {
             role: "user",
-            content: `Using the provided news source metadata, write a completely original, factual, SEO-optimized Novexa News article.
+            content: `Using the provided news source metadata, write a completely original, high-ranking, SEO-optimized Novexa News article.
 
 Original feed title: ${entry.title}
 Category: ${category}
@@ -545,18 +545,18 @@ Feed tag: ${entry.category || "N/A"}
 Keyword research:
 Primary keyword: ${keywordResearch.primaryKeyword}
 Related keywords: ${keywordResearch.relatedKeywords.join(", ")}
-Research source: ${keywordResearch.source === "google-trends" ? `Google Trends ${keywordResearch.geo || ""}, approximate traffic ${keywordResearch.approximateTraffic || 0}+` : "editorial fallback; no relevant live trend matched"}
+Research source: ${keywordResearch.source === "google-trends" ? `Google Trends ${keywordResearch.geo || ""}, approximate traffic ${keywordResearch.approximateTraffic || 0}+` : "editorial research"}
 
 Return only valid JSON with this exact shape:
 {
-  "title": "unique SEO title, 50-60 characters, accurate and not copied",
+  "title": "compelling SEO title, 50-60 characters, distinct from source",
   "slug": "seo-friendly-url-slug",
-  "excerpt": "concise factual standfirst",
+  "excerpt": "concise, engaging 20-30 word standfirst containing the primary keyword",
   "metaTitle": "SEO title, 50-60 characters",
-  "metaDescription": "SEO meta description, 150-160 characters",
+  "metaDescription": "SEO meta description, 140-160 characters with call to action",
   "keywords": ["primary keyword", "secondary keyword"],
   "tags": ["5 to 8 relevant tags"],
-  "imageAlt": "descriptive image alt text suggestion",
+  "imageAlt": "descriptive, keyword-rich image alt text",
   "factualClaims": ["atomic claims directly supported by supplied source material"],
   "qualityAssessment": {
     "approved": true,
@@ -566,29 +566,17 @@ Return only valid JSON with this exact shape:
     "factualConfidence": 0,
     "duplicateRisk": 0
   },
-  "content": "Write a complete article between ${minimumWords} and ${preferredMaximumWords} words when the supplied evidence supports that length. Include a strong lead, what happened, important facts, why it matters, supported context, and what happens next only when known. Use H2: heading lines where useful."
+  "content": "Write an in-depth, structured article between ${minimumWords} and ${preferredMaximumWords} words. Use '## H2' headings to break the story into clear sections (e.g., Key Developments, Background, Impact). Ensure the primary keyword appears in the lead paragraph and one H2 heading naturally."
 }
 
-Editorial rules:
-- Use a professional journalistic tone.
-- Preserve only verified facts from the feed/source metadata and avoid speculation.
-- Do not copy sentences, distinctive phrasing, article structure, images, thumbnails, or the source headline.
-- Rewrite the headline with a clearly different angle and wording while keeping verified facts accurate.
-- Use the researched primary keyword naturally in the title, introduction, one heading, metadata, and body only when grammar and facts support it.
-- Never keyword-stuff or create awkward SEO sentences.
-- Do not use generic filler such as "the immediate takeaway is", "this development is important for readers", "as the situation develops", "the implications could be significant", or "it remains to be seen what happens next" unless the sentence contains specific verified information.
-- Do not force the same section template onto every story. Choose headings that fit the story type and omit sections that add no specific value.
-- Do not claim a query is trending or mention search volume inside the article.
-- Never change the story angle or introduce unrelated facts merely to fit a high-volume keyword.
-- Do not paraphrase the RSS summary sentence by sentence or preserve its structure.
-- Explain why the story matters and add background only when that context is specific, relevant, and supported by the supplied source metadata.
-- A publishable article must contain at least ${minimumWords} words. Use the available verified facts to add useful explanation and supported context, not repetition.
-- If the evidence cannot support at least ${minimumWords} factual words, return qualityAssessment.approved=false instead of adding filler or inventing details.
-- Keep attribution inside the article naturally using the source/outlet name only; do not print the source URL in the article body.
-- Before approving, ask whether Novexa's version gives a reader clearer context, useful explanation, or better organization than the original metadata. If not, set approved=false.
-- Do not say the article was written by AI.
-- Do not include markdown symbols, bullet characters, underscores, asterisks, placeholder ellipses, escaped apostrophes, or HTML entities such as &apos; or &amp;.
-- Do not include any image URL.`
+Editorial & SEO rules:
+- Use a professional, authoritative journalistic tone.
+- Preserve only verified facts from the feed/source metadata.
+- Completely rewrite the headline with a fresh, high-CTR angle.
+- Naturally place the primary keyword in the headline, lead paragraph, one H2 heading, and meta tags.
+- Never use generic AI filler phrases.
+- A publishable article must contain at least ${minimumWords} words.
+- Return qualityAssessment.approved=true only if facts support a comprehensive, high-quality ${minimumWords}+ word article.`
           }
         ]
       })
