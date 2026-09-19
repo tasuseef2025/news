@@ -32,8 +32,8 @@ export default function NovexaNewsDeskAuthorPage() {
         title="Novexa News Desk"
         description="The byline for collaborative newsroom coverage at Novexa News."
       >
-        <p><strong>Novexa News Desk</strong> is used for stories produced through our standard collaborative process: a story is drafted with the help of an AI writing assistant from verified source material, then reviewed, fact-checked, edited and approved by a member of our editorial team before it is published. It is a byline for the newsroom as a whole, not a named individual.</p>
-        <p>Every article credited to Novexa News Desk has passed through the same editorial review as work published under a named author&apos;s byline: sources are checked, claims are verified against the available material, and a person takes responsibility for the story before it goes live. See our <a href="/editorial-policy">Editorial Policy</a> for the full standards this desk follows, including how we handle AI-assisted drafting, sourcing, corrections and independence.</p>
+        <p><strong>Novexa News Desk</strong> is a newsroom byline, not a named individual. It covers both collaborative reporting and selected feed-based stories drafted with AI assistance and published after automated checks.</p>
+        <p>Some Desk articles receive human review before publication; others do not. Feed-based stories must pass checks for sourcing, factual support, originality, duplication and page quality before going live. See our <a href="/editorial-policy">Editorial Policy</a> for more detail and how to request a correction.</p>
         <AuthorArticles names={["Novexa News Desk"]} />
       </StaticPage>
     </>

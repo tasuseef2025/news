@@ -8,6 +8,7 @@ import { findStockImage, isTrackingOrPlaceholderImage, stockImageIdentity, type 
 import { researchKeywords, type KeywordResearch } from "@/lib/trending-keywords";
 import { assessArticleQuality, contentHash, normalizeSourceUrl, textSimilarity, validatePublishReadiness, type QualityAssessment } from "@/lib/article-quality";
 import { ArticleRevision } from "@/models/ArticleRevision";
+import { extractSourceArticle } from "@/lib/source-extraction";
 
 export type FeedEntry = {
   title: string;
@@ -70,6 +71,35 @@ export type AiEditorialResult = {
   editorial: EditorialPackage | null;
   failureReason?: string;
 };
+
+export function validateFeedPublishReadiness(
+  editorial: EditorialPackage & { generationMode: GenerationMode },
+  category: string,
+  sourceName: string,
+  sourceUrl: string,
+  duplicateRisk: number
+) {
+  const ogImage = generatedOgPath(editorial.title, category);
+  const candidate = normalizeArticlePayload({
+    title: editorial.title,
+    slug: editorial.slug,
+    excerpt: editorial.excerpt,
+    content: editorial.content,
+    category,
+    author: "Novexa News Desk",
+    image: ogImage,
+    imageAlt: editorial.imageAlt || `${editorial.title} news image`,
+    ogImage,
+    metaTitle: editorial.metaTitle,
+    metaDescription: editorial.metaDescription,
+    status: "published",
+    generationMode: editorial.generationMode,
+    duplicateRisk,
+    sourceName,
+    sourceUrl
+  });
+  return validatePublishReadiness(candidate);
+}
 
 function decodeEntities(value = "") {
   return value
@@ -456,9 +486,9 @@ export async function createPacedFeedAiBudget(): Promise<FeedAiBudget> {
   };
 }
 
-async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean, keywordResearch: KeywordResearch): Promise<EditorialResult> {
+async function editorialPackage(entry: FeedEntry, sourceName: string, category: string, useAi: boolean, keywordResearch: KeywordResearch, sourceText?: string): Promise<EditorialResult> {
   if (useAi) {
-    const generated = await aiEditorialPackage(entry, sourceName, category, keywordResearch);
+    const generated = await aiEditorialPackage(entry, sourceName, category, keywordResearch, sourceText);
     if (generated.editorial) return { ...generated.editorial, generationMode: "ai", aiAttempted: true };
     return {
       ...fallbackEditorialPackage(entry, sourceName, category),
@@ -471,7 +501,7 @@ async function editorialPackage(entry: FeedEntry, sourceName: string, category: 
   return { ...fallbackEditorialPackage(entry, sourceName, category), generationMode: "feed", aiAttempted: false };
 }
 
-export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch): Promise<AiEditorialResult> {
+export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, category: string, keywordResearch: KeywordResearch, sourceText?: string): Promise<AiEditorialResult> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return { editorial: null, failureReason: "OPENAI_API_KEY is not configured" };
   const minimumWords = minimumPublishWords();
@@ -518,10 +548,10 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
                   properties: {
                     approved: { type: "boolean" },
                     reason: { type: "string" },
-                    qualityScore: { type: "number", minimum: 0, maximum: 100 },
-                    originalityScore: { type: "number", minimum: 0, maximum: 100 },
-                    factualConfidence: { type: "number", minimum: 0, maximum: 100 },
-                    duplicateRisk: { type: "number", minimum: 0, maximum: 100 }
+                    qualityScore: { type: "number", minimum: 0, maximum: 100, description: "Score out of 100, never out of 10. For example, 85 means strong quality." },
+                    originalityScore: { type: "number", minimum: 0, maximum: 100, description: "Score out of 100, never out of 10. For example, 85 means strong originality." },
+                    factualConfidence: { type: "number", minimum: 0, maximum: 100, description: "Score out of 100, never out of 10. For example, 90 means strong factual support." },
+                    duplicateRisk: { type: "number", minimum: 0, maximum: 100, description: "Risk out of 100, never out of 10. For example, 20 means low duplicate risk." }
                   }
                 },
                 content: { type: "string" }
@@ -533,17 +563,18 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
           {
             role: "system",
             content:
-              "You are a master SEO news editor for Novexa News. Write engaging, authoritative, search-engine-optimized journalism that ranks high on Google Search and Google News. Extract core verified facts from source metadata, then structure a completely original, well-formatted article. Rewrite the headline to be catchy, informative, and 50-60 characters long. Integrate the target primary keyword naturally within the first 100 words, meta title, meta description, and at least one H2 section. Break long text into readable paragraphs with clear '## H2' subheadings. Never use generic filler, AI clichés ('in conclusion', 'it remains to be seen', 'important update'), or duplicate phrasing. Prioritize reader value, clarity, and factual accuracy. Return only valid JSON."
+              "You are a news editor for Novexa News. Write a clear original report using only facts in the publisher material supplied. Attribute claims to the named publisher when needed. Do not mention feeds, snippets, metadata, source text, the writing process, editorial review, or how this article was prepared. Do not invent details to reach the requested length; if the material is too thin, set qualityAssessment.approved to false. Use natural paragraphs and useful section headings. Avoid generic filler and repeated phrasing. Return only valid JSON."
           },
           {
             role: "user",
-            content: `Using the provided news source metadata, write a completely original, high-ranking, SEO-optimized Novexa News article.
+            content: `Using the publisher's reported facts below, write an original Novexa News article.
 
 Original feed title: ${entry.title}
 Category: ${category}
 Source: ${sourceName}
 Source URL: ${entry.link}
-Feed summary: ${compactText(entry.description || entry.title)}
+Publisher excerpt: ${compactText(entry.description || entry.title)}
+${sourceText ? `Publisher article text: ${compactText(sourceText, 12000)}` : ""}
 Feed tag: ${entry.category || "N/A"}
 
 Keyword research:
@@ -565,10 +596,10 @@ Return only valid JSON with this exact shape:
   "qualityAssessment": {
     "approved": true,
     "reason": "brief evidence-based reason",
-    "qualityScore": 0,
-    "originalityScore": 0,
-    "factualConfidence": 0,
-    "duplicateRisk": 0
+    "qualityScore": 85,
+    "originalityScore": 85,
+    "factualConfidence": 90,
+    "duplicateRisk": 20
   },
   "content": "Write an in-depth, structured article between ${minimumWords} and ${preferredMaximumWords} words. Use '## H2' headings to break the story into clear sections (e.g., Key Developments, Background, Impact). Ensure the primary keyword appears in the lead paragraph and one H2 heading naturally."
 }
@@ -580,6 +611,7 @@ Editorial & SEO rules:
 - Naturally place the primary keyword in the headline, lead paragraph, one H2 heading, and meta tags.
 - Never use generic AI filler phrases.
 - A publishable article must contain at least ${minimumWords} words.
+- All qualityAssessment numbers use a 0-100 scale, not a 0-10 scale. Score the actual article and source evidence; the sample numbers above are format examples, not target scores.
 - Return qualityAssessment.approved=true only if facts support a comprehensive, high-quality ${minimumWords}+ word article.`
           }
         ]
@@ -782,7 +814,9 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
           researchedAt: new Date()
         };
 
-    const editorial = await editorialPackage(entry, source.name, category, useAi, keywordResearch);
+    const extracted = useAi ? await extractSourceArticle(normalizedUrl, 8000) : null;
+    const sourceText = extracted?.ok && extracted.wordCount >= 300 ? extracted.text : undefined;
+    const editorial = await editorialPackage(entry, source.name, category, useAi, keywordResearch, sourceText);
     if (editorial.aiAttempted) {
       aiUsedThisRun += 1;
       aiUsedToday += 1;
@@ -798,7 +832,7 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
       content: editorial.content,
       metaDescription: editorial.metaDescription,
       sourceTitle: entry.title,
-      sourceSummary: entry.description,
+      sourceSummary: sourceText || entry.description,
       sourceUrl: normalizedUrl,
       duplicateSimilarity: storyMatch?.similarity,
       updatingExisting: storyMatch?.kind === "exact",
@@ -818,18 +852,13 @@ export async function ingestPreparedFeedSource(source: PreparedFeedSource, optio
     // Final gate before anything can go live: the same readiness check the
     // manual editor API uses, so pipeline boilerplate, literal heading markers
     // and truncated headlines can never reach a published page from automation.
-    const readiness = validatePublishReadiness({
-      status: "published",
-      title: editorial.title,
-      excerpt: editorial.excerpt,
-      content: editorial.content,
-      metaTitle: editorial.metaTitle,
-      metaDescription: editorial.metaDescription,
-      generationMode: editorial.generationMode,
-      duplicateRisk: assessment.duplicateRisk,
-      sourceName: source.name,
-      sourceUrl: normalizedUrl
-    });
+    const readiness = validateFeedPublishReadiness(
+      editorial,
+      category,
+      source.name,
+      normalizedUrl,
+      assessment.duplicateRisk
+    );
     const approved = editorial.generationMode === "ai" && assessment.approved && readiness.approved;
     const shouldPublish = source.autoPublish && approved && publishedToday < dailyPublishLimit;
     const rejectionReasons = approved

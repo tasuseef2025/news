@@ -21,10 +21,7 @@ export async function GET(request: Request) {
   const authError = verifyCronRequest(request);
   if (authError) return authError;
 
-  // Automated feed publishing was retired on 19 August 2026; the editorial
-  // policy now states that every article is written by a person. This route
-  // stays in the codebase but refuses to run unless it is deliberately switched
-  // back on, so starting the cron worker cannot quietly contradict the policy.
+  // A deployment can disable feed publishing explicitly without removing the schedule.
   if (process.env.ENABLE_FEED_AUTOPUBLISH?.trim() === "false") {
     return NextResponse.json(
       { ok: false, skipped: "Automated feed publishing is disabled via ENABLE_FEED_AUTOPUBLISH=false." },

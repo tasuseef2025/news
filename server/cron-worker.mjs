@@ -6,9 +6,7 @@ if (!secret) {
   process.exit(1);
 }
 
-// Feed import is opt-in. Automated feed publishing was retired on 19 August
-// 2026 and the editorial policy now states that a person writes every article,
-// so this job is only scheduled when it is deliberately switched back on.
+// Feed import is opt-in for this worker; the VPS scheduler can call the route directly.
 const jobs = [
   ...(process.env.ENABLE_FEED_AUTOPUBLISH === "true"
     ? [{ name: "Import feeds", path: "/api/cron/feeds", intervalMs: 10 * 60 * 1000, runImmediately: true }]

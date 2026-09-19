@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assessArticleQuality, hasTruncatedHeadline, inspectArticleContent, normalizeSourceUrl, pipelineBoilerplateMatches, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
 import { normalizeHeadingMarkers } from "../src/lib/content-automation";
-import { scoreFeedCandidate, type FeedEntry } from "../src/lib/feed-ingestion";
+import { scoreFeedCandidate, validateFeedPublishReadiness, type FeedEntry } from "../src/lib/feed-ingestion";
 import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
 
 test("only explicitly approved articles enter public discovery surfaces", () => {
@@ -105,6 +105,23 @@ test("allows concise factual briefs when all publishing requirements are met", (
     generationMode: "manual"
   });
 
+  assert.equal(result.approved, true);
+});
+
+test("feed readiness checks a complete normalized article candidate", () => {
+  const result = validateFeedPublishReadiness({
+    generationMode: "ai",
+    title: "Transport Authority Publishes Updated City Routes",
+    slug: "transport-authority-updated-city-routes",
+    excerpt: "The transport authority has published updated city routes and service times for commuters using the revised public network.",
+    content: Array.from({ length: 24 }, (_, index) => `Route ${index + 1} has a published timetable and service information for passengers.`).join(" "),
+    metaTitle: "Transport Authority Publishes Updated City Routes",
+    metaDescription: "The transport authority has issued updated routes and service times, giving passengers a new timetable for journeys across the affected city network.",
+    imageAlt: "Public buses serving commuters on updated city routes",
+    tags: ["Transport"]
+  }, "Pakistan", "Transport Authority", "https://example.com/routes", 5);
+
+  assert.deepEqual(result.reasons, []);
   assert.equal(result.approved, true);
 });
 
