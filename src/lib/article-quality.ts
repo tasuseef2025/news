@@ -334,7 +334,7 @@ export function validatePublishReadiness(input: PublishReadinessInput) {
   if (!input.image) reasons.push("Article image is missing");
   if (!cleanText(input.imageAlt || "") || cleanText(input.imageAlt || "").length < 20) reasons.push("Image alt text is missing or too thin");
   if (metaTitleLength < 30 || metaTitleLength > 70) reasons.push("Meta title should be 30-70 characters");
-  if (metaDescriptionLength < 120 || metaDescriptionLength > 170) reasons.push("Meta description should be 120-170 characters");
+  if (metaDescriptionLength < 100 || metaDescriptionLength > 158) reasons.push("Meta description should be 100-158 characters");
   if (!input.canonicalUrl || !String(input.canonicalUrl).includes("/news/")) reasons.push("Self-referencing article canonical URL is missing");
   if (!input.ogImage) reasons.push("Open Graph image is missing");
   if (externallyBased && sources.length === 0) reasons.push("Externally sourced articles need at least one source URL or reference");
@@ -379,7 +379,7 @@ export function assessArticleQuality(input: {
   if (titleContentScore < 0.22) reasons.push("Headline does not sufficiently match the article");
   if (sourceTitleSimilarity >= 0.82) reasons.push("Headline is too similar to the source headline");
   reasons.push(...contentIssues.map((issue) => issue.message));
-  if (!input.metaDescription || cleanText(input.metaDescription).length < 120) reasons.push("Meta description is missing or too short");
+  if (!input.metaDescription || cleanText(input.metaDescription).length < 100) reasons.push("Meta description is missing or too short");
   if (!input.updatingExisting && duplicateRisk >= Number(process.env.FEED_MAX_DUPLICATE_RISK || 72)) reasons.push("Duplicate-story risk is too high");
 
   let qualityScore = 100;

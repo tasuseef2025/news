@@ -563,7 +563,27 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
           {
             role: "system",
             content:
-              "You are a news editor for Novexa News. Write a clear original report using only facts in the publisher material supplied. Attribute claims to the named publisher when needed. Do not mention feeds, snippets, metadata, source text, the writing process, editorial review, or how this article was prepared. Do not invent details to reach the requested length; if the material is too thin, set qualityAssessment.approved to false. Use natural paragraphs and useful section headings. Avoid generic filler and repeated phrasing. Return only valid JSON."
+            role: "system",
+            content:
+              "You are a master SEO news editor and journalist for Novexa News with deep expertise in the topic. Write engaging, authoritative, search-engine-optimized journalism that ranks high on Google Search and Google News. Your articles must demonstrate Experience, Expertise, Authoritativeness, and Trustworthiness (E-E-A-T).\n\n" +
+              "STRUCTURE RULES:\n" +
+              "- Rewrite the headline to be catchy, informative, and 50-60 characters long.\n" +
+              "- Open with a compelling lead paragraph (2-3 sentences) that answers Who, What, When, Where, Why. Do NOT open by echoing the headline verbatim or leading with the exact primary keyword phrase.\n" +
+              "- Use '## H2' for major sections (e.g., Key Developments, Background, Impact, What This Means).\n" +
+              "- Use '### H3' for sub-points within H2 sections where appropriate.\n" +
+              "- Break content into short, readable paragraphs (3-5 sentences each). No orphan single-sentence paragraphs.\n" +
+              "- Use bullet points (starting with '- ') for lists of 3 or more items where it aids clarity.\n\n" +
+              "KEYWORD & SEO RULES:\n" +
+              "- Place the primary keyword naturally within the first 100 words, in the meta title, meta description, and at least one H2 heading.\n" +
+              "- Do NOT stuff keywords. Keyword density should be 1-2%. Use natural synonyms and related terms.\n" +
+              "- The meta title must be 50-60 characters including spaces.\n" +
+              "- The meta description must be a compelling call-to-action sentence, 140-158 characters.\n\n" +
+              "QUALITY & TRUST RULES:\n" +
+              "- If the source contains a direct quote, include it with clear attribution (e.g., 'said [Name], [Title]').\n" +
+              "- Only include facts directly supported by the supplied source material. Do not invent figures, statistics, or names.\n" +
+              "- Never use AI clichés: 'in conclusion', 'it remains to be seen', 'it is worth noting', 'important update', 'in today's fast-paced world', 'as of the time of writing'.\n" +
+              "- Never describe the publishing pipeline, RSS feeds, or AI generation process.\n" +
+              "- Return only valid JSON."
           },
           {
             role: "user",
@@ -584,35 +604,34 @@ Research source: ${keywordResearch.source === "google-trends" ? `Google Trends $
 
 Return only valid JSON with this exact shape:
 {
-  "title": "compelling SEO title, 50-60 characters, distinct from source",
-  "slug": "seo-friendly-url-slug",
-  "excerpt": "concise, engaging 20-30 word standfirst containing the primary keyword",
-  "metaTitle": "SEO title, 50-60 characters",
-  "metaDescription": "SEO meta description, 140-160 characters with call to action",
-  "keywords": ["primary keyword", "secondary keyword"],
-  "tags": ["5 to 8 relevant tags"],
-  "imageAlt": "descriptive, keyword-rich image alt text",
-  "factualClaims": ["atomic claims directly supported by supplied source material"],
+  "title": "compelling SEO headline, 50-60 characters, distinct from source, high CTR",
+  "slug": "seo-friendly-url-slug-lowercase-hyphens",
+  "excerpt": "20-30 word standfirst answering who/what/why, containing the primary keyword naturally",
+  "metaTitle": "SEO title tag, 50-60 characters, primary keyword near the front",
+  "metaDescription": "140-158 character meta description with a clear call to action and primary keyword",
+  "keywords": ["primary keyword", "related keyword 1", "related keyword 2"],
+  "tags": ["5 to 8 relevant topic tags"],
+  "imageAlt": "descriptive 8-15 word image alt text using primary keyword and subject",
+  "factualClaims": ["atomic facts from the source only — no invented figures or names"],
   "qualityAssessment": {
     "approved": true,
-    "reason": "brief evidence-based reason",
+    "reason": "brief evidence-based justification",
     "qualityScore": 85,
     "originalityScore": 85,
     "factualConfidence": 90,
     "duplicateRisk": 20
   },
-  "content": "Write an in-depth, structured article between ${minimumWords} and ${preferredMaximumWords} words. Use '## H2' headings to break the story into clear sections (e.g., Key Developments, Background, Impact). Ensure the primary keyword appears in the lead paragraph and one H2 heading naturally."
+  "content": "Write a structured article between ${minimumWords} and ${preferredMaximumWords} words. Open with a 2-3 sentence lead that answers who/what/when/where/why. Use '## H2' for 2-4 major sections and '### H3' for sub-points. Use '- ' bullet lists where 3+ items would benefit. Include direct quotes with attribution if the source contains them. Primary keyword must appear in the lead paragraph and one H2 heading naturally."
 }
 
-Editorial & SEO rules:
-- Use a professional, authoritative journalistic tone.
-- Preserve only verified facts from the feed/source metadata.
-- Completely rewrite the headline with a fresh, high-CTR angle.
-- Naturally place the primary keyword in the headline, lead paragraph, one H2 heading, and meta tags.
-- Never use generic AI filler phrases.
-- A publishable article must contain at least ${minimumWords} words.
-- All qualityAssessment numbers use a 0-100 scale, not a 0-10 scale. Score the actual article and source evidence; the sample numbers above are format examples, not target scores.
-- Return qualityAssessment.approved=true only if facts support a comprehensive, high-quality ${minimumWords}+ word article.`
+Final checklist before returning JSON:
+- Headline is 50-60 characters and does NOT copy the source headline
+- Lead paragraph does NOT open with the exact primary keyword phrase
+- Primary keyword appears naturally in the lead, one H2, meta title, and meta description
+- Meta description is 140-158 characters with a call to action
+- Article is at least ${minimumWords} words with clear H2/H3 structure
+- No AI filler phrases, no pipeline self-references, no invented facts
+- qualityAssessment.approved=true only if the above are all satisfied`
           }
         ]
       })

@@ -1,0 +1,22 @@
+# Anthropic Disrupts Attempts to Misuse AI in Potential Biological Weapons Research
+
+By Syeda Manal Tirmizi
+
+SAN FRANCISCO, September 11, 2026: Artificial intelligence company Anthropic has disclosed that it identified and disrupted several attempts to misuse its Claude AI systems for potentially dangerous biological research, highlighting growing concerns among technology companies and policymakers over the ability of increasingly capable AI models to assist activities involving serious security and public-health risks.
+
+According to [Anthropic's September threat intelligence report](https://www.anthropic.com/threat-intelligence-report-september-2026), released on September 10, the company detected five cases in which its AI systems were used in research involving biological agents and experiments that could potentially have increased their transmissibility or ability to evade existing immunity, although the company did not establish that every individual involved had a confirmed intention to develop a biological weapon. Anthropic said the incidents nevertheless demonstrated how advanced AI systems could lower technical barriers surrounding highly sensitive scientific work and therefore require stronger safeguards as their capabilities continue to expand.
+
+The company said some of the activity involved users in countries including Russia, China and Iran, with researchers attempting to obtain assistance for biological experiments that raised concerns because of their potential dual-use applications, meaning that techniques developed for legitimate scientific purposes could also be adapted for harmful objectives. One reported case involved an effort to obtain assistance with research concerning chikungunya, while other cases involved avian influenza-related work, prompting Anthropic to intervene and restrict access to its systems.
+
+Anthropic's findings form part of a broader assessment of AI misuse that extends beyond biological research, with the company also reporting attempts to exploit Claude for cyber operations, military-related activities, surveillance and influence campaigns. The company said its investigations had identified increasingly sophisticated efforts to use AI for tasks that traditionally required significant technical expertise, raising concerns that advanced models could accelerate harmful activities by helping individuals or organizations perform complex work more efficiently.
+
+## Wider Misuse and Safeguards
+
+The report also highlighted cases involving the attempted use of Claude in military technology development, including activities associated with Russia, China and Yemen, while Anthropic said it had taken action against accounts connected to the reported misuse and strengthened its monitoring and safety mechanisms. [Reuters reported](https://www.thenationalnews.com/future/technology/2026/09/10/anthropic-ai-biological-weapons/) that the company's investigation reflects a wider concern that AI models are becoming capable of supporting increasingly complex operations across cybersecurity, weapons engineering and other sensitive fields.
+
+Anthropic said it has introduced stronger safeguards in newer generations of its models and continues to develop systems capable of identifying potentially dangerous requests before they can be used to facilitate harmful activity, while the company has also called for greater cooperation between technology firms, governments and researchers to establish effective standards for managing emerging AI risks.
+
+The disclosure comes amid a broader international debate over the regulation and responsible development of advanced artificial intelligence, particularly as governments and technology companies confront the challenge of balancing scientific and commercial innovation with safeguards against misuse. Experts have increasingly warned that the combination of powerful AI systems and biological research could create new security risks if adequate oversight mechanisms are not established.
+
+Anthropic's latest findings therefore underscore a growing policy challenge for the international community, as governments seek to ensure that increasingly capable artificial intelligence remains available for legitimate scientific and technological progress while preventing the same systems from being exploited to facilitate activities that could threaten public safety, national security or global health.
+

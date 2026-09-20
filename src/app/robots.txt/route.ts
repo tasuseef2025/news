@@ -6,8 +6,11 @@ export const revalidate = false;
 export function GET() {
   const body = `User-agent: *
 Allow: /
+# Allow OG image endpoint used for social preview cards and Google News thumbnails
 Allow: /api/og
-Disallow: /admin
+# Allow RSS feed for feed readers and Google News
+Allow: /rss.xml
+Disallow: /admin/
 Disallow: /api/
 Disallow: /auth/
 Sitemap: ${siteConfig.domain}/sitemap.xml
