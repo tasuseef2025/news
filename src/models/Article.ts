@@ -36,11 +36,10 @@ export type ArticleDocument = {
   generationMode?: "manual" | "ai" | "feed";
   primaryKeyword?: string;
   keywordResearch?: {
-    source: "google-news" | "google-trends" | "editorial";
+    source: "google-trends" | "editorial";
     relatedKeywords: string[];
     geo?: string;
     approximateTraffic?: number;
-    newsMatches?: number;
     researchedAt: Date;
   };
   image: string;
@@ -104,11 +103,10 @@ const articleSchema = new Schema<ArticleDocument>(
     generationMode: { type: String, enum: ["manual", "ai", "feed"], default: "manual", index: true },
     primaryKeyword: { type: String, trim: true, index: true },
     keywordResearch: {
-      source: { type: String, enum: ["google-news", "google-trends", "editorial"] },
+      source: { type: String, enum: ["google-trends", "editorial"] },
       relatedKeywords: [{ type: String, trim: true }],
       geo: String,
       approximateTraffic: Number,
-      newsMatches: Number,
       researchedAt: Date
     },
     image: { type: String, required: true },

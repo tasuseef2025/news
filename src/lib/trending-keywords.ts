@@ -4,14 +4,11 @@ import type { FeedEntry } from "@/lib/feed-ingestion";
 export type KeywordResearch = {
   primaryKeyword: string;
   relatedKeywords: string[];
-  source: "google-news" | "google-trends" | "editorial";
+  source: "google-trends" | "editorial";
   geo?: string;
   approximateTraffic?: number;
-  newsMatches?: number;
   researchedAt: Date;
 };
-
-type GoogleNewsItem = { title: string; geo: string };
 
 type TrendItem = {
   query: string;
@@ -26,7 +23,6 @@ type TrendCache = {
 };
 
 const cache = new Map<string, TrendCache>();
-const newsCache = new Map<string, { expiresAt: number; items: GoogleNewsItem[] }>();
 const CACHE_MS = 15 * 60 * 1000;
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "been", "by", "for", "from", "has", "have", "how",
@@ -103,25 +99,6 @@ async function fetchGeoTrends(geo: string): Promise<TrendItem[]> {
   return items;
 }
 
-async function fetchGoogleNews(geo: string): Promise<GoogleNewsItem[]> {
-  const cached = newsCache.get(geo);
-  if (cached && cached.expiresAt > Date.now()) return cached.items;
-
-  const response = await fetch(`https://news.google.com/rss?hl=en&gl=${encodeURIComponent(geo)}&ceid=${encodeURIComponent(geo)}:en`, {
-    headers: { "User-Agent": "NovexaNewsBot/1.0" },
-    signal: AbortSignal.timeout(8000),
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(`Google News RSS returned ${response.status} for ${geo}`);
-
-  const xml = await response.text();
-  const items = [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)]
-    .map((match) => ({ title: readTag(match[1], "title").replace(/\s+-\s+[^-]+$/, "").trim(), geo }))
-    .filter((item) => item.title);
-  newsCache.set(geo, { expiresAt: Date.now() + CACHE_MS, items });
-  return items;
-}
-
 function relevance(item: TrendItem, storyText: string) {
   const storyTokens = new Set(tokenize(storyText));
   const queryTokens = tokenize(item.query);
@@ -162,31 +139,6 @@ function relatedKeywords(primaryKeyword: string, entry: FeedEntry) {
 export async function researchKeywords(entry: FeedEntry): Promise<KeywordResearch> {
   const fallback = editorialKeyword(entry);
   const researchedAt = new Date();
-
-  if (process.env.FEED_GOOGLE_NEWS_ENABLED !== "false") {
-    const geos = (process.env.FEED_GOOGLE_NEWS_GEOS || "PK,US,GB,IN")
-      .split(",")
-      .map((geo) => geo.trim().toUpperCase())
-      .filter(Boolean)
-      .slice(0, 6);
-    const settled = await Promise.allSettled(geos.map(fetchGoogleNews));
-    const storyText = `${entry.title} ${entry.description} ${entry.category || ""}`;
-    const matches = settled
-      .flatMap((result) => result.status === "fulfilled" ? result.value : [])
-      .map((item) => ({ item, score: relevance({ query: item.title, approximateTraffic: 0, geo: item.geo, newsTitles: [] }, storyText) }))
-      .filter((match) => match.score >= 0.55)
-      .sort((left, right) => right.score - left.score);
-    if (matches.length) {
-      return {
-        primaryKeyword: fallback,
-        relatedKeywords: relatedKeywords(fallback, entry),
-        source: "google-news",
-        geo: matches[0].item.geo,
-        newsMatches: matches.length,
-        researchedAt
-      };
-    }
-  }
 
   if (process.env.FEED_TRENDS_ENABLED === "false") {
     return { primaryKeyword: fallback, relatedKeywords: relatedKeywords(fallback, entry), source: "editorial", researchedAt };
