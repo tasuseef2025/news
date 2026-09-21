@@ -72,15 +72,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const requireGoogleNewsMatch = process.env.FEED_REQUIRE_GOOGLE_NEWS_MATCH?.trim() === "true";
-  if (requireGoogleNewsMatch) {
-    for (const source of preparedSources) {
-      source.entries = source.entries.filter((entry) =>
-        keywordResearchByUrl.get(normalizeSourceUrl(entry.link))?.source === "google-news"
-      );
-    }
-  }
-
   preparedSources.sort((left, right) => {
     const best = (source: PreparedFeedSource) => Math.max(0, ...source.entries.map((entry) => priorityByUrl.get(normalizeSourceUrl(entry.link)) || 0));
     return best(right) - best(left);
@@ -143,7 +134,6 @@ export async function GET(request: Request) {
       attempted: aiBudget.attempted,
       remainingToday: aiBudget.remainingToday
     },
-    requireGoogleNewsMatch,
     results,
     ranAt: new Date().toISOString()
   });
