@@ -45,7 +45,7 @@ npm run build
 - [Deployment](docs/DEPLOYMENT.md)
 - [Feed Ingestion](docs/FEED_INGESTION.md)
 - [Automation](docs/AUTOMATION.md)
-- [Vercel Cron Notes](docs/VERCEL_CRON.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
 - [Live Scores](docs/LIVE_SCORES.md)
 - [Content Quality And SEO Operations](docs/CONTENT_QUALITY.md)
 - [SEO And Indexing Audit - 2026-08-26](docs/SEO_AUDIT_2026-08-26.md)

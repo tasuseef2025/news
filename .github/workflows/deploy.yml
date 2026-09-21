@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
-      - master
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -18,23 +22,27 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          command_timeout: 20m
           script: |
             set -e
-            echo "🚀 Navigating to app directory..."
+            echo "Navigating to app directory..."
             cd /var/www/newswebsite
 
-            echo "📥 Pulling latest code..."
-            git fetch --all
-            git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
 
-            echo "📦 Installing dependencies..."
-            npm install
+            echo "Installing clean dependencies..."
+            rm -rf node_modules .next
+            npm ci --include=optional
+            npm install --no-save --package-lock=false lightningcss-linux-x64-gnu@1.32.0
 
-            echo "🏗️ Building Next.js application..."
+            echo "Building Next.js application..."
             npm run build
 
-            echo "🔄 Reloading PM2 process..."
+            echo "Reloading PM2 process..."
             pm2 reload novexa-news --update-env || pm2 start npm --name "novexa-news" -- start -- -p 3000
+            pm2 save
 
-            echo "✅ Deployment completed successfully!"
+            echo "Deployment completed successfully."
             pm2 status

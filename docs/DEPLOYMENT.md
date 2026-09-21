@@ -19,7 +19,7 @@ NEXT_TELEMETRY_DISABLED=1
 PORT=3000
 ```
 
-`CRON_BASE_URL` is optional for Vercel. For Docker Compose it is set to `http://web:3000` so the cron container can call the web container.
+For Docker Compose, `CRON_BASE_URL` is set to `http://web:3000` so the cron container can call the web container.
 
 Validate before deployment:
 
@@ -29,13 +29,17 @@ npm run typecheck
 npm run build
 ```
 
-## Vercel
+## Netcup VPS
 
-1. Set all environment variables in Vercel Project Settings, including `CRON_SECRET`.
-2. Use the default Next.js build command: `npm run build`.
-3. Deploy.
-4. Seed the first admin from a secure terminal with the production environment loaded: `npm run seed:admin`.
-5. The schedules in `vercel.json` run feed imports every 10 minutes, trending updates every 30 minutes, and SEO refresh every hour.
+Pushes to `main` run `.github/workflows/deploy.yml`. The workflow connects to the VPS, checks out `origin/main`, performs a clean dependency install, builds the application, and reloads the `novexa-news` PM2 process.
+
+Configure these GitHub Actions repository secrets:
+
+- `VPS_HOST`
+- `VPS_USERNAME`
+- `VPS_SSH_KEY` (recommended) or `VPS_PASSWORD`
+
+The application directory on the VPS is `/var/www/newswebsite`. Keep the production `.env` on the VPS; it is not copied from GitHub Actions.
 
 ## Docker
 

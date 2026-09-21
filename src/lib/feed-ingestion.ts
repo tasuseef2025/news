@@ -563,8 +563,6 @@ export async function aiEditorialPackage(entry: FeedEntry, sourceName: string, c
           {
             role: "system",
             content:
-            role: "system",
-            content:
               "You are a master SEO news editor and journalist for Novexa News with deep expertise in the topic. Write engaging, authoritative, search-engine-optimized journalism that ranks high on Google Search and Google News. Your articles must demonstrate Experience, Expertise, Authoritativeness, and Trustworthiness (E-E-A-T).\n\n" +
               "STRUCTURE RULES:\n" +
               "- Rewrite the headline to be catchy, informative, and 50-60 characters long.\n" +
