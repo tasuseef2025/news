@@ -165,6 +165,16 @@ test("prioritizes relevant trending feed candidates", () => {
   });
 
   assert.ok(trending > fallback + 50);
+
+  const googleNews = scoreFeedCandidate(entry, "Business", {
+    primaryKeyword: "central bank interest rates",
+    relatedKeywords: [],
+    source: "google-news",
+    geo: "PK",
+    newsMatches: 2,
+    researchedAt: new Date()
+  });
+  assert.ok(googleNews > fallback + 50);
 });
 
 test("rejects leaked publishing-pipeline boilerplate", () => {

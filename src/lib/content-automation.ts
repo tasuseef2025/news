@@ -24,10 +24,11 @@ type ArticleLike = {
   generationMode?: "manual" | "ai" | "feed";
   primaryKeyword?: string;
   keywordResearch?: {
-    source: "google-trends" | "editorial";
+    source: "google-news" | "google-trends" | "editorial";
     relatedKeywords: string[];
     geo?: string;
     approximateTraffic?: number;
+    newsMatches?: number;
     researchedAt: Date;
   };
   imageCredit?: string;

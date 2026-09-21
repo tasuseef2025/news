@@ -456,9 +456,11 @@ export function scoreFeedCandidate(entry: FeedEntry, fallbackCategory: string, k
   const evidenceScore = Math.min(30, feedSummaryLength(entry) / 20);
   const ageHours = entry.publishedAt ? Math.max(0, (Date.now() - entry.publishedAt.getTime()) / 3_600_000) : 24;
   const freshnessScore = Math.max(0, 24 - ageHours);
-  const trendScore = keywordResearch.source === "google-trends"
-    ? 55 + Math.min(35, Math.log10(Math.max(10, keywordResearch.approximateTraffic || 10)) * 8)
-    : 0;
+  const trendScore = keywordResearch.source === "google-news"
+    ? 70 + Math.min(20, Math.max(1, keywordResearch.newsMatches || 1) * 4)
+    : keywordResearch.source === "google-trends"
+      ? 55 + Math.min(35, Math.log10(Math.max(10, keywordResearch.approximateTraffic || 10)) * 8)
+      : 0;
   return Math.round((trendScore + evidenceScore + freshnessScore + categoryWeight) * 100) / 100;
 }
 
@@ -598,7 +600,11 @@ Feed tag: ${entry.category || "N/A"}
 Keyword research:
 Primary keyword: ${keywordResearch.primaryKeyword}
 Related keywords: ${keywordResearch.relatedKeywords.join(", ")}
-Research source: ${keywordResearch.source === "google-trends" ? `Google Trends ${keywordResearch.geo || ""}, approximate traffic ${keywordResearch.approximateTraffic || 0}+` : "editorial research"}
+Research source: ${keywordResearch.source === "google-news"
+  ? `Google News recent coverage (${keywordResearch.geo || "global"}, ${keywordResearch.newsMatches || 1} matching headline signals)`
+  : keywordResearch.source === "google-trends"
+    ? `Google Trends ${keywordResearch.geo || ""}, approximate traffic ${keywordResearch.approximateTraffic || 0}+`
+    : "editorial research"}
 
 Return only valid JSON with this exact shape:
 {
