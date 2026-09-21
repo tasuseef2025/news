@@ -31,7 +31,7 @@ npm run build
 
 ## Netcup VPS
 
-Pushes to `main` run `.github/workflows/deploy.yml`. The workflow connects to the VPS, checks out `origin/main`, performs a clean dependency install, builds the application, and reloads the `novexa-news` PM2 process.
+Pushes to `main` run `.github/workflows/deploy.yml`. The workflow connects to the VPS, checks out `origin/main`, performs a clean dependency install, builds the standalone application, reloads the `novexa-news` PM2 process from `ecosystem.config.cjs`, and verifies `/api/health` locally before reporting success.
 
 Configure these GitHub Actions repository secrets:
 

@@ -40,9 +40,29 @@ jobs:
             echo "Building Next.js application..."
             npm run build
 
+            echo "Preparing standalone runtime assets..."
+            mkdir -p .next/standalone/.next
+            cp -R .next/static .next/standalone/.next/static
+            if [ -d public ]; then
+              cp -R public .next/standalone/public
+            fi
+
             echo "Reloading PM2 process..."
-            pm2 reload novexa-news --update-env || pm2 start npm --name "novexa-news" -- start -- -p 3000
+            pm2 delete novexa-news 2>/dev/null || true
+            pm2 start ecosystem.config.cjs --update-env
             pm2 save
+
+            echo "Checking local application health..."
+            for attempt in 1 2 3 4 5 6; do
+              if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
+                break
+              fi
+              if [ "$attempt" -eq 6 ]; then
+                pm2 logs novexa-news --lines 100 --nostream
+                exit 1
+              fi
+              sleep 5
+            done
 
             echo "Deployment completed successfully."
             pm2 status
