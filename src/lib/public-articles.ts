@@ -28,16 +28,45 @@ const fallbackPhrases = [
   "readers who want plain language rather than a thin summary"
 ];
 
+// Keep leaked ingestion copy off every discovery surface. These mirror the
+// broader checks in inspectArticleContent(), but are expressed as MongoDB
+// predicates so homepage/category/footer queries can reject bad rows before
+// selecting card fields.
+const pipelineContentPatterns = [
+  "\\bRSS\\s+(?:feeds?|updates?|alerts?|reviews?|monitoring|metadata|items?|snippets?)\\b",
+  "\\b(?:active|monitored|latest)\\s+RSS\\b",
+  "\\b(?:story|update|item) came through the\\b",
+  "\\bneeds? a human version\\b",
+  "\\bneeds? a fuller treatment\\b",
+  "\\bshort feed headline\\b",
+  "\\bfeed summary\\b",
+  "\\bnot independently verified additional details\\b",
+  "\\bhuman-readable article\\b",
+  "\\bbare headline\\b",
+  "\\bclipped rewrite\\b",
+  "\\bcame through the monitored\\b",
+  "\\bis (?:one|among) (?:of )?the latest (?:items|updates|top updates) (?:found|picked up)\\b",
+  "\\bfound in MongoDB\\b|\\bin MongoDB yet\\b|\\bMongoDB (?:collection|database|query|document)s?\\b"
+];
+
+const malformedExcerptPattern = "(?:^|\\s)h[1-6]:\\s";
+
 const garbledTitlePattern = /^(Pakistan|World|Technology|Business|Sports|Politics|Health|Entertainment|Science)\s+update:/i;
 
 export function publicArticleFilter() {
+  const contentExclusions = [
+    ...fallbackPhrases.map((phrase) => ({ content: { $regex: phrase, $options: "i" } })),
+    ...pipelineContentPatterns.map((pattern) => ({ content: { $regex: pattern, $options: "i" } })),
+    { excerpt: { $regex: malformedExcerptPattern, $options: "i" } }
+  ];
+
   return {
     status: "published",
     reviewStatus: "approved",
     generationMode: { $in: ["manual", "ai"] },
     duplicateRisk: { $not: { $gt: maximumDuplicateRisk } },
     title: { $not: garbledTitlePattern },
-    $nor: fallbackPhrases.map((phrase) => ({ content: { $regex: phrase, $options: "i" } }))
+    $nor: contentExclusions
   };
 }
 

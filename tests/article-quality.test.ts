@@ -17,6 +17,14 @@ test("only explicitly approved articles enter public discovery surfaces", () => 
   );
 });
 
+test("public discovery hides ingestion boilerplate and malformed excerpts", () => {
+  const filter = JSON.stringify(publicArticleFilter());
+
+  assert.match(filter, /human-readable article/i);
+  assert.match(filter, /active.*RSS/i);
+  assert.match(filter, /h\[1-6\]/i);
+});
+
 test("approved articles that meet the quality floor remain indexable", () => {
   assert.equal(
     isArticleIndexable({
