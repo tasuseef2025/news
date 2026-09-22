@@ -82,8 +82,20 @@ export function normalizeHeadingMarkers(content = "") {
   return content
     .replace(/\r\n/g, "\n")
     .split("\n")
-    .map((line) => line.replace(/^\s*h([1-6]):\s*/i, (_match, level: string) => `${"#".repeat(Number(level))} `))
+    .map((line) => line.replace(/^\s*h([1-6])(?:\s*:\s*|\s+)(?=\S)/i, (_match, level: string) => `${"#".repeat(Number(level))} `))
     .join("\n");
+}
+
+export function parseArticleHeading(block = "") {
+  const match = block.match(/^(?:h([1-6])(?:\s*:\s*|\s+)|(#{1,6})\s+)(\S[\s\S]*)$/i);
+  if (!match) return null;
+
+  const sourceLevel = match[1] ? Number(match[1]) : String(match[2]).length;
+  return {
+    // The article title is the page's only H1. Body H1 markers become H2.
+    level: sourceLevel <= 2 ? 2 : 3,
+    text: match[3].trim()
+  } as const;
 }
 
 export function generateExcerpt(content = "", max = 155) {

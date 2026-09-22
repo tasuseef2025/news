@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assessArticleQuality, hasTruncatedHeadline, inspectArticleContent, normalizeSourceUrl, pipelineBoilerplateMatches, textSimilarity, validatePublishReadiness } from "../src/lib/article-quality";
-import { normalizeHeadingMarkers } from "../src/lib/content-automation";
+import { normalizeHeadingMarkers, parseArticleHeading } from "../src/lib/content-automation";
 import { scoreFeedCandidate, validateFeedPublishReadiness, type FeedEntry } from "../src/lib/feed-ingestion";
 import { isArticleIndexable, publicArticleFilter } from "../src/lib/public-articles";
 
@@ -205,8 +205,15 @@ test("flags a literal heading marker left inside a paragraph", () => {
 });
 
 test("converts H2 markers into real headings before saving", () => {
-  const normalized = normalizeHeadingMarkers("H2: What happened\nThe minister spoke.\nh3: Reaction");
+  const normalized = normalizeHeadingMarkers("H2: What happened\nThe minister spoke.\nh3 Reaction");
   assert.equal(normalized, "## What happened\nThe minister spoke.\n### Reaction");
+});
+
+test("parses legacy heading labels without creating a second H1", () => {
+  assert.deepEqual(parseArticleHeading("H2 Match overview"), { level: 2, text: "Match overview" });
+  assert.deepEqual(parseArticleHeading("H3: Decision reversal"), { level: 3, text: "Decision reversal" });
+  assert.deepEqual(parseArticleHeading("# Background"), { level: 2, text: "Background" });
+  assert.equal(parseArticleHeading("The match began under difficult conditions."), null);
 });
 
 test("detects truncated headlines", () => {

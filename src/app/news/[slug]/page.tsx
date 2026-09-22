@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { articleCardFields, getArticleBySlug, serializeArticle } from "@/lib/articles";
 import { absoluteUrl } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
-import { articleBreadcrumbs, generateStructuredData } from "@/lib/content-automation";
+import { articleBreadcrumbs, generateStructuredData, parseArticleHeading } from "@/lib/content-automation";
 import { connectDB } from "@/lib/db";
 import { Article } from "@/models/Article";
 import { GoogleSwgBasic } from "@/components/seo/google-swg-basic";
@@ -301,12 +301,14 @@ function ArticleContent({ content }: { content: string }) {
   return (
     <div className="prose prose-slate max-w-none dark:prose-invert">
       {blocks.map((block, index) => {
-        if (/^(h2:|##\s+)/i.test(block)) {
-          return <h2 key={`${block}-${index}`} className="font-editorial mb-4 mt-10 border-t pt-5 text-3xl font-bold">{block.replace(/^(h2:|##\s+)/i, "").trim()}</h2>;
+        const heading = parseArticleHeading(block);
+
+        if (heading?.level === 2) {
+          return <h2 key={`${block}-${index}`} className="font-editorial mb-4 mt-10 border-t pt-5 text-3xl font-bold">{heading.text}</h2>;
         }
 
-        if (/^(h3:|###\s+)/i.test(block)) {
-          return <h3 key={`${block}-${index}`} className="font-editorial mb-3 mt-7 text-2xl font-bold">{block.replace(/^(h3:|###\s+)/i, "").trim()}</h3>;
+        if (heading?.level === 3) {
+          return <h3 key={`${block}-${index}`} className="font-editorial mb-3 mt-7 text-2xl font-bold">{heading.text}</h3>;
         }
 
         return (
